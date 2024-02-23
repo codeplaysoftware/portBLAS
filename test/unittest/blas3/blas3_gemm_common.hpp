@@ -86,7 +86,14 @@ inline std::vector<scalar_t> interleaved_to_strided(
   return output;
 }
 
-template <typename scalar_t, helper::AllocType mem_alloc>
+/**
+ * @brief verify gemm correctness against reference BLAS.
+ *
+ * @tparam scalar_in_t  type of input matrices elements (A, B)
+ * @tparam scalar_t  type of output matrix elements (C) and scalars
+ * (gemm_arguments)
+ */
+template <typename scalar_in_t, typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   std::string alloc;
   index_t offset;
@@ -110,7 +117,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   auto q = make_queue();
 
-  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+  if (std::is_same_v<scalar_in_t, cl::sycl::half> &&
       !q.get_device().has(cl::sycl::aspect::fp16)) {
     GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
   }
@@ -128,21 +135,27 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const index_t buffer_size_b = batch * size_b + offset;
   const index_t buffer_size_c = batch * size_c + offset;
 
-  std::vector<scalar_t> a_m(buffer_size_a);
-  std::vector<scalar_t> b_m(buffer_size_b);
+  std::vector<scalar_in_t> a_m(buffer_size_a);
+  std::vector<scalar_in_t> b_m(buffer_size_b);
   std::vector<scalar_t> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<scalar_t> c_m_cpu = c_m_gpu;
+
+  // Reference gemm & verification is evaluated on scalar_in_t data type when
+  // using mixed precision.
+  std::vector<scalar_in_t> c_m_cpu(buffer_size_c);
+  for (int i = 0; i < buffer_size_c; i++) {
+    c_m_cpu[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
+  }
 
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
-    reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
-                         a_m.data() + i * size_a + offset, lda,
-                         b_m.data() + i * size_b + offset, ldb, beta,
-                         c_m_cpu.data() + i * size_c + offset, ldc);
+    reference_blas::gemm<scalar_in_t>(
+        ta_str, tb_str, m, n, k, alpha, a_m.data() + i * size_a + offset, lda,
+        b_m.data() + i * size_b + offset, ldb, beta,
+        c_m_cpu.data() + i * size_c + offset, ldc);
   }
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -153,8 +166,10 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
     c_m_gpu = strided_to_interleaved(c_m_gpu, offset, ldc, n, batch);
   }
 
-  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_a, q);
-  auto m_b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_b, q);
+  auto m_a_gpu =
+      blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_a, q);
+  auto m_b_gpu =
+      blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_b, q);
   auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_c, q);
 
   auto copy_a =
@@ -188,7 +203,14 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   sb_handle.wait();
 
-  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
+  // Cast gemm output to match reference library's output type
+  std::vector<scalar_in_t> c_m_gpu_in(buffer_size_c);
+  for (int i = 0; i < buffer_size_c; i++) {
+    c_m_gpu_in[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
+  }
+
+  const bool isAlmostEqual =
+      utils::compare_vectors<scalar_in_t>(c_m_gpu_in, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 
   helper::deallocate<mem_alloc>(m_a_gpu, q);
@@ -196,7 +218,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   helper::deallocate<mem_alloc>(m_c_gpu, q);
 }
 
-template <typename scalar_t>
+template <typename scalar_in_t, typename scalar_t = scalar_in_t>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   std::string alloc;
   index_t offset;
@@ -217,12 +239,12 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
-    verify_gemm<scalar_t, helper::AllocType::usm>(arguments);
+    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::usm>(arguments);
 #else
     GTEST_SKIP();
 #endif
   } else {
-    verify_gemm<scalar_t, helper::AllocType::buffer>(arguments);
+    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::buffer>(arguments);
   }
 }
 
@@ -244,7 +266,14 @@ static std::string generate_name(
                      alpha, beta, ldaMul, ldbMul, ldcMul, batchType);
 }
 
-template <typename scalar_t, helper::AllocType mem_alloc>
+/**
+ * @brief verify gemm batched-strided correctness against reference BLAS.
+ *
+ * @tparam scalar_in_t  type of input matrices elements (A, B)
+ * @tparam scalar_t  type of output matrix elements (C) and scalars
+ * (gemm_batched_strided_arguments)
+ */
+template <typename scalar_in_t, typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(
     const gemm_batched_strided_arguments_t<scalar_t> arguments) {
   std::string alloc;
@@ -272,7 +301,7 @@ inline void verify_gemm(
 
   auto q = make_queue();
 
-  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+  if (std::is_same_v<scalar_in_t, cl::sycl::half> &&
       !q.get_device().has(cl::sycl::aspect::fp16)) {
     GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
   }
@@ -295,25 +324,33 @@ inline void verify_gemm(
   const index_t buffer_size_b = size_b + (batch - 1) * stride_b + offset;
   const index_t buffer_size_c = size_c + (batch - 1) * stride_c + offset;
 
-  std::vector<scalar_t> a_m(buffer_size_a);
-  std::vector<scalar_t> b_m(buffer_size_b);
+  std::vector<scalar_in_t> a_m(buffer_size_a);
+  std::vector<scalar_in_t> b_m(buffer_size_b);
   std::vector<scalar_t> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<scalar_t> c_m_cpu = c_m_gpu;
+
+  // Reference gemm & verification is evaluated on scalar_in_t data type when
+  // using mixed precision.
+  std::vector<scalar_in_t> c_m_cpu(buffer_size_c);
+  for (int i = 0; i < buffer_size_c; i++) {
+    c_m_cpu[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
+  }
 
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
-    reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
-                         a_m.data() + i * stride_a + offset, lda,
-                         b_m.data() + i * stride_b + offset, ldb, beta,
-                         c_m_cpu.data() + i * stride_c + offset, ldc);
+    reference_blas::gemm<scalar_in_t>(
+        ta_str, tb_str, m, n, k, alpha, a_m.data() + i * stride_a + offset, lda,
+        b_m.data() + i * stride_b + offset, ldb, beta,
+        c_m_cpu.data() + i * stride_c + offset, ldc);
   }
 
-  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_a, q);
-  auto m_b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_b, q);
+  auto m_a_gpu =
+      blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_a, q);
+  auto m_b_gpu =
+      blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_b, q);
   auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_c, q);
 
   auto copy_a =
@@ -334,10 +371,16 @@ inline void verify_gemm(
       blas::helper::copy_to_host(q, m_c_gpu, c_m_gpu.data(), buffer_size_c);
   sb_handle.wait(event);
 
-  const bool isAlmostEqual =
-      (stride_c_mul == 1)
-          ? utils::compare_vectors(c_m_gpu, c_m_cpu)
-          : utils::compare_vectors_strided(c_m_gpu, c_m_cpu, stride_c, size_c);
+  // Cast gemm output to match reference library's output type
+  std::vector<scalar_in_t> c_m_gpu_in(buffer_size_c);
+  for (int i = 0; i < buffer_size_c; i++) {
+    c_m_gpu_in[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
+  }
+
+  const bool isAlmostEqual = (stride_c_mul == 1)
+                                 ? utils::compare_vectors(c_m_gpu_in, c_m_cpu)
+                                 : utils::compare_vectors_strided(
+                                       c_m_gpu_in, c_m_cpu, stride_c, size_c);
   ASSERT_TRUE(isAlmostEqual);
 
   helper::deallocate<mem_alloc>(m_a_gpu, q);
@@ -345,7 +388,7 @@ inline void verify_gemm(
   helper::deallocate<mem_alloc>(m_c_gpu, q);
 }
 
-template <typename scalar_t>
+template <typename scalar_in_t, typename scalar_t = scalar_in_t>
 inline void verify_gemm(
     const gemm_batched_strided_arguments_t<scalar_t> arguments) {
   std::string alloc;
@@ -370,10 +413,10 @@ inline void verify_gemm(
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
-    verify_gemm<scalar_t, helper::AllocType::usm>(arguments);
+    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::usm>(arguments);
 #endif
   } else {
-    verify_gemm<scalar_t, helper::AllocType::buffer>(arguments);
+    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::buffer>(arguments);
   }
 }
 
@@ -395,21 +438,21 @@ static std::string generate_batched_strided_name(
  * @param combination Combinations object
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define GENERATE_GEMM_TEST(test_suite, combination)                          \
-  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination,        \
-                                 verify_gemm, gemm_arguments_t, combination, \
-                                 generate_name);
+#define GENERATE_GEMM_TEST(test_suite, combination)                        \
+  BLAS_REGISTER_GEMM_TEST_CUSTOM_NAME(test_suite, test_suite##combination, \
+                                      verify_gemm, gemm_arguments_t,       \
+                                      combination, generate_name);
 
 /** Registers GEMM Strided Batched test for all supported data types
  * @param test_suite Name of the test suite
  * @param combination Combinations object
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define GENERATE_GEMM_STRIDED_BATCHED_TEST(test_suite, combination)   \
-  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination, \
-                                 verify_gemm,                         \
-                                 gemm_batched_strided_arguments_t,    \
-                                 combination, generate_batched_strided_name);
+#define GENERATE_GEMM_STRIDED_BATCHED_TEST(test_suite, combination) \
+  BLAS_REGISTER_GEMM_TEST_CUSTOM_NAME(                              \
+      test_suite, test_suite##combination, verify_gemm,             \
+      gemm_batched_strided_arguments_t, combination,                \
+      generate_batched_strided_name);
 
 #ifdef BLAS_ENABLE_COMPLEX
 
