@@ -34,6 +34,8 @@ static inline void cublas_routine(args_t&&... args) {
     CUBLAS_CHECK(cublasSgemmBatched(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CUBLAS_CHECK(cublasDgemmBatched(std::forward<args_t>(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    CUBLAS_CHECK(cublasHgemmBatched(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -54,6 +56,10 @@ template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
          index_t t2, index_t m, index_t k, index_t n, scalar_t alpha,
          scalar_t beta, index_t batch_count, int batch_type_i, bool* success) {
+  // scalar_t if scalar_t!=sycl::half, cuda::__half otherwise
+  using cuda_scalar_t =
+      typename blas_benchmark::utils::CudaType<scalar_t>::type;
+
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
@@ -84,16 +90,18 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(m * n * batch_count, 0);
 
-  blas_benchmark::utils::CUDAVectorBatched<scalar_t> d_A_array(m * k,
-                                                               batch_count, a);
-  blas_benchmark::utils::CUDAVectorBatched<scalar_t> d_B_array(k * n,
-                                                               batch_count, b);
-  blas_benchmark::utils::CUDAVectorBatched<scalar_t> d_C_array(m * n,
-                                                               batch_count);
+  blas_benchmark::utils::CUDAVectorBatched<cuda_scalar_t> d_A_array(
+      m * k, batch_count, reinterpret_cast<cuda_scalar_t*>(a.data()));
+  blas_benchmark::utils::CUDAVectorBatched<cuda_scalar_t> d_B_array(
+      k * n, batch_count, reinterpret_cast<cuda_scalar_t*>(b.data()));
+  blas_benchmark::utils::CUDAVectorBatched<cuda_scalar_t> d_C_array(
+      m * n, batch_count);
 
   cublasOperation_t c_t_a = (*t_a == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
-
   cublasOperation_t c_t_b = (*t_b == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
+
+  cuda_scalar_t alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
+  cuda_scalar_t beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -110,13 +118,12 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
     }
 
     std::vector<scalar_t> c_temp(m * n * batch_count);
-
     {
-      blas_benchmark::utils::CUDAVectorBatched<scalar_t, true> c_temp_gpu(
-          n * m, batch_count, c_temp);
-      cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha,
+      blas_benchmark::utils::CUDAVectorBatched<cuda_scalar_t, true> c_temp_gpu(
+          n * m, batch_count, reinterpret_cast<cuda_scalar_t*>(c_temp.data()));
+      cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
                                d_A_array.get_batch_array(), lda,
-                               d_B_array.get_batch_array(), ldb, &beta,
+                               d_B_array.get_batch_array(), ldb, &beta_cuda,
                                c_temp_gpu.get_batch_array(), ldc, batch_count);
     }
 
@@ -128,14 +135,13 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
         *success = false;
       };
     }
-
   }  // close scope for verify benchmark
 #endif
 
   auto blas_warmup = [&]() -> void {
-    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha,
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
                              d_A_array.get_batch_array(), lda,
-                             d_B_array.get_batch_array(), ldb, &beta,
+                             d_B_array.get_batch_array(), ldb, &beta_cuda,
                              d_C_array.get_batch_array(), ldc, batch_count);
     return;
   };
@@ -146,9 +152,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
 
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
     CUDA_CHECK(cudaEventRecord(start));
-    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha,
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
                              d_A_array.get_batch_array(), lda,
-                             d_B_array.get_batch_array(), ldb, &beta,
+                             d_B_array.get_batch_array(), ldb, &beta_cuda,
                              d_C_array.get_batch_array(), ldc, batch_count);
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));

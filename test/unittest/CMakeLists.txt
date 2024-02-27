@@ -112,6 +112,12 @@ if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
 
+set(HALF_DATA_OPS "blas1_axpy_test" 
+                  "blas1_scal_test"
+                  "blas3_gemm_test"
+                  "blas3_gemm_batched_test"
+                  )
+
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   if(is_adaptivecpp AND ${blas_test} IN_LIST ADAPTIVE_CPP_SKIP)
     continue()
@@ -128,6 +134,9 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
     if(${test_exec} MATCHES "gemm")
       target_compile_definitions(${test_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
     endif()
+  endif()
+  if((${BLAS_ENABLE_HALF}) AND (${test_exec} IN_LIST HALF_DATA_OPS))
+    target_compile_definitions(${test_exec} PRIVATE BLAS_ENABLE_HALF=1)
   endif()
   target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas portblas)

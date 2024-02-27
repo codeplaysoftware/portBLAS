@@ -189,8 +189,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * the best performance.
    */
   static PORTBLAS_INLINE index_t get_ideal_cube_depth(index_t compute_units,
-                                                       index_t m, index_t n,
-                                                       index_t k) noexcept {
+                                                      index_t m, index_t n,
+                                                      index_t k) noexcept {
     const index_t group_count_mn =
         ((m - 1) / tile_size_dim_m + 1) * ((n - 1) / tile_size_dim_n + 1);
     /* The depth of the cube buffer is calculated so that each compute unit
@@ -221,7 +221,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
   template <typename local_memory_t>
   PORTBLAS_INLINE void eval(local_memory_t scratch,
-                             cl::sycl::nd_item<1> id) noexcept {
+                            cl::sycl::nd_item<1> id) noexcept {
     /* Pointers to the scratch memory (lhs and rhs) */
     value_t* scratch_ptr = scratch.localAcc.get_pointer();
     value_t* rhs_scratch_ptr = scratch_ptr + rhs_scratch_offset;
@@ -309,8 +309,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
             // load a LHS element from the scratch buffer
             const value_t privateLhs = scratch_ptr[lhs_index + lhs_offset];
 
-            private_res[wLPTM + idx] = mul_add<value_t>(
-                privateLhs, privateRhs, private_res[wLPTM + idx]);
+            private_res[wLPTM + idx] =
+                mul_add(privateLhs, privateRhs, private_res[wLPTM + idx]);
 
             lhs_index += tile_type::wg_rows;
           }

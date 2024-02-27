@@ -48,7 +48,7 @@ namespace blas {
  */
 namespace internal {
 
-// Check whether value is zero (complex & float/double)
+// Check whether value is zero (complex & half/float/double)
 template <typename T>
 inline typename std::enable_if<is_sycl_scalar<T>::value, bool>::type isZero(
     const T& value) {

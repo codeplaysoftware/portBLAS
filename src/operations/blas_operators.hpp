@@ -110,7 +110,7 @@ struct AbsoluteValue {
   template <typename value_t>
   using stripped_t = typename StripASP<value_t>::type;
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
   template <typename value_t>
   using is_floating_point = std::integral_constant<
       bool, std::is_floating_point<stripped_t<value_t>>::value ||
@@ -118,7 +118,7 @@ struct AbsoluteValue {
 #else
   template <typename value_t>
   using is_floating_point = std::is_floating_point<value_t>;
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
   template <typename value_t>
   static PORTBLAS_INLINE value_t eval(

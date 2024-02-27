@@ -29,8 +29,9 @@
 #include "portblas.h"
 #include <common/common_utils.hpp>
 
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-#include <rocblas.h>
+#include <rocblas/rocblas.h>
 
 #ifndef CHECK_HIP_ERROR
 #define CHECK_HIP_ERROR(error)                                    \
@@ -254,8 +255,8 @@ class HIPVectorBatched : private HIPDeviceMemory<T*> {
   }
 
   // Decay into device array pointer wherever pointer is expected
-  operator T* *() { return d_batch_data_; }
-  operator const T* *() const { return d_batch_data_; }
+  operator T**() { return d_batch_data_; }
+  operator const T**() const { return d_batch_data_; }
 
   // Disallow copying or assigning
   HIPVectorBatched(const HIPVectorBatched&) = delete;
@@ -373,6 +374,20 @@ static inline std::tuple<double, double> timef_hip(function_t func,
   return std::make_tuple(overall_time, static_cast<double>(elapsed_time) * 1E6);
 }
 
+/**
+ * Reference type of the underlying benchmark data aimed to match the
+ * rocm/rocBLAS scalar types.
+ */
+template <typename T, typename Enable = void>
+struct RocblasType {
+  using type = T;
+};
+
+// When T is sycl::half, use rocBLAS's rocblas_half as type.
+template <typename T>
+struct RocblasType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+  using type = rocblas_half;
+};
 }  // namespace utils
 }  // namespace blas_benchmark
 

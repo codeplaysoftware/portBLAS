@@ -32,7 +32,6 @@
 #include <complex>
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
 #if SYCL_LANGUAGE_VERSION < 202000
 #include <CL/sycl.hpp>
 inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
@@ -49,7 +48,6 @@ class numeric_limits<cl::sycl::half> {
 };
 }  // namespace std
 #endif  // SYCL_LANGUAGE_VERSION
-#endif  // BLAS_DATA_TYPE_HALF
 
 namespace utils {
 
@@ -85,7 +83,6 @@ scalar_t abs(std::complex<scalar_t> value) noexcept {
 }
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
 template <>
 inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::isnan(static_cast<float>(value));
@@ -100,8 +97,6 @@ template <>
 inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::abs(static_cast<float>(value));
 }
-
-#endif  // BLAS_DATA_TYPE_HALF
 
 template <typename scalar_t>
 scalar_t clamp_to_limits(scalar_t v) {
@@ -139,14 +134,12 @@ inline double getRelativeErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
-#ifdef BLAS_DATA_TYPE_HALF
-
 template <>
 inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
   // Measured empirically with gemm
   return 0.05f;
 }
-#endif
+
 /**
  * Indicates the tolerated margin for absolute differences (used in case the
  * scalars are close to 0)
@@ -168,14 +161,12 @@ inline double getAbsoluteErrorMargin<double>() {
    */
   return 0.0000000001;  // 10^-10
 }
-#ifdef BLAS_DATA_TYPE_HALF
 
 template <>
 inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
   // Measured empirically with gemm.
   return 1.0f;
 }
-#endif
 
 /**
  * Compare two scalars and returns false if the difference is not acceptable.
@@ -208,7 +199,7 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
  * Compare two vectors and returns false if the difference is not acceptable.
  * The second vector is considered the reference.
  * @tparam scalar_t the type of data present in the input vectors
- * @tparam epilon_t the type used as tolerance. Lower precision types
+ * @tparam epsilon_t the type used as tolerance. Lower precision types
  * (cl::sycl::half) will have a higher tolerance for errors
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
@@ -238,7 +229,7 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
  * not acceptable. The second vector is considered the reference.
  * @tparam scalar_t the type of complex underying data present in the input
  * vectors
- * @tparam epilon_t the type used as tolerance.
+ * @tparam epsilon_t the type used as tolerance.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<std::complex<scalar_t>> const& vec,

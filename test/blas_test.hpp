@@ -120,7 +120,10 @@ template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
   static std::random_device rd;
   static std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+  using random_scalar_t =
+      std::conditional_t<std::is_same_v<scalar_t, cl::sycl::half>, float,
+                         scalar_t>;
+  std::uniform_real_distribution<random_scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
 }
 
