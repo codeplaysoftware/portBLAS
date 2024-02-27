@@ -151,8 +151,22 @@ scalar_t asum(const int n, scalar_t x[], const int incX) {
 template <typename scalar_t>
 void axpy(const int n, scalar_t alpha, const scalar_t x[], const int incX,
           scalar_t y[], const int incY) {
-  auto func = blas_system_function<scalar_t>(&cblas_saxpy, &cblas_daxpy);
-  func(n, alpha, x, incX, y, incY);
+  if constexpr (!std::is_same_v<scalar_t, cl::sycl::half>) {
+    auto func = blas_system_function<scalar_t>(&cblas_saxpy, &cblas_daxpy);
+    func(n, alpha, x, incX, y, incY);
+  } else {
+    // Casting scalar half values to float in order to call reference library.
+    int x_size = n * std::abs(incX);
+    int y_size = n * std::abs(incY);
+    float alpha_f = alpha;
+    std::vector<float> x_f(x_size);
+    std::vector<float> y_f(y_size);
+    for (int i = 0; i < x_size; ++i) x_f[i] = static_cast<float>(x[i]);
+    for (int i = 0; i < y_size; ++i) y_f[i] = static_cast<float>(y[i]);
+
+    cblas_saxpy(n, alpha_f, x_f.data(), incX, y_f.data(), incY);
+    for (int i = 0; i < y_size; ++i) y[i] = static_cast<cl::sycl::half>(y_f[i]);
+  }
 }
 
 template <typename scalar_t>
@@ -224,8 +238,18 @@ void rotmg(scalar_t *d1, scalar_t *d2, scalar_t *x1, scalar_t *y1,
 
 template <typename scalar_t>
 void scal(const int n, const scalar_t alpha, scalar_t x[], const int incX) {
-  auto func = blas_system_function<scalar_t>(&cblas_sscal, &cblas_dscal);
-  func(n, alpha, x, incX);
+  if constexpr (!std::is_same_v<scalar_t, cl::sycl::half>) {
+    auto func = blas_system_function<scalar_t>(&cblas_sscal, &cblas_dscal);
+    func(n, alpha, x, incX);
+  } else {
+    // Casting scalar half values to float in order to call reference library.
+    int size = n * std::abs(incX);
+    float alpha_f = alpha;
+    std::vector<float> x_f(size);
+    for (int i = 0; i < size; ++i) x_f[i] = static_cast<float>(x[i]);
+    cblas_sscal(n, alpha_f, x_f.data(), incX);
+    for (int i = 0; i < size; ++i) x[i] = static_cast<cl::sycl::half>(x_f[i]);
+  }
 }
 
 template <typename scalar_t>
@@ -379,9 +403,31 @@ template <typename scalar_t>
 void gemm(const char *transA, const char *transB, int m, int n, int k,
           scalar_t alpha, const scalar_t a[], int lda, const scalar_t b[],
           int ldb, scalar_t beta, scalar_t c[], int ldc) {
-  auto func = blas_system_function<scalar_t>(&cblas_sgemm, &cblas_dgemm);
-  func(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k, alpha, a,
-       lda, b, ldb, beta, c, ldc);
+  if constexpr (!std::is_same_v<scalar_t, cl::sycl::half>) {
+    auto func = blas_system_function<scalar_t>(&cblas_sgemm, &cblas_dgemm);
+    func(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k, alpha, a,
+         lda, b, ldb, beta, c, ldc);
+  } else {
+    // Casting scalar half values to float in order to call reference library.
+    int a_size = (transA[0] != 'n') ? lda * m : lda * k;
+    int b_size = (transB[0] != 'n') ? ldb * k : ldb * n;
+    int c_size = ldc * n;
+    float alpha_f = alpha;
+    float beta_f = beta;
+
+    std::vector<float> a_f(a_size);
+    std::vector<float> b_f(b_size);
+    std::vector<float> c_f(c_size);
+
+    for (int i = 0; i < a_size; ++i) a_f[i] = static_cast<float>(a[i]);
+    for (int i = 0; i < b_size; ++i) b_f[i] = static_cast<float>(b[i]);
+    for (int i = 0; i < c_size; ++i) c_f[i] = static_cast<float>(c[i]);
+
+    cblas_sgemm(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k,
+                alpha_f, a_f.data(), lda, b_f.data(), ldb, beta_f, c_f.data(),
+                ldc);
+    for (int i = 0; i < c_size; ++i) c[i] = static_cast<cl::sycl::half>(c_f[i]);
+  }
 }
 
 template <typename scalar_t>

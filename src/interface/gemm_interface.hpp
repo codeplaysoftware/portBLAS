@@ -29,8 +29,8 @@
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"
 #include "operations/blas3_trees.h"
-#include "sb_handle/portblas_handle.h"
 #include "portblas_helper.h"
+#include "sb_handle/portblas_handle.h"
 
 #include <algorithm>
 #include <cctype>
@@ -48,7 +48,7 @@ namespace blas {
  */
 namespace internal {
 
-// Check whether value is zero (complex & float/double)
+// Check whether value is zero (complex & half/float/double)
 template <typename T>
 inline typename std::enable_if<is_sycl_scalar<T>::value, bool>::type isZero(
     const T& value) {

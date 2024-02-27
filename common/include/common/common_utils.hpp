@@ -1626,6 +1626,11 @@ inline std::string get_type_name<double>() {
   return "double";
 }
 
+template <>
+inline std::string get_type_name<cl::sycl::half>() {
+  return "half";
+}
+
 #ifdef BLAS_ENABLE_COMPLEX
 template <>
 inline std::string get_type_name<std::complex<float>>() {
@@ -1656,7 +1661,10 @@ template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
   static std::random_device rd;
   static std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+  using random_scalar_t =
+      std::conditional_t<std::is_same_v<scalar_t, cl::sycl::half>, float,
+                         scalar_t>;
+  std::uniform_real_distribution<random_scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
 }
 
@@ -1929,7 +1937,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
 #define BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 /** Registers benchmark for the cl::sycl::half data type
  * @see BLAS_REGISTER_BENCHMARK
  */
@@ -1937,7 +1945,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
   register_benchmark<cl::sycl::half>(args, sb_handle_ptr, success)
 #else
 #define BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success)
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 #ifdef BLAS_ENABLE_COMPLEX
 /** Registers benchmark for the float complex data type

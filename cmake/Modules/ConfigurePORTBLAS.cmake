@@ -49,15 +49,6 @@ if("double" IN_LIST BLAS_DATA_TYPES)
   add_definitions(-DBLAS_DATA_TYPE_DOUBLE)
 endif()
 
-if("half" IN_LIST BLAS_DATA_TYPES)
-  add_definitions(-DBLAS_DATA_TYPE_HALF)
-endif()
-
-# If the user has specified a specific workgroup size for tests, pass that on to the compiler
-if(WG_SIZE)
-  add_definitions(-DWG_SIZE=${WG_SIZE})
-endif()
-
 # If the user has specified that we should use naive gemm, enable that
 option(NAIVE_GEMM "Default to naive GEMM implementations" off)
 if(NAIVE_GEMM)
