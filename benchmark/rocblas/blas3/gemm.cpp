@@ -34,6 +34,8 @@ static inline void rocblas_gemm_f(args_t&&... args) {
     CHECK_ROCBLAS_STATUS(rocblas_sgemm(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CHECK_ROCBLAS_STATUS(rocblas_dgemm(std::forward<args_t>(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    CHECK_ROCBLAS_STATUS(rocblas_hgemm(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -54,6 +56,10 @@ template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
          int t_b_i, index_t m, index_t k, index_t n, scalar_t alpha,
          scalar_t beta, bool* success) {
+  // scalar_t if scalar_t!=sycl::half, rocblas_half otherwise
+  using rocm_scalar_t =
+      typename blas_benchmark::utils::RocblasType<scalar_t>::type;
+
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
@@ -91,81 +97,85 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(c_size, 0);
 
-  {
-    // Device memory allocation & H2D copy
-    blas_benchmark::utils::HIPVector<scalar_t> a_gpu(a_size, a.data());
-    blas_benchmark::utils::HIPVector<scalar_t> b_gpu(b_size, b.data());
-    blas_benchmark::utils::HIPVector<scalar_t> c_gpu(c_size, c.data());
+  // Device memory allocation & H2D copy
+  blas_benchmark::utils::HIPVector<rocm_scalar_t> a_gpu(
+      a_size, reinterpret_cast<rocm_scalar_t*>(a.data()));
+  blas_benchmark::utils::HIPVector<rocm_scalar_t> b_gpu(
+      b_size, reinterpret_cast<rocm_scalar_t*>(b.data()));
+  blas_benchmark::utils::HIPVector<rocm_scalar_t> c_gpu(
+      c_size, reinterpret_cast<rocm_scalar_t*>(c.data()));
+
+  rocm_scalar_t alpha_rocm = *reinterpret_cast<rocm_scalar_t*>(&alpha);
+  rocm_scalar_t beta_rocm = *reinterpret_cast<rocm_scalar_t*>(&beta);
 
 #ifdef BLAS_VERIFY_BENCHMARK
-    // Reference gemm
-    std::vector<scalar_t> c_ref = c;
-    reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha, a.data(), lda,
-                         b.data(), ldb, beta, c_ref.data(), ldc);
+  // Reference gemm
+  std::vector<scalar_t> c_ref = c;
+  reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha, a.data(), lda,
+                       b.data(), ldb, beta, c_ref.data(), ldc);
 
-    // Rocblas verification gemm
-    std::vector<scalar_t> c_temp = c;
-    {
-      blas_benchmark::utils::HIPVector<scalar_t, true> c_temp_gpu(
-          c_size, c_temp.data());
-      rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
-                               &alpha, a_gpu, lda, b_gpu, ldb, &beta,
-                               c_temp_gpu, ldc);
-    }
+  // Rocblas verification gemm
+  std::vector<scalar_t> c_temp = c;
+  {
+    blas_benchmark::utils::HIPVector<rocm_scalar_t, true> c_temp_gpu(
+        c_size, reinterpret_cast<rocm_scalar_t*>(c_temp.data()));
+    rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
+                             &alpha_rocm, a_gpu, lda, b_gpu, ldb, &beta_rocm,
+                             c_temp_gpu, ldc);
+  }
 
-    std::ostringstream err_stream;
-    if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
-      const std::string& err_str = err_stream.str();
-      state.SkipWithError(err_str.c_str());
-      *success = false;
-    };
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
 #endif
-    auto blas_warmup = [&]() -> void {
-      rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
-                               &alpha, a_gpu, lda, b_gpu, ldb, &beta, c_gpu,
-                               ldc);
-      return;
-    };
+  auto blas_warmup = [&]() -> void {
+    rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
+                             &alpha_rocm, a_gpu, lda, b_gpu, ldb, &beta_rocm,
+                             c_gpu, ldc);
+    return;
+  };
 
-    hipEvent_t start, stop;
-    CHECK_HIP_ERROR(hipEventCreate(&start));
-    CHECK_HIP_ERROR(hipEventCreate(&stop));
+  hipEvent_t start, stop;
+  CHECK_HIP_ERROR(hipEventCreate(&start));
+  CHECK_HIP_ERROR(hipEventCreate(&stop));
 
-    auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
-      CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-      rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
-                               &alpha, a_gpu, lda, b_gpu, ldb, &beta, c_gpu,
-                               ldc);
-      CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
-      CHECK_HIP_ERROR(hipEventSynchronize(stop));
-      return std::vector{start, stop};
-    };
+  auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
+    CHECK_HIP_ERROR(hipEventRecord(start, NULL));
+    rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
+                             &alpha_rocm, a_gpu, lda, b_gpu, ldb, &beta_rocm,
+                             c_gpu, ldc);
+    CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
+    CHECK_HIP_ERROR(hipEventSynchronize(stop));
+    return std::vector{start, stop};
+  };
 
-    // Warmup
-    blas_benchmark::utils::warmup(blas_warmup);
-    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
+  // Warmup
+  blas_benchmark::utils::warmup(blas_warmup);
+  CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
-    blas_benchmark::utils::init_counters(state);
+  blas_benchmark::utils::init_counters(state);
 
-    // Measure
-    for (auto _ : state) {
-      // Run
-      std::tuple<double, double> times =
-          blas_benchmark::utils::timef_hip(blas_method_def);
+  // Measure
+  for (auto _ : state) {
+    // Run
+    std::tuple<double, double> times =
+        blas_benchmark::utils::timef_hip(blas_method_def);
 
-      // Report
-      blas_benchmark::utils::update_counters(state, times);
-    }
+    // Report
+    blas_benchmark::utils::update_counters(state, times);
+  }
 
-    state.SetBytesProcessed(state.iterations() *
-                            state.counters["bytes_processed"]);
-    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
 
-    blas_benchmark::utils::calc_avg_counters(state);
+  blas_benchmark::utils::calc_avg_counters(state);
 
-    CHECK_HIP_ERROR(hipEventDestroy(start));
-    CHECK_HIP_ERROR(hipEventDestroy(stop));
-  }  // release device memory via utils::DeviceVector destructors
+  CHECK_HIP_ERROR(hipEventDestroy(start));
+  CHECK_HIP_ERROR(hipEventDestroy(stop));
 };
 
 template <typename scalar_t>

@@ -42,6 +42,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
+  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+      !q.get_device().has(cl::sycl::aspect::fp16)) {
+    state.SkipWithError("Unsupported fp16 (half) on this device.");
+  }
+
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
@@ -120,8 +125,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
       run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            size, mem_type).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(size, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
@@ -133,7 +138,8 @@ void register_benchmark(blas_benchmark::Args& args,
   auto scal_params = blas_benchmark::utils::get_blas1_params(args);
 
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, scal_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      scal_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, scal_params);

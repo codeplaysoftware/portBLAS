@@ -72,7 +72,7 @@
                                               combination, name_generator)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 /** Registers test for the cl::sycl::half type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
@@ -91,7 +91,7 @@
 #define BLAS_REGISTER_TEST_HALF_CUSTOM_NAME(test_suite, class_name,       \
                                             test_function, combination_t, \
                                             combination, name_generator)
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 #ifdef BLAS_ENABLE_COMPLEX
 #define BLAS_REGISTER_TEST_CPLX_S_CUSTOM_NAME(test_suite, class_name,        \
