@@ -463,9 +463,10 @@ Some of the supported options are:
 | `BLAS_MEMPOOL_BENCHMARK` | `ON`/`OFF` |  Determines whether to enable the scratchpad memory pool for benchmark execution. `OFF` by default |
 | `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
 | `BLAS_ENABLE_EXTENSIONS` | `ON`/`OFF` | Determines whether to enable portBLAS extensions (`ON` by default) |
-| `BLAS_DATA_TYPES` | `half;float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float` |
+| `BLAS_DATA_TYPES` | `float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float` |
 | `BLAS_INDEX_TYPES` | `int32_t;int64_t` | Determines the type(s) to use for `index_t` and `increment_t`. Default is `int` |
-| `BLAS_ENABLE_COMPLEX` | `ON`/`OFF` | Determines whether to enable Complex data type support *(GEMM Operators only)* (`ON` by default) |
+| `BLAS_ENABLE_COMPLEX` | `ON`/`OFF` | Determines whether to enable Complex data type support *(GEMM Operators only)* (`OFF` by default) |
+| `BLAS_ENABLE_HALF` | `ON`/`OFF` | Determines whether to enable Half data type support *(Support is limited to some Level 1 operators and Gemm)* (`OFF` by default) |
 
 ## ComputeCpp Compilation *(Deprecated)*
 

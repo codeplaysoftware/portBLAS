@@ -34,6 +34,8 @@ static inline void cublas_routine(args_t&&... args) {
     CUBLAS_CHECK(cublasSgemmStridedBatched(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CUBLAS_CHECK(cublasDgemmStridedBatched(std::forward<args_t>(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    CUBLAS_CHECK(cublasHgemmStridedBatched(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -55,6 +57,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          index_t batch_size, index_t stride_a_mul, index_t stride_b_mul,
          index_t stride_c_mul, bool* success) {
+  // scalar_t if scalar_t!=sycl::half, cuda::__half otherwise
+  using cuda_scalar_t =
+      typename blas_benchmark::utils::CudaType<scalar_t>::type;
+
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
@@ -103,13 +109,18 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(size_c_batch, 0);
 
-  blas_benchmark::utils::CUDAVector<scalar_t> a_gpu(size_a_batch, a.data());
-  blas_benchmark::utils::CUDAVector<scalar_t> b_gpu(size_b_batch, b.data());
-  blas_benchmark::utils::CUDAVector<scalar_t> c_gpu(size_c_batch, c.data());
+  blas_benchmark::utils::CUDAVector<cuda_scalar_t> a_gpu(
+      size_a_batch, reinterpret_cast<cuda_scalar_t*>(a.data()));
+  blas_benchmark::utils::CUDAVector<cuda_scalar_t> b_gpu(
+      size_b_batch, reinterpret_cast<cuda_scalar_t*>(b.data()));
+  blas_benchmark::utils::CUDAVector<cuda_scalar_t> c_gpu(
+      size_c_batch, reinterpret_cast<cuda_scalar_t*>(c.data()));
 
   cublasOperation_t c_t_a = trA ? CUBLAS_OP_N : CUBLAS_OP_T;
-
   cublasOperation_t c_t_b = trB ? CUBLAS_OP_N : CUBLAS_OP_T;
+
+  cuda_scalar_t alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
+  cuda_scalar_t beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -123,11 +134,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 
   std::vector<scalar_t> c_temp = c;
   {
-    blas_benchmark::utils::CUDAVector<scalar_t, true> c_temp_gpu(size_c_batch,
-                                                                 c_temp.data());
-    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha, a_gpu,
-                             lda, stride_a, b_gpu, ldb, stride_b, &beta,
-                             c_temp_gpu, ldc, stride_c, batch_size);
+    blas_benchmark::utils::CUDAVector<cuda_scalar_t, true> c_temp_gpu(
+        size_c_batch, reinterpret_cast<cuda_scalar_t*>(c_temp.data()));
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
+                             a_gpu, lda, stride_a, b_gpu, ldb, stride_b,
+                             &beta_cuda, c_temp_gpu, ldc, stride_c, batch_size);
   }
 
   std::ostringstream err_stream;
@@ -140,9 +151,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 #endif
 
   auto blas_warmup = [&]() -> void {
-    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha, a_gpu,
-                             lda, stride_a, b_gpu, ldb, stride_b, &beta, c_gpu,
-                             ldc, stride_c, batch_size);
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
+                             a_gpu, lda, stride_a, b_gpu, ldb, stride_b,
+                             &beta_cuda, c_gpu, ldc, stride_c, batch_size);
     return;
   };
 
@@ -152,9 +163,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
     CUDA_CHECK(cudaEventRecord(start));
-    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha, a_gpu,
-                             lda, stride_a, b_gpu, ldb, stride_b, &beta, c_gpu,
-                             ldc, stride_c, batch_size);
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
+                             a_gpu, lda, stride_a, b_gpu, ldb, stride_b,
+                             &beta_cuda, c_gpu, ldc, stride_c, batch_size);
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));
     return std::vector{start, stop};

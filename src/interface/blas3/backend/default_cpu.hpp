@@ -33,7 +33,8 @@ namespace backend {
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename std::enable_if<is_sycl_scalar<element_t>::value,
+typename std::enable_if<is_sycl_scalar<element_t>::value &&
+                            !is_half<element_t>::value,
                         typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,

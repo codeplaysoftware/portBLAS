@@ -32,7 +32,8 @@ namespace backend {
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename std::enable_if<is_sycl_scalar<element_t>::value,
+typename std::enable_if<is_sycl_scalar<element_t>::value &&
+                            !is_half<element_t>::value,
                         typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
@@ -73,12 +74,9 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                     _stridea, _b, _ldb, _strideb, _beta, _c,
                                     _ldc, _stridec, batch_size, _dependencies);
         } else if (_M <= 4 || _N <= 4) {
-          // Need to increase the work group size for cl::sycl::half for the
-          // launcher to be instancianted
-          constexpr int wg_size = sizeof(element_t) == 2 ? 8 : 4;
           return blas::Gemm_Launcher<
               container_0_t, container_1_t, container_2_t, 16, true, false,
-              false, 64, Tile<1, 1, wg_size, wg_size>, _t_a, _t_b, s_a, s_b,
+              false, 64, Tile<1, 1, 4, 4>, _t_a, _t_b, s_a, s_b,
               static_cast<int>(gemm_memory_t::local),
               static_cast<int>(gemm_algorithm_t::tall_skinny),
               static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,
@@ -98,12 +96,9 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                     _stridea, _b, _ldb, _strideb, _beta, _c,
                                     _ldc, _stridec, batch_size, _dependencies);
         } else if (_M <= 8 || _N <= 8) {
-          // Need to increase the work group size for cl::sycl::half for the
-          // launcher to be instancianted
-          constexpr int wg_size = sizeof(element_t) == 2 ? 8 : 4;
           return blas::Gemm_Launcher<
               container_0_t, container_1_t, container_2_t, 16, true, false,
-              false, 64, Tile<2, 2, wg_size, wg_size>, _t_a, _t_b, s_a, s_b,
+              false, 64, Tile<2, 2, 4, 4>, _t_a, _t_b, s_a, s_b,
               static_cast<int>(gemm_memory_t::local),
               static_cast<int>(gemm_algorithm_t::tall_skinny),
               static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,
@@ -134,6 +129,8 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                     _stridea, _b, _ldb, _strideb, _beta, _c,
                                     _ldc, _stridec, batch_size, _dependencies);
         } else {
+          // Need to increase the work group size for double for the
+          // launcher to be instancianted
           constexpr int wg_size = sizeof(element_t) == 8 ? 8 : 16;
           return blas::Gemm_Launcher<
               container_0_t, container_1_t, container_2_t, 256, true, true,
@@ -199,6 +196,66 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                 _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
                                 _stridec, batch_size, _dependencies);
     } else {
+      return blas::Gemm_Launcher<
+          container_0_t, container_1_t, container_2_t, 64, false, false, false,
+          64, Tile<4, 8, 16, 8>, _t_a, _t_b, s_a, s_b,
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::standard),
+          static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size, _dependencies);
+    }
+  }
+}
+
+// Half Configurations
+template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename std::enable_if<is_half<element_t>::value,
+                        typename sb_handle_t::event_t>::type
+_gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
+      element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+      container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
+      container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
+      gemm_batch_type_t batch_type,
+      const typename sb_handle_t::event_t& _dependencies) {
+  // Unused configuration cases
+  if constexpr (s_a && s_b || ((s_a && _t_b) || (s_b && _t_a))) {
+    return _dependencies;
+  } else {
+    if (batch_type == gemm_batch_type_t::interleaved) {
+      return blas::Gemm_Launcher<
+          container_0_t, container_1_t, container_2_t, 64, false, false, false,
+          64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a, _t_b, s_a, s_b,
+          static_cast<int>(gemm_memory_t::no_local),
+          static_cast<int>(gemm_algorithm_t::standard),
+          static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
+          static_cast<int>(gemm_batch_type_t::interleaved)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size, _dependencies);
+    } else {
+#ifdef GEMM_TALL_SKINNY_SUPPORT
+      if (!s_a && !s_b) {
+        // Tall & Skinny matrices
+        if (batch_size == 1 && ((_K >= 4096 && _M * _N <= 16384) ||
+                                (_K >= 1024 && _M * _N <= 4096))) {
+          return blas::Gemm_Launcher<
+              container_0_t, container_1_t, container_2_t, 16, true, false,
+              false, 64, Tile<2, 2, 8, 8>, _t_a, _t_b, s_a, s_b,
+              static_cast<int>(gemm_memory_t::local),
+              static_cast<int>(gemm_algorithm_t::tall_skinny),
+              static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,
+              static_cast<int>(gemm_batch_type_t::strided)>::
+              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                    _stridea, _b, _ldb, _strideb, _beta, _c,
+                                    _ldc, _stridec, batch_size, _dependencies);
+        }
+      }
+#endif
       return blas::Gemm_Launcher<
           container_0_t, container_1_t, container_2_t, 64, false, false, false,
           64, Tile<4, 8, 16, 8>, _t_a, _t_b, s_a, s_b,
