@@ -225,6 +225,7 @@ export(EXPORT portblas
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
+option(ENABLE_JOINTMATRIX_TESTS "Whether to build joint_matrix GEMM tests" OFF)
 if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_TESTING)
   message(STATUS "Tests are disabled when installing portBLAS in header only mode")
   set(BLAS_ENABLE_TESTING OFF)

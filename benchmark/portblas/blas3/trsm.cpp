@@ -97,7 +97,13 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(b_temp, x_ref, err_stream, "")) {
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (!utils::compare_vectors(b_temp, x_ref, err_stream, "",
+                              (en_joint_matrix != NULL) &&
+                                      (std::is_same<scalar_t, float>::value) &&
+                                      (*en_joint_matrix == '1')
+                                  ? 2
+                                  : 1)) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -181,8 +187,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            side, uplo, trans, diag, m, n,
-            mem_type).c_str(),
+            side, uplo, trans, diag, m, n, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, side, uplo, trans, diag, m, n, alpha, success)
         ->UseRealTime();
   }
@@ -193,7 +199,8 @@ void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto trsm_params = blas_benchmark::utils::get_trsm_params<scalar_t>(args);
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, trsm_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      trsm_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, trsm_params);
@@ -201,8 +208,8 @@ void register_benchmark(blas_benchmark::Args& args,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

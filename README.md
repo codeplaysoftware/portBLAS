@@ -486,6 +486,7 @@ Some of the supported options are:
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
+| `ENABLE_JOINTMATRIX_TESTS` | `ON`/`OFF` | Build additional tests that use joint_matrix extension; `OFF` by default |
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
 | `BLAS_MEMPOOL_BENCHMARK` | `ON`/`OFF` |  Determines whether to enable the scratchpad memory pool for benchmark execution. `OFF` by default |
 | `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
