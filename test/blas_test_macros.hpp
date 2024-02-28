@@ -86,6 +86,9 @@
                            combination<cl::sycl::half>,                    \
                            name_generator<cl::sycl::half>);
 
+/** Registers test for the cl::sycl::half input type & float output type
+ * @see BLAS_REGISTER_GEMM_TEST_CUSTOM_NAME
+ */
 #define BLAS_REGISTER_TEST_HALF_FLOAT_CUSTOM_NAME(                            \
     test_suite, class_name, test_function, combination_t, combination,        \
     name_generator)                                                           \
