@@ -500,14 +500,20 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
       for (int j = 0; j < item_rows; ++j) {
 #pragma unroll
         for (int b = 0; b < item_batchs / VectorSize; ++b) {
-          element_in_t regA = *reinterpret_cast<element_in_t *>(
-              reg_a + j * (item_batchs / VectorSize) + b);
-          element_in_t regB = *reinterpret_cast<element_in_t *>(
-              reg_b + i * (item_batchs / VectorSize) + b);
-          *reinterpret_cast<element_out_t *>(reg_res) =
-              mul_add(regA, regB, *reinterpret_cast<element_out_t *>(reg_res));
-          ++reg_res;
+          if constexpr (std::is_same_v<element_in_t, element_out_t>) {
+            *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
+                                     reg_b[i * (item_batchs / VectorSize) + b],
+                                     *reg_res);
+          } else {
+#pragma unroll
+            for (int v = 0; v < VectorSize; ++v) {
+              (*reg_res)[v] = reg_a[j * (item_batchs / VectorSize) + b][v] *
+                                  reg_b[i * (item_batchs / VectorSize) + b][v] +
+                              (*reg_res)[v];
+            }
+          }
         }
+        ++reg_res;
       }
     }
   }
