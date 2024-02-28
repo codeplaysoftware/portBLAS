@@ -115,17 +115,20 @@ scalar_t clamp_to_limits(scalar_t v) {
  * Indicates the tolerated margin for relative differences
  */
 template <typename scalar_t>
-inline scalar_t getRelativeErrorMargin() {
+inline scalar_t getRelativeErrorMargin(const int32_t margin_multiplier = 1) {
   /* Measured empirically with gemm. The dimensions of the matrices (even k)
    * don't seem to have an impact on the observed relative differences
    * In the cases where the relative error is relevant (non close to zero),
    * relative differences of up to 0.002 were observed for float
    */
-  return static_cast<scalar_t>(0.005);
+  scalar_t margin = 0.005;
+  // increase error margin for mixed precision calculation
+  // for trsm operator.
+  return margin * margin_multiplier;
 }
 
 template <>
-inline double getRelativeErrorMargin<double>() {
+inline double getRelativeErrorMargin<double>(const int32_t) {
   /* Measured empirically with gemm. The dimensions of the matrices (even k)
    * don't seem to have an impact on the observed relative differences
    * In the cases where the relative error is relevant (non close to zero),
@@ -135,7 +138,7 @@ inline double getRelativeErrorMargin<double>() {
 }
 
 template <>
-inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
+inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>(const int32_t) {
   // Measured empirically with gemm
   return 0.05f;
 }
@@ -145,16 +148,19 @@ inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
  * scalars are close to 0)
  */
 template <typename scalar_t>
-inline scalar_t getAbsoluteErrorMargin() {
+inline scalar_t getAbsoluteErrorMargin(const int32_t margin_multiplier = 1) {
   /* Measured empirically with gemm.
    * In the cases where the relative error is irrelevant (close to zero),
    * absolute differences of up to 0.0006 were observed for float
    */
-  return 0.001f;
+  scalar_t margin = 0.001f;
+  // increase error margin for mixed precision calculation
+  // for trsm operator.
+  return margin * margin_multiplier;
 }
 
 template <>
-inline double getAbsoluteErrorMargin<double>() {
+inline double getAbsoluteErrorMargin<double>(const int32_t) {
   /* Measured empirically with gemm.
    * In the cases where the relative error is irrelevant (close to zero),
    * absolute differences of up to 10^-12 were observed for double
@@ -163,7 +169,7 @@ inline double getAbsoluteErrorMargin<double>() {
 }
 
 template <>
-inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
+inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>(const int32_t) {
   // Measured empirically with gemm.
   return 1.0f;
 }
@@ -172,7 +178,8 @@ inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
  * Compare two scalars and returns false if the difference is not acceptable.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
-inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
+inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2,
+                         const int32_t margin_multiplier = 1) {
   // Shortcut, also handles case where both are zero
   if (scalar1 == scalar2) {
     return true;
@@ -187,12 +194,14 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
 
   // Close to zero, the relative error doesn't work, use absolute error
   if (scalar1 == scalar_t{0} || scalar2 == scalar_t{0} ||
-      absolute_diff < getAbsoluteErrorMargin<epsilon_t>()) {
-    return (absolute_diff < getAbsoluteErrorMargin<epsilon_t>());
+      absolute_diff < getAbsoluteErrorMargin<epsilon_t>(margin_multiplier)) {
+    return (absolute_diff <
+            getAbsoluteErrorMargin<epsilon_t>(margin_multiplier));
   }
   // Use relative error
   const auto absolute_sum = utils::abs(scalar1) + utils::abs(scalar2);
-  return (absolute_diff / absolute_sum) < getRelativeErrorMargin<epsilon_t>();
+  return (absolute_diff / absolute_sum) <
+         getRelativeErrorMargin<epsilon_t>(margin_multiplier);
 }
 
 /**
@@ -206,7 +215,8 @@ template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<scalar_t> const& vec,
                             std::vector<scalar_t> const& ref,
                             std::ostream& err_stream = std::cerr,
-                            std::string end_line = "\n") {
+                            std::string end_line = "\n",
+                            const int32_t margin_multiplier = 1) {
   if (vec.size() != ref.size()) {
     err_stream << "Error: tried to compare vectors of different sizes"
                << std::endl;
@@ -214,7 +224,7 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   }
 
   for (int i = 0; i < vec.size(); ++i) {
-    if (!almost_equal<scalar_t, epsilon_t>(vec[i], ref[i])) {
+    if (!almost_equal<scalar_t, epsilon_t>(vec[i], ref[i], margin_multiplier)) {
       err_stream << "Value mismatch at index " << i << ": " << vec[i]
                  << "; expected " << ref[i] << end_line;
       return false;
