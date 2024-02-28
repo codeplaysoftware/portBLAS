@@ -149,6 +149,15 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   for (int i = 0; i < buffer_size_c; i++) {
     c_m_cpu[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
   }
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (en_joint_matrix != NULL && std::is_same<scalar_in_t, float>::value &&
+      *en_joint_matrix == '1') {
+    set_to_zero_last_nbits(a_m);
+    set_to_zero_last_nbits(b_m);
+    set_to_zero_last_nbits(c_m_gpu);
+    set_to_zero_last_nbits(alpha);
+    set_to_zero_last_nbits(beta);
+  }
 
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
@@ -337,6 +346,15 @@ inline void verify_gemm(
   std::vector<scalar_in_t> c_m_cpu(buffer_size_c);
   for (int i = 0; i < buffer_size_c; i++) {
     c_m_cpu[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
+  }
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (en_joint_matrix != NULL && std::is_same<scalar_in_t, float>::value &&
+      *en_joint_matrix == '1') {
+    set_to_zero_last_nbits(a_m);
+    set_to_zero_last_nbits(b_m);
+    set_to_zero_last_nbits(c_m_gpu);
+    set_to_zero_last_nbits(alpha);
+    set_to_zero_last_nbits(beta);
   }
 
   // Use system blas to create a reference output
