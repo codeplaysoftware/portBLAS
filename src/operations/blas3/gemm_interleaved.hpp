@@ -500,6 +500,21 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
       for (int j = 0; j < item_rows; ++j) {
 #pragma unroll
         for (int b = 0; b < item_batchs / VectorSize; ++b) {
+#ifdef __ADAPTIVECPP__
+          if constexpr (is_half<element_t>::value ||
+                        !std::is_same_v<element_in_t, element_out_t>) {
+#pragma unroll
+            for (int v = 0; v < VectorSize; ++v) {
+              (*reg_res)[v] = reg_a[j * (item_batchs / VectorSize) + b][v] *
+                                  reg_b[i * (item_batchs / VectorSize) + b][v] +
+                              (*reg_res)[v];
+            }
+          } else {
+            *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
+                                     reg_b[i * (item_batchs / VectorSize) + b],
+                                     *reg_res);
+          }
+#else
           if constexpr (std::is_same_v<element_in_t, element_out_t>) {
             *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
                                      reg_b[i * (item_batchs / VectorSize) + b],
@@ -513,28 +528,29 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
             }
           }
         }
-        ++reg_res;
+#endif
+          ++reg_res;
+        }
       }
     }
-  }
 
-  /*!
-   * @brief binding the placeholder accessors to the SYCL command group
-   * handler.
-   * @param h: SYCL command group handler.
-   */
-  void bind(cl::sycl::handler &h) {
-    a_.bind(h);
-    b_.bind(h);
-    c_.bind(h);
-  }
+    /*!
+     * @brief binding the placeholder accessors to the SYCL command group
+     * handler.
+     * @param h: SYCL command group handler.
+     */
+    void bind(cl::sycl::handler & h) {
+      a_.bind(h);
+      b_.bind(h);
+      c_.bind(h);
+    }
 
-  void adjust_access_displacement() {
-    a_.adjust_access_displacement();
-    b_.adjust_access_displacement();
-    c_.adjust_access_displacement();
-  }
-};
+    void adjust_access_displacement() {
+      a_.adjust_access_displacement();
+      b_.adjust_access_displacement();
+      c_.adjust_access_displacement();
+    }
+  };
 
 }  // namespace blas
 

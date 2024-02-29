@@ -389,16 +389,7 @@ inline void verify_gemm(
       blas::helper::copy_to_host(q, m_c_gpu, c_m_gpu.data(), buffer_size_c);
   sb_handle.wait(event);
 
-  // Cast gemm output to match reference library's output type
-  std::vector<scalar_in_t> c_m_gpu_in(buffer_size_c);
-  for (int i = 0; i < buffer_size_c; i++) {
-    c_m_gpu_in[i] = static_cast<scalar_in_t>(c_m_gpu.at(i));
-  }
-
-  const bool isAlmostEqual = (stride_c_mul == 1)
-                                 ? utils::compare_vectors(c_m_gpu_in, c_m_cpu)
-                                 : utils::compare_vectors_strided(
-                                       c_m_gpu_in, c_m_cpu, stride_c, size_c);
+  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu_in, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 
   helper::deallocate<mem_alloc>(m_a_gpu, q);
@@ -720,10 +711,7 @@ inline void verify_gemm(
       buffer_size_c);
   sb_handle.wait(event);
 
-  const bool isAlmostEqual =
-      (stride_c_mul == 1)
-          ? utils::compare_vectors(c_m_gpu, c_m_cpu)
-          : utils::compare_vectors_strided(c_m_gpu, c_m_cpu, stride_c, size_c);
+  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 
   helper::deallocate<mem_alloc>(m_a_gpu, q);

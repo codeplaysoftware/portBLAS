@@ -55,10 +55,11 @@ PORTBLAS_INLINE bool WGAtomicReduction<operator_t, lhs_t, rhs_t>::valid_thread(
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename WGAtomicReduction<operator_t, lhs_t, rhs_t>::value_t
 WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
-  auto atomic_res = sycl::atomic_ref<value_t, sycl::memory_order::relaxed,
-                                     sycl::memory_scope::device,
-                                     sycl::access::address_space::global_space>(
-      lhs_.get_data()[0]);
+  auto atomic_res =
+      cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
+                           cl::sycl::memory_scope::device,
+                           cl::sycl::access::address_space::global_space>(
+          lhs_.get_data()[0]);
   const auto size = get_size();
   int lid = ndItem.get_global_linear_id();
   value_t val = operator_t::template init<rhs_t>();
@@ -70,10 +71,11 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
     val = operator_t::eval(val, rhs_.eval(id));
   }
 
-  val = sycl::reduce_over_group(ndItem.get_sub_group(), val, sycl::plus<>());
+  val = cl::sycl::reduce_over_group(ndItem.get_sub_group(), val,
+                                    cl::sycl::plus<value_t>());
 
-  if ((ndItem.get_local_id() &
-       (ndItem.get_sub_group().get_local_range() - 1)) == 0) {
+  if ((ndItem.get_local_id()[0] &
+       (ndItem.get_sub_group().get_local_range()[0] - 1)) == 0) {
     atomic_res += val;
   }
   return {};
@@ -83,10 +85,11 @@ template <typename sharedT>
 PORTBLAS_INLINE typename WGAtomicReduction<operator_t, lhs_t, rhs_t>::value_t
 WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
                                                   cl::sycl::nd_item<1> ndItem) {
-  auto atomic_res = sycl::atomic_ref<value_t, sycl::memory_order::relaxed,
-                                     sycl::memory_scope::device,
-                                     sycl::access::address_space::global_space>(
-      lhs_.get_data()[0]);
+  auto atomic_res =
+      cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
+                           cl::sycl::memory_scope::device,
+                           cl::sycl::access::address_space::global_space>(
+          lhs_.get_data()[0]);
   const auto size = get_size();
   const int lid = static_cast<int>(ndItem.get_global_linear_id());
   const auto loop_stride =
@@ -98,21 +101,24 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
     val = operator_t::eval(val, rhs_.eval(id));
   }
 
-  val = sycl::reduce_over_group(ndItem.get_sub_group(), val, sycl::plus<>());
+  val = cl::sycl::reduce_over_group(ndItem.get_sub_group(), val,
+                                    cl::sycl::plus<value_t>());
 
-  if (ndItem.get_sub_group().get_local_id() == 0) {
+  if (ndItem.get_sub_group().get_local_id()[0] == 0) {
     scratch[ndItem.get_sub_group().get_group_linear_id()] = val;
   }
   ndItem.barrier();
 
-  val = (ndItem.get_local_id() < (ndItem.get_local_range(0) /
-                                  ndItem.get_sub_group().get_local_range()[0]))
-            ? scratch[ndItem.get_sub_group().get_local_id()]
-            : 0;
-  if (ndItem.get_sub_group().get_group_id() == 0) {
-    val = sycl::reduce_over_group(ndItem.get_sub_group(), val, sycl::plus<>());
+  val =
+      (ndItem.get_local_id()[0] < (ndItem.get_local_range(0) /
+                                   ndItem.get_sub_group().get_local_range()[0]))
+          ? scratch[ndItem.get_sub_group().get_local_id()]
+          : 0;
+  if (ndItem.get_sub_group().get_group_id()[0] == 0) {
+    val = cl::sycl::reduce_over_group(ndItem.get_sub_group(), val,
+                                      cl::sycl::plus<value_t>());
   }
-  if (ndItem.get_local_id() == 0) {
+  if (ndItem.get_local_id()[0] == 0) {
     atomic_res += val;
   }
 

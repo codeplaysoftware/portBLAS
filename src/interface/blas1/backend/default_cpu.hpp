@@ -49,6 +49,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr int localSize = 128;
   if (_N < 8192) {
     return blas::internal::_iamax_iamin_impl<localSize, 0, true, true>(
@@ -59,6 +60,20 @@ typename sb_handle_t::event_t _iamax(
     return blas::internal::_iamax_iamin_impl<localSize, 0, true, false>(
         sb_handle, _N, _vx, _incx, _rs, nWG, _dependencies);
   }
+#else
+  // Temporary work-around to avoid non-local memory implementation of
+  // iamin/iamax with AdaptiveCpp.
+  constexpr int localSize = 128;
+  if (_N < 8192) {
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, true, true>(
+        sb_handle, _N, _vx, _incx, _rs, static_cast<index_t>(1), _dependencies);
+  } else {
+    const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
+                                 static_cast<index_t>(512));
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, true, false>(
+        sb_handle, _N, _vx, _incx, _rs, nWG, _dependencies);
+  }
+#endif
 }
 }  // namespace backend
 }  // namespace iamax
@@ -70,6 +85,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr int localSize = 128;
   if (_N < 8192) {
     return blas::internal::_iamax_iamin_impl<localSize, 0, false, true>(
@@ -80,6 +96,21 @@ typename sb_handle_t::event_t _iamin(
     return blas::internal::_iamax_iamin_impl<localSize, 0, false, false>(
         sb_handle, _N, _vx, _incx, _rs, nWG, _dependencies);
   }
+#else
+  // Temporary work-around to avoid non-local memory implementation of
+  // iamin/iamax with AdaptiveCpp.
+  constexpr int localSize = 128;
+  if (_N < 8192) {
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, false, true>(
+        sb_handle, _N, _vx, _incx, _rs, static_cast<index_t>(1), _dependencies);
+  } else {
+    const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
+                                 static_cast<index_t>(512));
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, false,
+                                             false>(sb_handle, _N, _vx, _incx,
+                                                    _rs, nWG, _dependencies);
+  }
+#endif
 }
 }  // namespace backend
 }  // namespace iamin

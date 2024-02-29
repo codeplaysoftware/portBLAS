@@ -49,18 +49,24 @@ class SB_Handle {
  public:
   using event_t = std::vector<cl::sycl::event>;
   inline SB_Handle(queue_t q)
-      : tempMemPool_(nullptr),
+      :
+#ifndef __ADAPTIVECPP__
+        tempMemPool_(nullptr),
+#endif
         q_(q),
         workGroupSize_(helper::get_work_group_size(q)),
         localMemorySupport_(helper::has_local_memory(q)),
-        computeUnits_(helper::get_num_compute_units(q)) {}
+        computeUnits_(helper::get_num_compute_units(q)) {
+  }
 
+#ifndef __ADAPTIVECPP__
   inline SB_Handle(Temp_Mem_Pool* tmp)
       : tempMemPool_(tmp),
         q_(tmp->get_queue()),
         workGroupSize_(helper::get_work_group_size(q_)),
         localMemorySupport_(helper::has_local_memory(q_)),
         computeUnits_(helper::get_num_compute_units(q_)) {}
+#endif
 
   template <helper::AllocType alloc, typename value_t>
   typename std::enable_if<
@@ -194,7 +200,9 @@ class SB_Handle {
   const size_t workGroupSize_;
   const bool localMemorySupport_;
   const size_t computeUnits_;
+#ifndef __ADAPTIVECPP__
   Temp_Mem_Pool* tempMemPool_;
+#endif
 };
 
 }  // namespace blas

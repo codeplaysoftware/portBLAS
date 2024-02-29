@@ -31,7 +31,7 @@ the project.
   - [Requirements](#requirements)
   - [Setup](#setup)
     - [Compile with DPC++](#compile-with-dpc)
-    - [Compile with hipSYCL](#compile-with-hipsycl)
+    - [Compile with AdaptiveCpp *(Formerly hipSYCL)*](#compile-with-adaptivecpp)
     - [Instaling portBLAS](#instaling-portBLAS)
     - [Doxygen](#doxygen)
     - [CMake options](#cmake-options)
@@ -390,9 +390,9 @@ added to the `CMAKE_PREFIX_PATH` when building portBLAS (see
 
 **IMPORTANT NOTE:** The `TARGET` CMake variable is no longer supported. It has
 been replaced by `TUNING_TARGET`, which accepts the same options.
-`TUNING_TARGET` affects only the tuning configuration, applicable for some operators such
-as GEMM, and has no effect on the target triplet for DPC++ or the hipSYCL target. Please 
-refer to the sections below for setting them.
+`TUNING_TARGET` affects only the tuning configuration and has no effect on the target
+triplet for DPC++ or the AdaptiveCpp/hipSYCL target. Please refer to the sections 
+below for setting them.
 
 1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order 
 to clone submodule(s).
@@ -417,13 +417,41 @@ advisable for NVIDIA and **mandatory for AMD** to provide the specific device
 architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
 for NVIDIA or `gfx908` for AMD.
 
-### Compile with hipSYCL
+### Compile with AdaptiveCpp *(Formerly hipSYCL)*
+The following instructions concern the **generic** *(clang-based)* flow supported
+by AdaptiveCpp.
+
 ```bash
 cd build
-cmake -GNinja ../ -DhipSYCL_DIR=/path/to/hipSYCL/install/lib/cmake/hipSYCL -DSYCL_COMPILER=hipsycl
+export CC=[path/to/system/clang]
+export CXX=[path/to/AdaptiveCpp/install/bin/acpp]
+export ACPP_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
+cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp \
+      -DSYCL_COMPILER=adaptivecpp -DACPP_TARGETS=$ACPP_TARGETS
 ninja
 ```
-To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
+To build for other than the default backend *(host cpu through `omp`*)*, set the `ACPP_TARGETS` environment
+variable or specify `-DACPP_TARGETS` as 
+[documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md). 
+The available backends are the ones built with AdaptiveCpp in the first place.  
+
+Similarly to DPCPP's `sycl-ls`, AdaptiveCpp's `acpp-info` helps display the available
+backends informations. In case of building AdaptiveCpp against llvm *(generic-flow)*,
+the `llvm-to-xxx.so` library files should be visible by the runtime to target the 
+appropriate device, which can be ensured by setting the ENV variable : 
+
+```bash
+export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL:$LD_LIBRARY_PATH]
+export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL/llvm-to-backend:$LD_LIBRARY_PATH]
+```
+
+*Notes :*
+- Some operator kernels are implemented using extensions / SYCL 2020 features not yet implemented 
+in AdaptiveCpp and are not supported when portBLAS is built with it. These operators include 
+`asum`, `nrm2`, `dot`, `sdsdot`, `rot`, `trsv`, `tbsv` and `tpsv`.
+- The default `omp` host CPU backend *(as well as its optimized variant `omp.accelerated`)* hasn't been
+not been fully integrated into the library and currently causes some tests to fail *(interleaved batched
+gemm in particular)*. It's thus advised to use the llvm/OpenCL generic flow when targetting CPUs.
 
 ### Installing portBLAS
 To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
@@ -452,7 +480,7 @@ Some of the supported options are:
 |---|---|---|
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
-| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `hipsycl` and `computecpp`*(deprecated)*. |
+| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `adaptivecpp` and `computecpp`*(deprecated)*. |
 | `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
