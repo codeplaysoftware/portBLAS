@@ -110,19 +110,28 @@ typename sb_handle_t::event_t _gemm_backend(
     index_t batch_size, gemm_batch_type_t batch_type,
     const typename sb_handle_t::event_t& _dependencies) {
   if (_alpha == element_t{0}) {
-    // When alpha = 0, GEMM is equivalent to C = beta * C.
-    if (_ldc == _M) {
-      // When LDC is M, we can scale the full matrix at once.
-      const auto matrix_size = _N * _M * batch_size;
-      return ::blas::_scal(sb_handle, matrix_size, _beta, _C, index_t{1},
-                           _dependencies);
+    index_t size_c = _ldc * _N;
+    // When alpha = 0, GEMM is equivalent to {batch_size Times C = beta * C}.
+    if (size_c == _stridec) {
+      if (_ldc == _M) {
+        // When LDC is M, we can scale the full batched-matrices at once as a
+        // single vector.
+        return ::blas::_scal(sb_handle, size_c * batch_size, _beta, _C,
+                             index_t{1}, _dependencies);
+      } else {
+        // When stride matches matrix size, the _ldc is conserved between
+        // matrices, we can thus scale the full batched-matrices at one as a
+        // single matrix.
+        return _scal_matrix(sb_handle, _M, _N * batch_size, _beta, _C, _ldc,
+                            index_t{1}, _dependencies);
+      }
+
     } else {
-      // When LDC is not M, we must scale each column of C separately.
       typename sb_handle_t::event_t events;
-      const auto num_columns = batch_size * _N;
-      for (index_t i = 0; i < num_columns; ++i) {
-        auto ev = ::blas::_scal(sb_handle, _M, _beta, _C + i * _ldc, index_t{1},
-                                _dependencies);
+      // Generic case needs to be serialized across batch matrices.
+      for (index_t b = 0; b < batch_size; b++) {
+        auto ev = _scal_matrix(sb_handle, _M, _N, _beta, _C + b * _stridec,
+                               _ldc, index_t{1}, _dependencies);
         append_vector(events, ev);
       }
       return events;

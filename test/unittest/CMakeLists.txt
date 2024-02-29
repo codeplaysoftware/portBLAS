@@ -34,6 +34,7 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
@@ -55,6 +56,8 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
   ${PORTBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
   ${PORTBLAS_UNITTEST}/blas2/blas2_tpmv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
   # Blas 3 tests
   ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
@@ -67,6 +70,20 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatadd_batched_test.cpp
   ${PORTBLAS_UNITTEST}/extension/axpy_batch_test.cpp
+  ${PORTBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
+)
+
+# Skip these tests for AdaptiveCpp for SPIRV/OpenCL targets 
+# that use SYCL 2020 features like group reduction or hang 
+# during execution (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
+set(ADAPTIVE_CPP_SKIP 
+  ${PORTBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
+  # Hang during execution (without failing)
+  ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
@@ -84,19 +101,6 @@ if(is_dpcpp)
   )
 endif()
 
-# Temporary disabling the following tests fro Intel DPC++ as currently Intel compiler crashes while running the following tests
-if(is_computecpp)
-  set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
-    # Blas 1 tests
-    ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    # Blas 2 tests
-    ${PORTBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
-    ${PORTBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
-    # Blas buffer tests
-    ${PORTBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
-  )
-
-endif()
 
 # Contains tests that fail if compiled with -ffast-math
 set(SYCL_UNITTEST_NOFASTMATH
@@ -115,6 +119,9 @@ set(HALF_DATA_OPS "blas1_axpy_test"
                   )
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
+  if(is_adaptivecpp AND ${blas_test} IN_LIST ADAPTIVE_CPP_SKIP)
+    continue()
+  endif()
   get_filename_component(test_exec ${blas_test} NAME_WE)
   add_executable(${test_exec} main.cpp ${blas_test})
   if(is_computecpp)

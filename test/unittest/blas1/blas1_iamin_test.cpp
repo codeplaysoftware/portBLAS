@@ -29,7 +29,6 @@
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-
   std::string alloc;
   api_type api;
   index_t size;
