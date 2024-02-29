@@ -55,6 +55,16 @@ endif()
 # set BENCHMARK_ENABLE_TESTING to OFF for google bench
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 
+# update CXX_FLAGS to avoid error when building benchmarks
+# in case of icpx compiler:
+# Explicit comparison with NaN in fast floating point mode 
+# [-Werror,-Wtautological-constant-compare]
+# https://github.com/dealii/dealii/issues/14693
+string(FIND ${CMAKE_CXX_COMPILER} "icpx" found_icpx)
+if(${found_icpx} GREATER -1)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=tautological-constant-compare")
+endif()
+
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googlebench-src
                  ${CMAKE_CURRENT_BINARY_DIR}/googlebench-build
                  EXCLUDE_FROM_ALL)
