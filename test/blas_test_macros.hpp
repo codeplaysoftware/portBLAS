@@ -50,7 +50,7 @@
                                              combination, name_generator)     \
   class class_name##Float                                                     \
       : public ::testing::TestWithParam<combination_t<float>> {};             \
-  TEST_P(class_name##Float, test) { test_function(GetParam()); };             \
+  TEST_P(class_name##Float, test) { test_function<float>(GetParam()); };      \
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Float, combination<float>, \
                            name_generator<float>);
 
@@ -63,7 +63,7 @@
                                               combination, name_generator)  \
   class class_name##Double                                                  \
       : public ::testing::TestWithParam<combination_t<double>> {};          \
-  TEST_P(class_name##Double, test) { test_function(GetParam()); };          \
+  TEST_P(class_name##Double, test) { test_function<double>(GetParam()); };  \
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Double,                  \
                            combination<double>, name_generator<double>);
 #else
@@ -81,7 +81,9 @@
                                             combination, name_generator)   \
   class class_name##Half                                                   \
       : public ::testing::TestWithParam<combination_t<cl::sycl::half>> {}; \
-  TEST_P(class_name##Half, test) { test_function(GetParam()); };           \
+  TEST_P(class_name##Half, test) {                                         \
+    test_function<cl::sycl::half>(GetParam());                             \
+  };                                                                       \
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Half,                   \
                            combination<cl::sycl::half>,                    \
                            name_generator<cl::sycl::half>);
@@ -177,17 +179,17 @@
  * @param combination Combinations object
  * @param name_generator Function used to generate test names
  */
-#define BLAS_REGISTER_GEMM_TEST_CUSTOM_NAME(test_suite, class_name,           \
-                                            test_function, combination_t,     \
-                                            combination, name_generator)      \
-  BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(test_suite, class_name##Float,         \
-                                       test_function<float>, combination_t,   \
-                                       combination, name_generator);          \
-  BLAS_REGISTER_TEST_DOUBLE_CUSTOM_NAME(test_suite, class_name##Double,       \
-                                        test_function<double>, combination_t, \
-                                        combination, name_generator);         \
-  BLAS_REGISTER_TEST_HALF_FLOAT_CUSTOM_NAME(                                  \
-      test_suite, class_name##Half, test_function<cl::sycl::half>,            \
+#define BLAS_REGISTER_GEMM_TEST_CUSTOM_NAME(test_suite, class_name,       \
+                                            test_function, combination_t, \
+                                            combination, name_generator)  \
+  BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(test_suite, class_name##Float,     \
+                                       test_function, combination_t,      \
+                                       combination, name_generator);      \
+  BLAS_REGISTER_TEST_DOUBLE_CUSTOM_NAME(test_suite, class_name##Double,   \
+                                        test_function, combination_t,     \
+                                        combination, name_generator);     \
+  BLAS_REGISTER_TEST_HALF_FLOAT_CUSTOM_NAME(                              \
+      test_suite, class_name##Half, test_function<cl::sycl::half>,        \
       combination_t, combination, name_generator);
 
 #ifdef BLAS_ENABLE_COMPLEX
