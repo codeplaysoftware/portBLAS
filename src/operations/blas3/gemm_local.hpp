@@ -113,7 +113,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static constexpr bool symm_a = SymmA;
   static constexpr bool symm_b = SymmB;
 
-  //! @brief Number of elements which fit within a cache line.
+  //! @brief Number of input elements which fit within a cache line.
   static constexpr index_t cl_elems = ClSize / sizeof(element_in_t);
   //! @brief Number of work items within a work group
   static constexpr index_t wg_size = wg_rows * wg_cols;
@@ -128,7 +128,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   static_assert(wg_size % cl_elems == 0,
                 "Work group size should be a multiple "
-                "of elements in a cache line\n"
+                "of input elements in a cache line\n"
                 " --- this is ensured iff:"
                 " cl_size | sizeof(element_in_t) * wg_rows * wg_cols");
 
