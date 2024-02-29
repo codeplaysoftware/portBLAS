@@ -144,7 +144,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     std::ostringstream str{};
     str << "Gemm <" << DoubleBuffer << ", " << NbcA << ", " << NbcB << ", "
         << ClSize << ", " << tile_type::get_type_string() << ", "
-        << type_string<element_in_t>::get_value() << ", "
+        << type_string<element_in_t>::get_value() << "_"
         << type_string<element_out_t>::get_value() << "gemm_memory:no_local, "
         << "gemm_algorithm:standard, "
         << "gemm_vectorization:full, "
