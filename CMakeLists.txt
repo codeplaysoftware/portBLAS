@@ -73,6 +73,10 @@ if (NOT INSTALL_HEADER_ONLY)
   include(ConfigurePORTBLAS)
   include(SYCL)
   find_package(PythonInterp 3 REQUIRED)
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/py_gen/README.md" )
+    message(FATAL_ERROR "Repository not cloned recursively, missing submodule.\n"
+       "To continue please clone submodule using `git submodule update --init`")
+  endif()
 endif()
 
 if (MSVC)
