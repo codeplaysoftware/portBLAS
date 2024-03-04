@@ -88,6 +88,23 @@ set(HALF_DATA_OPS "gemm"
                   "gemm_batched_strided"
 )
 
+# HIP_CXX_COMPILER is defined equal to CMAKE_CXX_COMPILER while looking for rocblas (line 30)
+# if it is passed by user it is supposed to be different from standard compiler, than it is up
+# to the user provide the correct path with the correct library.
+if("${HIP_CXX_COMPILER}" STREQUAL "${CMAKE_CXX_COMPILER}" )
+# Verify that libclang_rt.builtins exists for current compiler
+  if(EXISTS ${CLANGRT_BUILTINS} )
+    message("libclang_rt found at " ${CLANGRT_BUILTINS})
+  else()
+    message(FATAL_ERROR "libclang_rt not found at " ${CLANGRT_BUILTINS}
+      "\nCheck library availability for current CXX compiler. "
+      "Using HIP_CXX_COMPILER option, set another compiler compatible with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} that has libclang_rt.builtins for x86_64."
+      "If not possible skip rocBLAS benchmarks compilation")
+  endif()
+else()
+  message(WARNING "using CLANGRT_BUILTINS defined by user at " ${CLANGRT_BUILTINS})
+endif()
+
 # Add individual benchmarks for each method
 foreach(rocblas_benchmark ${sources})
   get_filename_component(rocblas_bench_exec ${rocblas_benchmark} NAME_WE)
