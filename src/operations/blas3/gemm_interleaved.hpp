@@ -493,9 +493,21 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
       for (int j = 0; j < item_rows; ++j) {
 #pragma unroll
         for (int b = 0; b < item_batchs / VectorSize; ++b) {
+#ifdef __ADAPTIVECPP__
+          if constexpr (is_half<element_t>::value) {
+            *reg_res = reg_a[j * (item_batchs / VectorSize) + b] *
+                           reg_b[i * (item_batchs / VectorSize) + b] +
+                       *reg_res;
+          } else {
+            *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
+                                     reg_b[i * (item_batchs / VectorSize) + b],
+                                     *reg_res);
+          }
+#else
           *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
                                    reg_b[i * (item_batchs / VectorSize) + b],
                                    *reg_res);
+#endif
           ++reg_res;
         }
       }

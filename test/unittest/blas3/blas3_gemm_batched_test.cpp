@@ -127,22 +127,22 @@ GENERATE_GEMM_STRIDED_BATCHED_TEST(BatchStridedGemm, DefaultGemmAndGemmBatched);
 
 template <typename scalar_t>
 const auto AllStridedBatched =
-    ::testing::Combine(::testing::Values("usm", "buf"),   // allocation type
-                       ::testing::Values(0, 33),          // offset
-                       ::testing::Values(5),              // batch
-                       ::testing::Values(128),            // m
-                       ::testing::Values(128),            // n
-                       ::testing::Values(128),            // k
-                       ::testing::Values('n', 't'),       // transa
-                       ::testing::Values('n', 't'),       // transb
-                       ::testing::Values<scalar_t>(3.0),  // alpha
-                       ::testing::Values<scalar_t>(7.0),  // beta
-                       ::testing::Values(2),              // lda_mul
-                       ::testing::Values(3),              // ldb_mul
-                       ::testing::Values(4),              // ldc_mul
-                       ::testing::Values(0, 1, 2),        // stride_a_mul
-                       ::testing::Values(0, 1, 2),        // stride_b_mul
-                       ::testing::Values(1, 2, 3)         // stride_c_mul
+    ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
+                       ::testing::Values(0, 33),         // offset
+                       ::testing::Values(5),             // batch
+                       ::testing::Values(63),            // m
+                       ::testing::Values(63),            // n
+                       ::testing::Values(128),           // k
+                       ::testing::Values('n', 't'),      // transa
+                       ::testing::Values('n', 't'),      // transb
+                       ::testing::Values<scalar_t>(3.0, 0.0),       // alpha
+                       ::testing::Values<scalar_t>(7.0, 1.0, 0.0),  // beta
+                       ::testing::Values(2),                        // lda_mul
+                       ::testing::Values(3),                        // ldb_mul
+                       ::testing::Values(4),                        // ldc_mul
+                       ::testing::Values(0, 1, 2),  // stride_a_mul
+                       ::testing::Values(0, 1, 2),  // stride_b_mul
+                       ::testing::Values(1, 3)      // stride_c_mul
     );
 GENERATE_GEMM_STRIDED_BATCHED_TEST(BatchStridedGemm, AllStridedBatched);
 

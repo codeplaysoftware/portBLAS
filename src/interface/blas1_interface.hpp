@@ -151,6 +151,7 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   if (!_N) {
     using element_t = typename ValueType<container_2_t>::type;
     sb_handle.wait(_dependencies);
@@ -168,6 +169,11 @@ typename sb_handle_t::event_t _sdsdot(
     auto ret = sb_handle.execute(assignOp2, dotOp);
     return blas::concatenate_vectors(dotOp, ret);
   }
+#else
+  throw std::runtime_error(
+      "Sdsdot is not supported with AdaptiveCpp as it uses SYCL 2020 "
+      "reduction.");
+#endif
 }
 
 /**
@@ -184,7 +190,7 @@ typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
   // keep compatibility with older sycl versions
-#if SYCL_LANGUAGE_VERSION < 202000
+#if SYCL_LANGUAGE_VERSION < 202000 || defined(__ADAPTIVECPP__)
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -202,7 +208,7 @@ typename sb_handle_t::event_t _asum(
 #endif
 }
 
-#if SYCL_LANGUAGE_VERSION >= 202000
+#if SYCL_LANGUAGE_VERSION >= 202000 && !defined(__ADAPTIVECPP__)
 /*! _asum_impl.
  * @brief Internal implementation of the Absolute sum operator.
  *
@@ -296,7 +302,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
       // get the minimum supported sub_group size
       const index_t min_sg_size = static_cast<index_t>(
           q.get_device()
-              .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+              .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
       ret = sb_handle.execute(op, min_sg_size, min_sg_size, _dependencies);
     } else {
       ret = sb_handle.execute(
@@ -311,7 +317,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     // get the minimum supported sub_group size
     const index_t min_sg_size = static_cast<index_t>(
         q.get_device()
-            .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+            .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
     // if using no local memory, every sub_group writes one intermediate output,
     // in case if sub_group size is not known at allocation time, than allocate
     // extra memory using min supported sub_group size.
@@ -456,6 +462,58 @@ typename sb_handle_t::event_t _scal(
 }
 
 /**
+ * \brief SCALAR operation on a matrix
+ * @param sb_handle_t sb_handle
+ * @param _M number of matrix rows
+ * @param _N number of matrix columns
+ * @param alpha scaling scalar
+ * @param _A Input/Output BufferIterator or USM pointer matrix
+ * @param _incA Increment for the matrix A
+ * @param _lda Leading dimension for the matrix A
+ * @param _dependencies Vector of events
+ */
+template <typename sb_handle_t, typename element_t, typename container_0_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies) {
+  if (_incA == index_t(1)) {
+    return _scal_matrix_impl<false>(sb_handle, _M, _N, _alpha, _A, _lda, _incA,
+                                    _dependencies);
+  } else {
+    return _scal_matrix_impl<true>(sb_handle, _M, _N, _alpha, _A, _lda, _incA,
+                                   _dependencies);
+  }
+}
+
+/**
+ * \brief Internal implementation of Matrix scaling
+ * @tparam has_inc Whether matrix has an increment != 1
+ *
+ * Remaining parameters match internal::_scal_matrix parameters (see above)
+ */
+template <bool has_inc, typename sb_handle_t, typename element_t,
+          typename container_0_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix_impl(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename MatrixViewType<container_0_t, index_t, col_major, has_inc>::type
+      m_view = make_matrix_view<col_major, element_t, index_t, has_inc>(
+          _A, _M, _N, _lda, _incA);
+  if (_alpha == element_t{1}) {
+    return _dependencies;
+  } else {
+    auto scal_op = make_op<ScalarOp, ProductOperator>(_alpha, m_view);
+    auto copy_op = make_op<Assign>(m_view, scal_op);
+    typename sb_handle_t::event_t ret =
+        sb_handle.execute(copy_op, _dependencies);
+    return ret;
+  }
+}
+
+/**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
@@ -548,24 +606,23 @@ typename sb_handle_t::event_t _dot_impl(
   typename sb_handle_t::event_t ret_event;
   // Skip if N==0, _rs is not overwritten
   if (!_N) return {_dependencies};
-
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
   auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
-  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto wgReductionOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
 
   if constexpr (localMemSize) {
     ret_event =
-        sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+        sb_handle.execute(wgReductionOp, static_cast<index_t>(localSize),
                           static_cast<index_t>(_number_wg * localSize),
                           static_cast<index_t>(localMemSize), _dependencies);
   } else {
-    ret_event = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
-                                  static_cast<index_t>(_number_wg * localSize),
-                                  _dependencies);
+    ret_event = sb_handle.execute(
+        wgReductionOp, static_cast<index_t>(localSize),
+        static_cast<index_t>(_number_wg * localSize), _dependencies);
   }
   return ret_event;
 }
@@ -867,6 +924,7 @@ typename ValueType<container_0_t>::type _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{0};
@@ -889,6 +947,10 @@ typename ValueType<container_0_t>::type _dot(
                             : helper::AllocType::buffer>(gpu_res,
                                                          sb_handle.get_queue());
   return res;
+#else
+  throw std::runtime_error(
+      "Dot is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 /**
@@ -1012,6 +1074,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _asum(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -1032,6 +1095,10 @@ typename ValueType<container_t>::type _asum(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res[0];
+#else
+  throw std::runtime_error(
+      "Asum is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 /**
@@ -1047,6 +1114,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -1066,6 +1134,10 @@ typename ValueType<container_t>::type _nrm2(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res[0];
+#else
+  throw std::runtime_error(
+      "Nrm2 is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 }  // namespace internal

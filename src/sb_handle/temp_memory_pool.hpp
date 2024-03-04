@@ -1,6 +1,6 @@
 #ifndef TEMP_MEMORY_POOL_HPP
 #define TEMP_MEMORY_POOL_HPP
-
+#ifndef __ADAPTIVECPP__
 #include "portblas_helper.h"
 
 namespace blas {
@@ -114,5 +114,6 @@ typename Temp_Mem_Pool::event_t Temp_Mem_Pool::release_usm_mem(
   })};
 }
 }
-#endif
+#endif  // SB_ENABLE_USM
+#endif  // __ADAPTIVECPP__
 #endif
