@@ -73,7 +73,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
-  using vector_t = typename packetize_t::PacketType;
   static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
   static constexpr index_t item_rows = tile_type::item_rows;
@@ -385,7 +384,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* register array used to store the result*/
-      value_t reg_res[item_rows * item_cols];
+      element_out_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary, packet_size>(
           reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
           out_of_range);
@@ -591,7 +590,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         }
         auto out_reg = &reg[(i * row_iters + j) * work_per_load];
         in_vec.template store<address_t::private_space>(
-            0, cl::sycl::multi_ptr<element_out_t, address_t::private_space>(
+            0, cl::sycl::multi_ptr<element_in_t, address_t::private_space>(
                    out_reg));
       }
     }

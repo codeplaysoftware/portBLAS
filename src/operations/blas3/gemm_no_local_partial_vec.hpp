@@ -369,7 +369,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* 2D register array used to store the result C*/
-      value_t reg_res[item_rows * item_cols];
+      element_out_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary, a_packet_size, b_packet_size>(
           reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
           out_of_range);
@@ -456,7 +456,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <index_t item_size, index_t next_element, bool check_block,
             index_t work_per_load, typename PointerType,
             typename check_boundary>
-  PORTBLAS_INLINE void load(PointerType ptr, element_out_t *reg,
+  PORTBLAS_INLINE void load(PointerType ptr, element_in_t *reg,
                             const index_t &ld, index_t index,
                             const check_boundary &chk_boundary,
                             const bool out_of_range) noexcept {
@@ -472,16 +472,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           do_check<check_block>(chk_boundary(index + (work_per_load - 1)));
 
       using l_vector_t =
-          typename Packetize<work_per_load, element_out_t, index_t>::PacketType;
+          typename Packetize<work_per_load, element_in_t, index_t>::PacketType;
       l_vector_t in_vec{0};
       if (in_range) {
         in_vec.template load<address_t::global_space>(
-            0,
-            cl::sycl::multi_ptr<const element_out_t, address_t::global_space>(
-                ptr));
+            0, cl::sycl::multi_ptr<const element_in_t, address_t::global_space>(
+                   ptr));
       }
       in_vec.template store<address_t::private_space>(
-          0, cl::sycl::multi_ptr<element_out_t, address_t::private_space>(reg));
+          0, cl::sycl::multi_ptr<element_in_t, address_t::private_space>(reg));
 
       // Move pointers and update index for next load
       ptr += ld;
