@@ -225,7 +225,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
   // Unused configuration cases
-  if constexpr (s_a && s_b || ((s_a && _t_b) || (s_b && _t_a))) {
+  if constexpr (s_a || s_b) {
     return _dependencies;
   } else {
     if (batch_type == gemm_batch_type_t::interleaved) {
