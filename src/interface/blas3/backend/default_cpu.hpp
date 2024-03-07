@@ -122,14 +122,13 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
 
 // Half Configurations
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
-          typename element_in_t, typename element_out_t, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
-          typename container_2_t, typename index_t>
-typename std::enable_if<is_half<element_in_t>::value,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename std::enable_if<is_half<element_t>::value,
                         typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
-      element_out_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
-      container_1_t _b, index_t _ldb, index_t _strideb, element_out_t _beta,
+      element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+      container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
