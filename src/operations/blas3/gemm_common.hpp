@@ -55,7 +55,7 @@ static PORTBLAS_INLINE Tout
 mul_add(Tin a, Tin b, Tout c,
         typename std::enable_if<!std::is_same<Tin, Tout>::value &&
                                 is_sycl_scalar<Tin>::value>::type * = 0) {
-  return a * b + c;
+  return static_cast<Tout>(a) * static_cast<Tout>(b) + c;
 }
 
 template <typename T>
