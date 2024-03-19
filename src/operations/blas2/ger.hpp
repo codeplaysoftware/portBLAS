@@ -34,6 +34,173 @@
 
 namespace blas {
 
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+PORTBLAS_INLINE Ger<lhs_t, rhs_1_t, rhs_2_t>::Ger(
+    lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nRowsWG,
+    index_t &_nColsWG, index_t &_nWG_row, index_t &_nWG_col)
+    : lhs_(_l),
+      scalar_(_scl),
+      rhs_1_(_r1),
+      rhs_2_(_r2),
+      nRowsWG_(_nRowsWG),
+      nColsWG_(_nColsWG),
+      nWG_row_(_nWG_row),
+      nWG_col_(_nWG_col) {}
+
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+PORTBLAS_INLINE typename Ger<lhs_t, rhs_1_t, rhs_2_t>::index_t
+Ger<lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
+  return rhs_1_.get_size();
+}
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+PORTBLAS_INLINE bool Ger<lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
+    cl::sycl::nd_item<1> ndItem) const {
+  return true;
+}
+
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+PORTBLAS_INLINE typename Ger<lhs_t, rhs_1_t, rhs_2_t>::value_t
+Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename Ger<lhs_t, rhs_1_t, rhs_2_t>::index_t;
+
+  const index_t subgroup_size = ndItem.get_sub_group().get_local_range().get(0);
+  const index_t subgroups_per_col = nRowsWG_ / subgroup_size;
+  const index_t subgroups_per_group =
+      ndItem.get_sub_group().get_group_range().get(0);
+
+  const index_t group_size = ndItem.get_local_range(0);
+
+  // col_per_workitem <= subgroup_size
+  const index_t col_per_workitem = nColsWG_ * nRowsWG_ / group_size;
+
+  const index_t group_id = ndItem.get_group(0);
+  const index_t idWFR = group_id % nWG_row_;
+  const index_t idWFC = group_id / nWG_row_;
+
+  const index_t subgroup_id = ndItem.get_sub_group().get_group_id().get(0);
+  const index_t subgroup_local_id =
+      ndItem.get_sub_group().get_local_id().get(0);
+
+  const index_t id_row0 = idWFR * nRowsWG_ +
+                          subgroup_size * (subgroup_id % subgroups_per_col) +
+                          subgroup_local_id;
+  const index_t id_col0 =
+      idWFC * nColsWG_ + col_per_workitem * (subgroup_id / subgroups_per_col);
+
+  const index_t dimR = lhs_.get_size_row();
+  const index_t dimC = lhs_.get_size_col();
+  const bool id_row_active = id_row0 < dimR;
+
+#ifndef __ADAPTIVECPP__
+  const value_t rhs_2 = (subgroup_local_id < col_per_workitem &&
+                         id_col0 + subgroup_local_id < dimC)
+                            ? rhs_2_.eval(id_col0 + subgroup_local_id)
+                            : 0;
+#endif
+
+  const value_t scal_rhs_1 = id_row_active ? scalar_ * rhs_1_.eval(id_row0) : 0;
+
+  value_t prefetch_lhs_ =
+      (id_row_active && id_col0 < dimC) ? lhs_.eval(id_row0, id_col0) : 0;
+
+  for (index_t sub_id_col = 0; sub_id_col < col_per_workitem; sub_id_col++) {
+    const value_t rhs_2_sub_id_col =
+#ifndef __ADAPTIVECPP__
+        cl::sycl::group_broadcast(ndItem.get_sub_group(), rhs_2, sub_id_col);
+#else
+        rhs_2_.eval(id_col0 + sub_id_col);
+#endif
+    if (id_row_active && id_col0 + sub_id_col < dimC) {
+      lhs_.eval(id_row0, id_col0 + sub_id_col) =
+          prefetch_lhs_ + scal_rhs_1 * rhs_2_sub_id_col;
+      prefetch_lhs_ = (id_col0 + sub_id_col + 1 < dimC)
+                          ? lhs_.eval(id_row0, id_col0 + sub_id_col + 1)
+                          : 0;
+    }
+  }
+
+  return 0;
+}
+
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+template <typename sharedT>
+PORTBLAS_INLINE typename Ger<lhs_t, rhs_1_t, rhs_2_t>::value_t
+Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem,
+                                   cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename Ger<lhs_t, rhs_1_t, rhs_2_t>::index_t;
+
+  const index_t group_id = ndItem.get_group(0);
+  const index_t idWFR = group_id % nWG_row_;
+  const index_t idWFC = group_id / nWG_row_;
+  const index_t frs_row = idWFR * nRowsWG_;
+  const index_t group_local_id = ndItem.get_local_id(0);
+
+  // group_size%nRowsWG_ == 0
+  const index_t id_row0 = group_local_id % nRowsWG_;
+  const index_t id_row1 = frs_row + id_row0;
+
+  index_t frs_col = idWFC * nColsWG_;
+
+  const index_t dimR = lhs_.get_size_row();
+  const index_t dimC = lhs_.get_size_col();
+
+  value_t *l_rhs_1 = shrMem.localAcc.get_pointer();
+  value_t *l_rhs_2 = shrMem.localAcc.get_pointer() + nRowsWG_;
+
+  // nRowsWG_ <= group_size
+  if (group_local_id < nRowsWG_)
+    l_rhs_1[group_local_id] =
+        (frs_row + group_local_id < dimR)
+            ? scalar_ * rhs_1_.eval(frs_row + group_local_id)
+            : 0;
+
+  // nColsWG_ <= group_size
+  if (group_local_id < nColsWG_)
+    l_rhs_2[group_local_id] = (frs_col + group_local_id < dimC)
+                                  ? rhs_2_.eval(frs_col + group_local_id)
+                                  : 0;
+
+  const index_t group_size = ndItem.get_local_range(0);
+
+  // nRowsWG_ * nColsWG_ % group_size == 0
+  const index_t col_per_workitem = nRowsWG_ * nColsWG_ / group_size;
+  const index_t subgroup_col_id = group_local_id / nRowsWG_;
+
+  const index_t id_col0 = subgroup_col_id * col_per_workitem;
+  const index_t id_col1 = frs_col + id_col0;
+
+  value_t prefetch_lhs_ =
+      (id_row1 < dimR && id_col1 < dimC) ? lhs_.eval(id_row1, id_col1) : 0;
+
+  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+  for (index_t id_col = 0; id_col < col_per_workitem; id_col++) {
+    const value_t val = l_rhs_1[id_row0] * l_rhs_2[id_col0 + id_col];
+    if (id_row1 < dimR && id_col1 + id_col < dimC) {
+      lhs_.eval(id_row1, id_col1 + id_col) = prefetch_lhs_ + val;
+      prefetch_lhs_ = (id_col1 + id_col + 1 < dimC)
+                          ? lhs_.eval(id_row1, id_col1 + id_col + 1)
+                          : 0;
+    }
+  }
+
+  return 0;
+}
+
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+PORTBLAS_INLINE void Ger<lhs_t, rhs_1_t, rhs_2_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_1_.bind(h);
+  rhs_2_.bind(h);
+}
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+PORTBLAS_INLINE void
+Ger<lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  rhs_1_.adjust_access_displacement();
+  rhs_2_.adjust_access_displacement();
+}
+
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
 // template <typename lhs_t,  typename rhs_1_t, typename  rhs_2_t>
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
