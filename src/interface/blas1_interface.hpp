@@ -548,9 +548,9 @@ typename sb_handle_t::event_t _nrm2(
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -561,7 +561,8 @@ typename sb_handle_t::event_t _nrm2_impl(
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
 
-  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto assignOp =
+      make_wg_atomic_reduction<AddOperator, usmManagedMem>(rs, prdOp);
   typename sb_handle_t::event_t ret0;
   if constexpr (localMemSize != 0) {
     ret0 = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
@@ -596,8 +597,8 @@ typename sb_handle_t::event_t _nrm2_impl(
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
@@ -613,7 +614,8 @@ typename sb_handle_t::event_t _dot_impl(
                              static_cast<index_t>(1));
 
   auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
-  auto wgReductionOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto wgReductionOp =
+      make_wg_atomic_reduction<AddOperator, usmManagedMem>(rs, prdOp);
 
   if constexpr (localMemSize) {
     ret_event =

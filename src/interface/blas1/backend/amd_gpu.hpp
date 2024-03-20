@@ -130,16 +130,39 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _nrm2(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
-  if (_N < (1 << 18)) {
-    constexpr index_t localSize = 1024;
-    const index_t number_WG = (_N + localSize - 1) / localSize;
-    return blas::internal::_nrm2_impl<static_cast<int>(localSize), 32>(
-        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+  /**
+   * Read comment in _asum above.
+   **/
+  bool managed_mem{false};
+  if constexpr (std::is_pointer_v<decltype(_rs)>) {
+    managed_mem =
+        sycl::usm::alloc::shared ==
+        sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
+  }
+  if (managed_mem) {
+    if (_N < (1 << 18)) {
+      constexpr index_t localSize = 1024;
+      const index_t number_WG = (_N + localSize - 1) / localSize;
+      return blas::internal::_nrm2_impl<static_cast<int>(localSize), 32, true>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    } else {
+      constexpr int localSize = 512;
+      constexpr index_t number_WG = 512;
+      return blas::internal::_nrm2_impl<localSize, 32, true>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    }
   } else {
-    constexpr int localSize = 512;
-    constexpr index_t number_WG = 512;
-    return blas::internal::_nrm2_impl<localSize, 32>(
-        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    if (_N < (1 << 18)) {
+      constexpr index_t localSize = 1024;
+      const index_t number_WG = (_N + localSize - 1) / localSize;
+      return blas::internal::_nrm2_impl<static_cast<int>(localSize), 32, false>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    } else {
+      constexpr int localSize = 512;
+      constexpr index_t number_WG = 512;
+      return blas::internal::_nrm2_impl<localSize, 32, false>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    }
   }
 }
 }  // namespace backend
@@ -153,16 +176,39 @@ typename sb_handle_t::event_t _dot(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t& _dependencies) {
-  if (_N < (1 << 18)) {
-    constexpr index_t localSize = 1024;
-    const index_t number_WG = (_N + localSize - 1) / localSize;
-    return blas::internal::_dot_impl<static_cast<int>(localSize), 32>(
-        sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+  /**
+   * Read comment in _asum above.
+   **/
+  bool managed_mem{false};
+  if constexpr (std::is_pointer_v<decltype(_rs)>) {
+    managed_mem =
+        sycl::usm::alloc::shared ==
+        sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
+  }
+  if (managed_mem) {
+    if (_N < (1 << 18)) {
+      constexpr index_t localSize = 1024;
+      const index_t number_WG = (_N + localSize - 1) / localSize;
+      return blas::internal::_dot_impl<static_cast<int>(localSize), 32, true>(
+          sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+    } else {
+      constexpr int localSize = 512;
+      constexpr index_t number_WG = 512;
+      return blas::internal::_dot_impl<localSize, 32, true>(
+          sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+    }
   } else {
-    constexpr int localSize = 512;
-    constexpr index_t number_WG = 512;
-    return blas::internal::_dot_impl<localSize, 32>(
-        sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+    if (_N < (1 << 18)) {
+      constexpr index_t localSize = 1024;
+      const index_t number_WG = (_N + localSize - 1) / localSize;
+      return blas::internal::_dot_impl<static_cast<int>(localSize), 32, false>(
+          sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+    } else {
+      constexpr int localSize = 512;
+      constexpr index_t number_WG = 512;
+      return blas::internal::_dot_impl<localSize, 32, false>(
+          sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+    }
   }
 }
 }  // namespace backend
