@@ -208,7 +208,7 @@ struct AssignReduction {
  * function below.
  *
  */
-template <typename operator_t, typename lhs_t, typename rhs_t>
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
 struct WGAtomicReduction {
   using value_t = typename lhs_t::value_t;
   using index_t = typename rhs_t::index_t;
@@ -304,10 +304,11 @@ inline AssignReduction<operator_t, lhs_t, rhs_t> make_assign_reduction(
       lhs_, rhs_, local_num_thread_, global_num_thread_);
 }
 
-template <typename operator_t, typename lhs_t, typename rhs_t>
-inline WGAtomicReduction<operator_t, lhs_t, rhs_t> make_wg_atomic_reduction(
-    lhs_t &lhs_, rhs_t &rhs_) {
-  return WGAtomicReduction<operator_t, lhs_t, rhs_t>(lhs_, rhs_);
+template <typename operator_t, bool managed_mem = false, typename lhs_t,
+          typename rhs_t>
+inline WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>
+make_wg_atomic_reduction(lhs_t &lhs_, rhs_t &rhs_) {
+  return WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>(lhs_, rhs_);
 }
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>

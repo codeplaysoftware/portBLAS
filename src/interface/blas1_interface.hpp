@@ -226,9 +226,9 @@ typename sb_handle_t::event_t _asum(
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -238,7 +238,8 @@ typename sb_handle_t::event_t _asum_impl(
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   typename sb_handle_t::event_t ret;
-  auto asumOp = make_wg_atomic_reduction<AbsoluteAddOperator>(rs, vx);
+  auto asumOp =
+      make_wg_atomic_reduction<AbsoluteAddOperator, usmManagedMem>(rs, vx);
   if constexpr (localMemSize != 0) {
     ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
                             static_cast<index_t>(number_WG * localSize),
