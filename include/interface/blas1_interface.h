@@ -136,9 +136,9 @@ typename sb_handle_t::event_t _asum(
  * \brief Prototype for the internal implementation of the ASUM operation. See
  * documentation in the blas1_interface.hpp file for details.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem = false,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,

@@ -35,26 +35,30 @@ namespace blas {
  * and atomics operation to combine the results.
  *
  * */
-template <typename operator_t, typename lhs_t, typename rhs_t>
-WGAtomicReduction<operator_t, lhs_t, rhs_t>::WGAtomicReduction(lhs_t& _l,
-                                                               rhs_t& _r)
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
+WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::WGAtomicReduction(
+    lhs_t& _l, rhs_t& _r)
     : lhs_(_l), rhs_(_r){};
 
-template <typename operator_t, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE typename WGAtomicReduction<operator_t, lhs_t, rhs_t>::index_t
-WGAtomicReduction<operator_t, lhs_t, rhs_t>::get_size() const {
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE
+    typename WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::index_t
+    WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::get_size() const {
   return rhs_.get_size();
 }
 
-template <typename operator_t, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE bool WGAtomicReduction<operator_t, lhs_t, rhs_t>::valid_thread(
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE bool
+WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
 
-template <typename operator_t, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE typename WGAtomicReduction<operator_t, lhs_t, rhs_t>::value_t
-WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE
+    typename WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::value_t
+    WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::eval(
+        cl::sycl::nd_item<1> ndItem) {
   auto atomic_res =
       cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
                            cl::sycl::memory_scope::device,
@@ -80,16 +84,13 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
   }
   return {};
 }
-template <typename operator_t, typename lhs_t, typename rhs_t>
+
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
 template <typename sharedT>
-PORTBLAS_INLINE typename WGAtomicReduction<operator_t, lhs_t, rhs_t>::value_t
-WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
-                                                  cl::sycl::nd_item<1> ndItem) {
-  auto atomic_res =
-      cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
-                           cl::sycl::memory_scope::device,
-                           cl::sycl::access::address_space::global_space>(
-          lhs_.get_data()[0]);
+PORTBLAS_INLINE
+    typename WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::value_t
+    WGAtomicReduction<operator_t, managed_mem, lhs_t, rhs_t>::eval(
+        sharedT scratch, cl::sycl::nd_item<1> ndItem) {
   const auto size = get_size();
   const int lid = static_cast<int>(ndItem.get_global_linear_id());
   const auto loop_stride =
@@ -119,22 +120,36 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
                                       cl::sycl::plus<value_t>());
   }
   if (ndItem.get_local_id()[0] == 0) {
-    atomic_res += val;
+    if constexpr (!managed_mem) {
+      auto atomic_res =
+          cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
+                               cl::sycl::memory_scope::device,
+                               cl::sycl::access::address_space::global_space>(
+              lhs_.get_data()[0]);
+      atomic_res += val;
+    } else {
+      auto atomic_res =
+          cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
+                               cl::sycl::memory_scope::device,
+                               cl::sycl::access::address_space::generic_space>(
+              lhs_.get_data()[0]);
+      atomic_res += val;
+    }
   }
 
   return {};
 }
 
-template <typename operator_t, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void WGAtomicReduction<operator_t, lhs_t, rhs_t>::bind(
-    cl::sycl::handler& h) {
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE void WGAtomicReduction<operator_t, managed_mem, lhs_t,
+                                       rhs_t>::bind(cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
 
-template <typename operator_t, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void
-WGAtomicReduction<operator_t, lhs_t, rhs_t>::adjust_access_displacement() {
+template <typename operator_t, bool managed_mem, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE void WGAtomicReduction<operator_t, managed_mem, lhs_t,
+                                       rhs_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_.adjust_access_displacement();
 }

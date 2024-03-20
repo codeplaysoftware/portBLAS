@@ -34,16 +34,45 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _asum(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
-  if (_N < (1 << 18)) {
-    constexpr index_t localSize = 1024;
-    const index_t number_WG = (_N + localSize - 1) / localSize;
-    return blas::internal::_asum_impl<static_cast<int>(localSize), 32>(
-        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+  /**
+   * This compile time check is absolutely necessary for AMD gpu.
+   * AMD atomic operations required a specific combination of hardware that we
+   *cannot check neither enforce to users. Since reduction operators kernel
+   *implementation useses atomic operation without that particular combination
+   *the operator may fail silently. This check enforce a different atomic
+   *address space causing a big performance degradation, but making the kernel
+   *behaves correctly also with managed memory (aka malloc_shared allocation).
+   **/
+  bool managed_mem{false};
+  if constexpr (std::is_pointer_v<decltype(_rs)>) {
+    managed_mem =
+        sycl::usm::alloc::shared ==
+        sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
+  }
+  if (managed_mem) {
+    if (_N < (1 << 18)) {
+      constexpr index_t localSize = 1024;
+      const index_t number_WG = (_N + localSize - 1) / localSize;
+      return blas::internal::_asum_impl<static_cast<int>(localSize), 32, true>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    } else {
+      constexpr int localSize = 512;
+      constexpr index_t number_WG = 256;
+      return blas::internal::_asum_impl<localSize, 32, true>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    }
   } else {
-    constexpr int localSize = 512;
-    constexpr index_t number_WG = 256;
-    return blas::internal::_asum_impl<localSize, 32>(
-        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    if (_N < (1 << 18)) {
+      constexpr index_t localSize = 1024;
+      const index_t number_WG = (_N + localSize - 1) / localSize;
+      return blas::internal::_asum_impl<static_cast<int>(localSize), 32, false>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    } else {
+      constexpr int localSize = 512;
+      constexpr index_t number_WG = 256;
+      return blas::internal::_asum_impl<localSize, 32, false>(
+          sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+    }
   }
 }
 }  // namespace backend
