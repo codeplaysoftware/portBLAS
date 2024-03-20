@@ -257,9 +257,9 @@ typename sb_handle_t::event_t _nrm2(
  * \brief Prototype for the internal implementation of the NRM2 operator. See
  * documentation in the blas1_interface.hpp file for details.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem = false,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -269,8 +269,8 @@ typename sb_handle_t::event_t _nrm2_impl(
  * \brief Prototype for the internal implementation of the Dot operator. See
  * documentation in the blas1_interface.hpp file for details.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
+template <int localSize, int localMemSize, bool usmManagedMem = false,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
