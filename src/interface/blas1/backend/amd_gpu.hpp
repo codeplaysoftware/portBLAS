@@ -43,13 +43,17 @@ typename sb_handle_t::event_t _asum(
    *address space causing a big performance degradation, but making the kernel
    *behaves correctly also with managed memory (aka malloc_shared allocation).
    **/
-  bool managed_mem{false};
+#ifdef SB_ENABLE_USM
+  bool usm_managed_mem{false};
   if constexpr (std::is_pointer_v<decltype(_rs)>) {
-    managed_mem =
+    usm_managed_mem =
         sycl::usm::alloc::shared ==
         sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
   }
-  if (managed_mem) {
+#else
+  constexpr bool usm_managed_mem{false};
+#endif
+  if (usm_managed_mem) {
     if (_N < (1 << 18)) {
       constexpr index_t localSize = 1024;
       const index_t number_WG = (_N + localSize - 1) / localSize;
@@ -133,13 +137,17 @@ typename sb_handle_t::event_t _nrm2(
   /**
    * Read comment in _asum above.
    **/
-  bool managed_mem{false};
+#ifdef SB_ENABLE_USM
+  bool usm_managed_mem{false};
   if constexpr (std::is_pointer_v<decltype(_rs)>) {
-    managed_mem =
+    usm_managed_mem =
         sycl::usm::alloc::shared ==
         sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
   }
-  if (managed_mem) {
+#else
+  constexpr bool usm_managed_mem{false};
+#endif
+  if (usm_managed_mem) {
     if (_N < (1 << 18)) {
       constexpr index_t localSize = 1024;
       const index_t number_WG = (_N + localSize - 1) / localSize;
@@ -179,13 +187,17 @@ typename sb_handle_t::event_t _dot(
   /**
    * Read comment in _asum above.
    **/
-  bool managed_mem{false};
+#ifdef SB_ENABLE_USM
+  bool usm_managed_mem{false};
   if constexpr (std::is_pointer_v<decltype(_rs)>) {
-    managed_mem =
+    usm_managed_mem =
         sycl::usm::alloc::shared ==
         sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
   }
-  if (managed_mem) {
+#else
+  constexpr bool usm_managed_mem{false};
+#endif
+  if (usm_managed_mem) {
     if (_N < (1 << 18)) {
       constexpr index_t localSize = 1024;
       const index_t number_WG = (_N + localSize - 1) / localSize;
