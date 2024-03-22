@@ -176,34 +176,38 @@ typename sb_handle_t::event_t _symv(
 );
 
 /*!
- @brief Generalised vector product followed by a sum with a rectangular
- non-symmetric matrix.
-
- Generalised vector product followed by a sum with a rectangular non-symmetric
- matrix, i.e. computing the mathematical operation:
-
- A = alpha*x*yT + A
-
- See the netlib blas interface documentation for more details of the high level
- interface: http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
-
+ * @brief Generalised vector product followed by a sum with a rectangular
+ * non-symmetric matrix.
+ *
+ * Generalised vector product followed by a sum with a rectangular non-symmetric
+ * matrix, i.e. computing the mathematical operation:
+ *
+ * A = alpha*x*yT + A
+ *
+ * See the netlib blas interface documentation for more details of the high
+ * level interface:
+ * http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _M Number of rows in matrix A
+ * @param _N Number of columns in matrix A
+ * @param _alpha Scalar alpha
+ * @param _vx Input vector having (1 + (_M-1)*abs(_incx)) elements
+ * @param _incx Increment for vector X
+ * @param _vy, Input vector having having (1 + (_N-1)*abs(_incy)) elements
+ * @param _incy Increment for vector Y
+ * @param _mA Input/output matrix A(_lda, n)
+ * @param _lda Leading dimension of A
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
 typename sb_handle_t::event_t _ger(
-    sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
-    index_t _M,              // The rows in matrix A
-    index_t _N,              // The cols of matrix A
-    element_t _alpha,        // Scalar alpha
-    container_0_t _vx,       // >(1 + (_M-1)*abs(_incx)), input vector X
-    increment_t _incx,       // Increment for vector X
-    container_1_t _vy,       // >(1 + (_N-1)*abs(_incy)), input vector Y
-    increment_t _incy,       // Increment for vector Y
-    container_2_t _mA,       // (_lda, n) array containing A, the output
-    index_t _lda,            // >max(1, m), Leading dimension of A
-    const typename sb_handle_t::event_t& _dependencies  // Vector of events
-);
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _vx, increment_t _incx, container_1_t _vy, increment_t _incy,
+    container_2_t _mA, index_t _lda,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /*!
  @brief Generalised vector squaring followed by a sum with a symmetric matrix.
@@ -746,35 +750,39 @@ typename sb_handle_t::event_t inline _symv(
 }
 
 /*!
- @brief Generalised vector product followed by a sum with a rectangular
- non-symmetric matrix.
-
- Generalised vector product followed by a sum with a rectangular non-symmetric
- matrix, i.e.
- computing the mathematical operation:
-
- A = alpha*x*yT + A
-
- See the netlib blas interface documentation for more details of the high level
- interface: http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
-
+ * @brief Generalised vector product followed by a sum with a rectangular
+ * non-symmetric matrix.
+ *
+ * Generalised vector product followed by a sum with a rectangular non-symmetric
+ * matrix, i.e.
+ * computing the mathematical operation:
+ *
+ * A = alpha*x*yT + A
+ *
+ * See the netlib blas interface documentation for more details of the high
+ * level interface:
+ * http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _M Number of rows in matrix A
+ * @param _N Number of columns in matrix A
+ * @param _alpha Scalar alpha
+ * @param _vx Input vector having (1 + (_M-1)*abs(_incx)) elements
+ * @param _incx Increment for vector X
+ * @param _vy, Input vector having having (1 + (_N-1)*abs(_incy)) elements
+ * @param _incy Increment for vector Y
+ * @param _mA Input/output matrix A(_lda, n)
+ * @param _lda Leading dimension of A
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
 typename sb_handle_t::event_t inline _ger(
-    sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
-    index_t _M,              // The rows in matrix M
-    index_t _N,              // The rows of matrix N
-    element_t _alpha,        // Scalar alpha
-    container_0_t _vx,       // >(1 + (_M-1)*abs(_incx)), input vector X
-    increment_t _incx,       // Increment for vector X
-    container_1_t _vy,       // >(1 + (_N-1)*abs(_incy)), input vector Y
-    increment_t _incy,       // Increment for vector Y
-    container_2_t _mA,       // (_lda, n) array containing A, the output
-    index_t _lda,            // >max(1, m), Leading dimension of A
-    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
-) {
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _vx, increment_t _incx, container_1_t _vy, increment_t _incy,
+    container_2_t _mA, index_t _lda,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_ger(sb_handle, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
                         _lda, _dependencies);
 }
