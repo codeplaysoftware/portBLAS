@@ -219,12 +219,26 @@ typename sb_handle_t::event_t _asum(
  * the platform being compiled for and other parameters, provides different
  * template parameters to ensure the most optimal kernel is constructed.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. The memory automatically managed
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD gpus, since
+ *                       otherwise it will rely on pcie atomics
+ *                       which we cannot enforce, guarantee or check due to its
+ *                       hardware nature. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly in any case by default. It is automatically
+ *                       initialized to false to reduce verbosity of
+ *                       initialization for many targets since only one of them,
+ *                       with specific allocation type, requires a different
+ *                       value. Having a default value allows the compiler to
+ *                       handle automatically other templates.
  */
 template <int localSize, int localMemSize, bool usmManagedMem,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -541,12 +555,26 @@ typename sb_handle_t::event_t _nrm2(
  * the platform being compiled for and other parameters, provides different
  * template parameters to ensure the most optimal kernel is constructed.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. The memory automatically managed
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD gpus, since
+ *                       otherwise it will rely on pcie atomics
+ *                       which we cannot enforce, guarantee or check due to its
+ *                       hardware nature. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly in any case by default. It is automatically
+ *                       initialized to false to reduce verbosity of
+ *                       initialization for many targets since only one of them,
+ *                       with specific allocation type, requires a different
+ *                       value. Having a default value allows the compiler to
+ *                       handle automatically other templates.
  */
 template <int localSize, int localMemSize, bool usmManagedMem,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -590,12 +618,26 @@ typename sb_handle_t::event_t _nrm2_impl(
  * different template parameters / configuration to ensure the adequate kernel
  * is called.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. The memory automatically managed
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD gpus, since
+ *                       otherwise it will rely on pcie atomics
+ *                       which we cannot enforce, guarantee or check due to its
+ *                       hardware nature. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly in any case by default. It is automatically
+ *                       initialized to false to reduce verbosity of
+ *                       initialization for many targets since only one of them,
+ *                       with specific allocation type, requires a different
+ *                       value. Having a default value allows the compiler to
+ *                       handle automatically other templates.
  */
 template <int localSize, int localMemSize, bool usmManagedMem,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
