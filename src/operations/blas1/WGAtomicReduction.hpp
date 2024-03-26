@@ -126,21 +126,14 @@ PORTBLAS_INLINE
                                       cl::sycl::plus<value_t>());
   }
   if (ndItem.get_local_id()[0] == 0) {
-    if constexpr (!usmManagedMem) {
-      auto atomic_res =
-          cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
-                               cl::sycl::memory_scope::device,
-                               cl::sycl::access::address_space::global_space>(
-              lhs_.get_data()[0]);
-      atomic_res += val;
-    } else {
-      auto atomic_res =
-          cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
-                               cl::sycl::memory_scope::device,
-                               cl::sycl::access::address_space::generic_space>(
-              lhs_.get_data()[0]);
-      atomic_res += val;
-    }
+    constexpr cl::sycl::access::address_space addr_sp =
+        usmManagedMem ? cl::sycl::access::address_space::generic_space
+                      : cl::sycl::access::address_space::global_space;
+    auto atomic_res =
+        cl::sycl::atomic_ref<value_t, cl::sycl::memory_order::relaxed,
+                             cl::sycl::memory_scope::device, addr_sp>(
+            lhs_.get_data()[0]);
+    atomic_res += val;
   }
 
   return {};

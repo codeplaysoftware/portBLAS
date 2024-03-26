@@ -35,13 +35,13 @@ typename sb_handle_t::event_t _asum(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   /**
-   * This compile time check is absolutely necessary for AMD gpu.
-   * AMD atomic operations required a specific combination of hardware that we
-   *cannot check neither enforce to users. Since reduction operators kernel
-   *implementation useses atomic operation without that particular combination
-   *the operator may fail silently. This check enforce a different atomic
-   *address space causing a big performance degradation, but making the kernel
-   *behaves correctly also with managed memory (aka malloc_shared allocation).
+   * This compile time check is absolutely necessary for AMD GPUs.
+   * AMD's atomic operations require a specific combination of hardware that
+   * cannot be checked nor enforced. Since the reduction operator kernel
+   * implementation uses atomic operations, without that particular hardware combination
+   * the reduction may silently fail. This check enforces a different atomic
+   * address space causing a big performance degradation, but also making the kernel
+   * behave correctly with managed memory (aka malloc_shared allocation).
    **/
 #ifdef SB_ENABLE_USM
   bool usm_managed_mem{false};
