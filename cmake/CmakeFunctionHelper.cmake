@@ -155,7 +155,7 @@ function(generate_blas_objects blas_level func)
   foreach(data_in ${data_list_c})
     set(data_list_out ${data_in})
     # When using half with Gemm target, generate a mixed-precision
-    # Gemm kernel (half-float) besides the fully half based kernel.
+    # Gemm kernel (half-float) alongside the fully half based kernel.
     if((data_in STREQUAL "half") AND (${func} STREQUAL "gemm"))
       list(APPEND data_list_out "float")
     endif()
@@ -323,7 +323,7 @@ function(add_gemm_configuration
     string(REPLACE "_const" "" actualfunc ${func})
   endif()
   # When using half data type, generate a mixed-precision Gemm
-  # Configuration (half-float) besides the fully half based one.
+  # configuration (half-float) alongside the fully half based one.
   set(data_list_out ${data})
     if(data STREQUAL "half")
       list(APPEND data_list_out "float")
