@@ -55,17 +55,21 @@ typename sb_handle_t::event_t Gemm_Launcher<
                                   index_t batch_size,
                                   const typename sb_handle_t::event_t&
                                       _dependencies) {
-  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda);
-  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb);
-  auto buffer_c = make_matrix_view<col_major>(_C, _M, _N, _ldc);
+  auto a_view = make_matrix_view<col_major>(a_, _M, _K, _lda);
+  auto b_view = make_matrix_view<col_major>(b_, _K, _N, _ldb);
+  auto c_view = make_matrix_view<col_major>(_C, _M, _N, _ldc);
 
-  auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
-                        TransA, TransB, SymmA, SymmB, GemmMemoryType,
-                        GemmAlgorithm, GemmVectorization, is_beta_zero,
-                        VectorSize, BatchType, UseJointMatrix>(
-      buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
-      batch_size, index_t(_stridea), index_t(_strideb),
-      index_t(_stridec));
+  // element_in_t refers here to input matrices (A & B) underlying types, and
+  // having it separated from element_t helps distinguish Gemm mixed-precision
+  // cases.
+  using element_in_t = typename ValueType<container_t0>::type;
+  auto gemm =
+      make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
+                TransB, SymmA, SymmB, GemmMemoryType, GemmAlgorithm,
+                GemmVectorization, is_beta_zero, VectorSize, BatchType,
+                UseJointMatrix, element_in_t, element_t>(
+          a_view, b_view, c_view, element_t(_alpha), element_t(_beta),
+          batch_size, index_t(_stridea), index_t(_strideb), index_t(_stridec));
   return sb_handle.execute(gemm, _dependencies);
 }
 

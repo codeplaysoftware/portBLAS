@@ -38,7 +38,7 @@ if __name__ == '__main__':
     blas_level_name = sys.argv[3]
     blas_function_name = sys.argv[4]
     blas_template_impl = sys.argv[5]
-    data = sys.argv[6]
+    data_in = sys.argv[6]
     index = sys.argv[7]
     double_buffer = sys.argv[8]
     conflict_a = sys.argv[9]
@@ -72,6 +72,7 @@ if __name__ == '__main__':
     use_joint_matrix = sys.argv[37]
     symm_a = sys.argv[38]
     symm_b = sys.argv[39]
+    data_out = sys.argv[40]  # Different from data_in for mixed-precision cases
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -208,8 +209,13 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='DATA_TYPE',
-            vals=[data],
+            key='DATA_TYPE_IN',
+            vals=[data_in],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='DATA_TYPE_OUT',
+            vals=[data_out],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

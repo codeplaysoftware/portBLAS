@@ -31,13 +31,14 @@ namespace gemm {
 
 namespace backend {
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
-          typename sb_handle_t, typename container_0_t, typename container_1_t,
-          typename container_2_t, typename element_t, typename index_t>
-typename std::enable_if<is_sycl_scalar<element_t>::value,
+          typename element_in_t, typename element_out_t, typename sb_handle_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t>
+typename std::enable_if<is_sycl_scalar<element_in_t>::value,
                         typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
-      element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
-      container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
+      element_out_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+      container_1_t _b, index_t _ldb, index_t _strideb, element_out_t _beta,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
@@ -53,7 +54,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     const auto n_elem_access = (_M * _K + _K * _N + _M * _N);
     const auto arith_ratio = n_fma / n_elem_access;
     static constexpr int ClSize = 64;
-    static constexpr int tileWgSize = ClSize / sizeof(element_t);
+    static constexpr int tileWgSize = ClSize / sizeof(element_in_t);
     if (batch_type == gemm_batch_type_t::interleaved) {
       return blas::Gemm_Launcher<
           container_0_t, container_1_t, container_2_t, 64, false, false, false,
@@ -232,18 +233,19 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
 // Complex Configurations
 #ifdef BLAS_ENABLE_COMPLEX
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
-          typename sb_handle_t, typename container_0_t, typename container_1_t,
-          typename container_2_t, typename element_t, typename index_t>
-typename std::enable_if<is_complex_sycl<element_t>::value,
+          typename element_in_t, typename element_out_t, typename sb_handle_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t>
+typename std::enable_if<is_complex_sycl<element_in_t>::value,
                         typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
-      element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
-      container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
+      element_out_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+      container_1_t _b, index_t _ldb, index_t _strideb, element_out_t _beta,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
   static constexpr int ClSize = 64;
-  static constexpr int tileWgSize = ClSize / sizeof(element_t);
+  static constexpr int tileWgSize = ClSize / sizeof(element_in_t);
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
   if (batch_size == 1 && (_M / _N > 8 || _N / _M > 8)) {
