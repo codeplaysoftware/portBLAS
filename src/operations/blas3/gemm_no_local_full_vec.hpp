@@ -53,23 +53,22 @@ namespace blas {
  *                   level tiles to use, see Tile
  * @tparam TransA  iff true, matrix A will be transposed on the fly
  * @tparam TransB  iff true, matrix B will be transposed on the fly
- * @tparam element_in_t  type of input matrices elements (A, B)
- * @tparam element_out_t  type of output matrix elements (C) and scalars
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  * joint_matrix or not
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_in_t, typename element_out_t,
-          bool is_beta_zero, int VectorSize>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int VectorSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, SymmA, SymmB, element_in_t, element_out_t,
-           is_beta_zero, static_cast<int>(gemm_memory_t::no_local),
+           TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
+           static_cast<int>(gemm_memory_t::no_local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
            static_cast<int>(gemm_batch_type_t::strided), false> {
  public:
-  using value_t = element_in_t;
+  using value_t = typename input_t::value_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
@@ -108,23 +107,23 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       "If vectorization is enabled item_cols must equal the packet_size");
 
 #ifdef BLAS_ENABLE_COMPLEX
-  static_assert((VectorSize == 1 && is_complex_sycl<element_in_t>::value) ||
-                    !is_complex_sycl<element_in_t>::value,
+  static_assert((VectorSize == 1 && is_complex_sycl<value_t>::value) ||
+                    !is_complex_sycl<element_t>::value,
                 "Vector size should be equal to 1 for Complex Data types");
 #endif
 
   input_t a_;
   input_t b_;
   output_t c_;
-  const element_out_t alpha_;
-  const element_out_t beta_;
+  const element_t alpha_;
+  const element_t beta_;
   index_t batch_size_;
   index_t stridea_;
   index_t strideb_;
   index_t stridec_;
 
-  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_out_t alpha,
-                       element_out_t beta, index_t batch_size, index_t stride_a,
+  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
+                       element_t beta, index_t batch_size, index_t stride_a,
                        index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
@@ -143,10 +142,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     std::ostringstream str{};
     str << "Gemm <" << DoubleBuffer << ", " << NbcA << ", " << NbcB << ", "
         << ClSize << ", " << tile_type::get_type_string() << ", "
-        << type_string<element_in_t>::get_value() << "_"
-        << type_string<element_out_t>::get_value() << "gemm_memory:no_local, "
-        << "gemm_algorithm:standard, "
-        << "gemm_vectorization:full, "
+        << type_string<value_t>::get_value() << "_"
+        << type_string<element_t>::get_value() << "gemm_memory:no_local, "
+        << "gemm_algorithm:standard, " << "gemm_vectorization:full, "
         << "vector size" << VectorSize << ", batch_type:strided>";
     return str.str();
   }
@@ -317,7 +315,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             typename InputPointerType, typename CheckBoundaryType,
             bool beta_zero = is_beta_zero>
   PORTBLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
-      element_out_t *reg_res, InputPointerType C, const index_t &ldc,
+      element_t *reg_res, InputPointerType C, const index_t &ldc,
       const index_t &dim_m_c_start, const index_t &dim_n_c_start,
       CheckBoundaryType check_boundary, bool out_of_range) {
     if (out_of_range) {
@@ -329,18 +327,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (index_t j = 0; j < item_rows / packet_size; ++j) {
         if (do_check<need_check_boundary>(check_boundary(
                 dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-          using l_vector_t = typename Packetize<packet_size, element_out_t,
-                                                index_t>::PacketType;
+          using l_vector_t =
+              typename Packetize<packet_size, element_t, index_t>::PacketType;
           l_vector_t out_vec{};
 
           out_vec.template load<address_t::global_space>(
-              0,
-              cl::sycl::multi_ptr<const element_out_t, address_t::global_space>(
-                  C + j * wg_rows * packet_size));
+              0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
+                     C + j * wg_rows * packet_size));
           out_vec *= beta_;
 
           out_vec.template store<address_t::private_space>(
-              0, cl::sycl::multi_ptr<element_out_t, address_t::private_space>(
+              0, cl::sycl::multi_ptr<element_t, address_t::private_space>(
                      reg_res + i * item_rows + j * packet_size));
         }
       }
@@ -352,8 +349,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool need_check_boundary, index_t, typename InputPointerType,
             typename CheckBoundaryType, bool beta_zero = is_beta_zero>
   PORTBLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
-      element_out_t *reg_res, InputPointerType, const index_t &,
-      const index_t &, const index_t &, CheckBoundaryType, bool) {
+      element_t *reg_res, InputPointerType, const index_t &, const index_t &,
+      const index_t &, CheckBoundaryType, bool) {
 #pragma unroll
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;
@@ -384,7 +381,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* register array used to store the result*/
-      element_out_t reg_res[item_rows * item_cols];
+      value_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary, packet_size>(
           reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
           out_of_range);
@@ -470,8 +467,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       BoundaryCheckOriginalM boundary_check_original_m,
       BoundaryCheckN boundary_check_n, const index_t &A_ptr_index,
       const index_t &B_ptr_index, const index_t &lda, const index_t &ldb,
-      const index_t &k, element_in_t *reg_a, element_in_t *reg_b,
-      element_out_t *reg_res, bool out_of_range) {
+      const index_t &k, value_t *reg_a, value_t *reg_b, element_t *reg_res,
+      bool out_of_range) {
     /*
      * Loading a corresponding block of matrix A into reg_a
      */
@@ -545,9 +542,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   PORTBLAS_INLINE typename std::enable_if<!trans>::type load_block_a(
-      PointerType ptr, element_in_t *reg, const index_t &ptr_next,
-      const index_t &ld, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, value_t *reg, const index_t &ptr_next, const index_t &ld,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -566,22 +563,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         bool in_range =
             do_check<check_row>(is_valid_row(j * ptr_next + work_per_load - 1));
 
-        using l_vector_t = typename Packetize<work_per_load, element_in_t,
-                                              index_t>::PacketType;
+        using l_vector_t =
+            typename Packetize<work_per_load, value_t, index_t>::PacketType;
         l_vector_t in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
-              0,
-              cl::sycl::multi_ptr<const element_in_t, address_t::global_space>(
-                  ptr + i * ld + j * ptr_next));
+              0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(
+                     ptr + i * ld + j * ptr_next));
         } else {
           // if not in range perform element-wise load checking boundaries at
           // each load.
 #pragma unroll
           for (int l = 0; l < work_per_load; l++) {
             if (do_check<check_row>(is_valid_row(j * ptr_next + l))) {
-              reinterpret_cast<element_in_t *>(&in_vec)[l] =
+              reinterpret_cast<value_t *>(&in_vec)[l] =
                   *(ptr + i * ld + j * ptr_next + l);
             } else {
               break;
@@ -590,8 +586,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         }
         auto out_reg = &reg[(i * row_iters + j) * work_per_load];
         in_vec.template store<address_t::private_space>(
-            0, cl::sycl::multi_ptr<element_in_t, address_t::private_space>(
-                   out_reg));
+            0, cl::sycl::multi_ptr<value_t, address_t::private_space>(out_reg));
       }
     }
   }
@@ -632,7 +627,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   PORTBLAS_INLINE typename std::enable_if<trans>::type load_block_a(
-      PointerType ptr, element_in_t *reg, const index_t &, const index_t &ld,
+      PointerType ptr, value_t *reg, const index_t &, const index_t &ld,
       const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
       const bool out_of_range) noexcept {
     if (out_of_range) {
@@ -647,15 +642,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (int j = 0; j < cols; j++) {
         // Check that the last element of the packet loaded is in range
         bool in_range = do_check<check_col>(is_valid_col(work_per_load - 1));
-        using l_vector_t = typename Packetize<work_per_load, element_in_t,
-                                              index_t>::PacketType;
+        using l_vector_t =
+            typename Packetize<work_per_load, value_t, index_t>::PacketType;
         l_vector_t in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
-              0,
-              cl::sycl::multi_ptr<const element_in_t, address_t::global_space>(
-                  ptr + (i * next_element + j) * ld));
+              0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(
+                     ptr + (i * next_element + j) * ld));
 
         } else {
           // if not in range perform element-wise load checking boundaries at
@@ -663,7 +657,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 #pragma unroll
           for (int l = 0; l < work_per_load; l++) {
             if (do_check<check_col>(is_valid_col(l))) {
-              reinterpret_cast<element_in_t *>(&in_vec)[l] =
+              reinterpret_cast<value_t *>(&in_vec)[l] =
                   *(ptr + (i * next_element + j) * ld + l);
             } else {
               break;
@@ -674,7 +668,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 #pragma unroll
         for (int k = 0; k < work_per_load; k++) {
           reg[j + i * work_per_load + k * rows] =
-              reinterpret_cast<element_in_t *>(&in_vec)[k];
+              reinterpret_cast<value_t *>(&in_vec)[k];
         }
       }
     }
@@ -714,9 +708,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   PORTBLAS_INLINE typename std::enable_if<!trans>::type load_single_b(
-      PointerType ptr, element_in_t *reg, const index_t &,
-      const index_t &col_ofs, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, value_t *reg, const index_t &, const index_t &col_ofs,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -726,25 +720,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                     do_check<check_col>(is_valid_col(col_ofs));
 
     using l_vector_t =
-        typename Packetize<work_per_load, element_in_t, index_t>::PacketType;
+        typename Packetize<work_per_load, value_t, index_t>::PacketType;
     l_vector_t in_vec{};
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
-          0, cl::sycl::multi_ptr<const element_in_t, address_t::global_space>(
-                 ptr));
+          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
     } else {
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
       for (int k = 0; k < work_per_load; k++) {
         if (do_check<check_row>(is_valid_row(k)) &&
             do_check<check_col>(is_valid_col(col_ofs))) {
-          reinterpret_cast<element_in_t *>(&in_vec)[k] = *(ptr + k);
+          reinterpret_cast<value_t *>(&in_vec)[k] = *(ptr + k);
         }
       }
     }
     in_vec.template store<address_t::private_space>(
-        0, cl::sycl::multi_ptr<element_in_t, address_t::private_space>(reg));
+        0, cl::sycl::multi_ptr<value_t, address_t::private_space>(reg));
   }
 
   /*!
@@ -779,9 +772,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   PORTBLAS_INLINE typename std::enable_if<trans>::type load_single_b(
-      PointerType ptr, element_in_t *reg, const index_t &row_ofs,
-      const index_t &, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, value_t *reg, const index_t &row_ofs, const index_t &,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -791,25 +784,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                     do_check<check_col>(is_valid_col(work_per_load - 1));
 
     using l_vector_t =
-        typename Packetize<work_per_load, element_in_t, index_t>::PacketType;
+        typename Packetize<work_per_load, value_t, index_t>::PacketType;
     l_vector_t in_vec{};
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
-          0, cl::sycl::multi_ptr<const element_in_t, address_t::global_space>(
-                 ptr));
+          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
     } else {
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
       for (int k = 0; k < work_per_load; k++) {
         if (do_check<check_row>(is_valid_row(row_ofs)) &&
             do_check<check_col>(is_valid_col(k))) {
-          reinterpret_cast<element_in_t *>(&in_vec)[k] = *(ptr + k);
+          reinterpret_cast<value_t *>(&in_vec)[k] = *(ptr + k);
         }
       }
     }
     in_vec.template store<address_t::private_space>(
-        0, cl::sycl::multi_ptr<element_in_t, address_t::private_space>(reg));
+        0, cl::sycl::multi_ptr<value_t, address_t::private_space>(reg));
   }
   /*!
    * @brief The following function computes the partial GEMM for the input
@@ -825,9 +817,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <index_t packet_size, bool trans = trans_b>
   PORTBLAS_INLINE typename std::enable_if<!trans>::type
-  compute_block_gemm_no_shared(index_t iteration, element_in_t *reg_a,
-                               element_in_t *reg_b,
-                               element_out_t *reg_res) noexcept {
+  compute_block_gemm_no_shared(index_t iteration, value_t *reg_a,
+                               value_t *reg_b, element_t *reg_res) noexcept {
     reg_res += iteration * item_rows;
 #pragma unroll
     for (int k = 0; k < packet_size; k++) {
@@ -854,9 +845,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <index_t packet_size, bool trans = trans_b>
   PORTBLAS_INLINE typename std::enable_if<(packet_size != 1 && trans)>::type
-  compute_block_gemm_no_shared(index_t iteration, element_in_t *reg_a,
-                               element_in_t *reg_b,
-                               element_out_t *reg_res) noexcept {
+  compute_block_gemm_no_shared(index_t iteration, value_t *reg_a,
+                               value_t *reg_b, element_t *reg_res) noexcept {
     reg_a += iteration * item_rows;
 #pragma unroll
     for (int i = 0; i < packet_size; i++) {
@@ -881,9 +871,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <index_t packet_size, bool trans = trans_b>
   PORTBLAS_INLINE typename std::enable_if<(packet_size == 1 && trans)>::type
-  compute_block_gemm_no_shared(index_t iteration, element_in_t *reg_a,
-                               element_in_t *reg_b,
-                               element_out_t *reg_res) noexcept {
+  compute_block_gemm_no_shared(index_t iteration, value_t *reg_a,
+                               value_t *reg_b, element_t *reg_res) noexcept {
     reg_res += iteration * item_rows;
 #pragma unroll
     for (int j = 0; j < item_rows; j++) {
@@ -913,7 +902,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <bool check_block, index_t packet_size, typename PointerType,
             typename check_boundary>
-  PORTBLAS_INLINE void store(PointerType C, element_out_t *reg_res,
+  PORTBLAS_INLINE void store(PointerType C, element_t *reg_res,
                              const index_t &dim_m_c_start,
                              const index_t &dim_n_c_start,
                              const check_boundary &chk_boundary,
@@ -928,18 +917,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (int j = 0; j < item_rows / packet_size; j++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
                                                dim_n_c_start + i * wg_cols))) {
-          using l_vector_t = typename Packetize<packet_size, element_out_t,
-                                                index_t>::PacketType;
+          using l_vector_t =
+              typename Packetize<packet_size, element_t, index_t>::PacketType;
           l_vector_t out_vec{};
 
           out_vec.template load<address_t::private_space>(
-              0, cl::sycl::multi_ptr<const element_out_t,
-                                     address_t::private_space>(
+              0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(
                      reg_res + i * item_rows + j * packet_size));
           out_vec *= alpha_;
 
           out_vec.template store<address_t::global_space>(
-              0, cl::sycl::multi_ptr<element_out_t, address_t::global_space>(
+              0, cl::sycl::multi_ptr<element_t, address_t::global_space>(
                      C + j * wg_rows * packet_size));
         }
       }

@@ -74,11 +74,7 @@ typename sb_handle_t::event_t _gemm_platform_specific(
     container_2_t _C, index_t _ldc, index_t _stridec, index_t batch_size,
     gemm_batch_type_t batch_type,
     const typename sb_handle_t::event_t& _dependencies) {
-  // element_in_t is passed here explicitly to differentiate mixed-precision
-  // cases (element_in_t != element_t) from the default ones.
-  using element_in_t = typename ValueType<container_0_t>::type;
-  return blas::gemm::backend::_gemm<_t_a, _t_b, s_a, s_b, is_beta_zero,
-                                    element_in_t, element_t>(
+  return blas::gemm::backend::_gemm<_t_a, _t_b, s_a, s_b, is_beta_zero>(
       sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
       _beta, _C, _ldc, _stridec, batch_size, batch_type, _dependencies);
 }

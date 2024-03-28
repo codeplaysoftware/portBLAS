@@ -36,7 +36,7 @@ template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
 TestResultEntry tune(portblas_handle_t &sb_handle, int r, GemmArgs<T> a) {
   using Gemm = ::blas::Gemm<
       MatrixContainer<T>, MatrixContainer<T>, DoubleBuffer, Nbca, Nbcb, Cls,
-      Tile, Config::TransA, Config::TransB, Config::SymmA, Config::SymmB, T, T,
+      Tile, Config::TransA, Config::TransB, Config::SymmA, Config::SymmB, T,
       false, static_cast<int>(Config::MemoryMode),
       static_cast<int>(Config::ShapeMode), static_cast<int>(Config::VecType),
       VecSize, static_cast<int>(Config::BatchType)>;

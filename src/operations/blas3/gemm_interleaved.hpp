@@ -96,25 +96,22 @@ PORTBLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  *                    level tiles to use, see Tile
  * @tparam TransA  if true, matrix A will be transposed on the fly
  * @tparam TransB  if true, matrix B will be transposed on the fly
- * @tparam element_in_t  type of input matrices elements (A, B)
- * @tparam element_out_t  type of output matrix elements (C) and scalars
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam is_beta_zero  whether to optimize away the beta * C addition
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  * joint_matrix or not
  */
 template <typename input_t, typename output_t, int ClSize, typename tile_type,
-          bool TransA, bool TransB, bool SymmA, bool SymmB,
-          typename element_in_t, typename element_out_t, bool is_beta_zero,
-          int VectorSize>
+          bool TransA, bool TransB, bool SymmA, bool SymmB, typename element_t,
+          bool is_beta_zero, int VectorSize>
 class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
            /* NbcB = */ false, ClSize, tile_type, TransA, TransB, SymmA, SymmB,
-           element_in_t, element_out_t, is_beta_zero,
-           static_cast<int>(gemm_memory_t::no_local),
+           element_t, is_beta_zero, static_cast<int>(gemm_memory_t::no_local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
            static_cast<int>(gemm_batch_type_t::interleaved), false> {
  public:
-  using value_t = element_in_t;
+  using value_t = typename input_t::value_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   static constexpr int local_memory_size = 0;
@@ -147,21 +144,21 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   using packet_type = typename internal::packet<value_t, VectorSize>::type;
 
   using packet_out_type =
-      typename internal::packet<element_out_t, VectorSize>::type;
+      typename internal::packet<element_t, VectorSize>::type;
 
   static_assert(item_batchs % VectorSize == 0,
                 "Item batch must be divisible by vector size");
 
 #ifdef BLAS_ENABLE_COMPLEX
-  static_assert(!is_complex_sycl<element_in_t>::value,
+  static_assert(!is_complex_sycl<value_t>::value,
                 "Interleaved GEMM is not supported for Complex Data types");
 #endif
 
   input_t a_;
   input_t b_;
   output_t c_;
-  const element_out_t alpha_;
-  const element_out_t beta_;
+  const element_t alpha_;
+  const element_t beta_;
   const index_t m_;
   const index_t n_;
   index_t k_;
@@ -169,8 +166,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   const index_t ldb_;
   const index_t ldc_;
   const index_t batch_size_;
-  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_out_t alpha,
-                       element_out_t beta, index_t batch_size,
+  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
+                       element_t beta, index_t batch_size,
                        index_t /*unused stride_a*/, index_t /*unused stride_b*/,
                        index_t /*unused stride_c*/)
       : a_(A),
@@ -193,10 +190,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
     std::ostringstream str{};
     str << "Gemm <" << false << ", " << false << ", " << false << ", " << ClSize
         << ", " << tile_type::get_type_string() << ", "
-        << type_string<element_in_t>::get_value() << "_"
-        << type_string<element_out_t>::get_value() << "gemm_memory:no_local, "
-        << "gemm_algorithm:standard, "
-        << "gemm_vectorization:full, "
+        << type_string<value_t>::get_value() << "_"
+        << type_string<element_t>::get_value() << "gemm_memory:no_local, "
+        << "gemm_algorithm:standard, " << "gemm_vectorization:full, "
         << "vector size" << VectorSize << ", batch_type:interleaved>";
     return str.str();
   }
@@ -357,8 +353,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
           for (int p = 0; p < VectorSize; ++p) {
             bool is_in =
                 boundary_check(mb_start + (j * wg_batchs) + p, batch_size_);
-            reinterpret_cast<element_in_t *>(reg_res)[p] =
-                is_in ? input[(j * wg_batchs) + p] : element_in_t(0);
+            reinterpret_cast<value_t *>(reg_res)[p] =
+                is_in ? input[(j * wg_batchs) + p] : value_t(0);
           }
           ++reg_res;
           continue;
@@ -398,7 +394,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
                   boundary_check(mb_start + (b * wg_batchs) + p, batch_size_);
               if (is_in) {
                 output[b * wg_batchs + p] =
-                    reinterpret_cast<element_out_t *>(reg_res)[p];
+                    reinterpret_cast<element_t *>(reg_res)[p];
               }
             }
             ++reg_res;
@@ -457,9 +453,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
             for (int p = 0; p < VectorSize; ++p) {
               auto is_in = do_check<need_check_boundary>(
                   boundary_check(mb_start + (b * wg_batchs) + p, batch_size_));
-              reinterpret_cast<element_out_t *>(reg_res)[p] =
-                  is_in ? element_out_t{output[b * wg_batchs + p] * beta_}
-                        : element_out_t{0};
+              reinterpret_cast<element_t *>(reg_res)[p] =
+                  is_in ? element_t{output[b * wg_batchs + p] * beta_}
+                        : element_t{0};
             }
             ++reg_res;
             continue;
@@ -501,8 +497,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
 #pragma unroll
         for (int b = 0; b < item_batchs / VectorSize; ++b) {
 #ifdef __ADAPTIVECPP__
-          if constexpr (is_half<element_in_t>::value ||
-                        !std::is_same_v<element_in_t, element_out_t>) {
+          if constexpr (is_half<value_t>::value ||
+                        !std::is_same_v<value_t, element_t>) {
 #pragma unroll
             for (int v = 0; v < VectorSize; ++v) {
               (*reg_res)[v] = reg_a[j * (item_batchs / VectorSize) + b][v] *
@@ -515,7 +511,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
                                      *reg_res);
           }
 #else
-          if constexpr (std::is_same_v<element_in_t, element_out_t>) {
+          if constexpr (std::is_same_v<value_t, element_t>) {
             *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
                                      reg_b[i * (item_batchs / VectorSize) + b],
                                      *reg_res);

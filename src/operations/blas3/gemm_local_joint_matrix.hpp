@@ -61,8 +61,7 @@ namespace blas {
  *                   level tiles to use, see Tile
  * @tparam TransA  iff true, matrix A will be transposed on the fly
  * @tparam TransB  iff true, matrix B will be transposed on the fly
- * @tparam element_t  type of matrix elements
- * @tparam element_out_t  type of output matrix elements (C) and scalars
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
@@ -71,17 +70,17 @@ namespace blas {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_t, typename element_out_t,
-          bool is_beta_zero, int VectorSize>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int VectorSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
-           TransA, TransB, SymmA, SymmB, element_t, element_out_t, is_beta_zero,
+           TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::none), VectorSize,
            static_cast<int>(gemm_batch_type_t::strided), true> {
  public:
   using tile_type = TileType;
-  using value_t = element_t;
+  using value_t = typename input_t::value_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using packetize_t = PacketizeJointMatrix<VectorSize, value_t, index_t>;
   using address_t = cl::sycl::access::address_space;
@@ -213,9 +212,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     str << "Gemm <" << double_buffer << ", " << nbc_a << ", " << nbc_b << ", "
         << cl_elems * sizeof(element_t) << ", " << tile_type::get_type_string()
         << ", " << type_string<value_t>::get_value() << "_"
-        << type_string<element_out_t>::get_value() << "gemm_memory:local, "
-        << "gemm_algorithm:standard, "
-        << "gemm_vectorization:none, "
+        << type_string<element_t>::get_value() << "gemm_memory:local, "
+        << "gemm_algorithm:standard, " << "gemm_vectorization:none, "
         << "vector size" << VectorSize << ", batch_type:strided> "
         << "with joint_matrix extension";
     return str.str();

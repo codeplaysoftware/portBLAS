@@ -31,14 +31,13 @@ namespace blas {
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          bool IsFinal, bool IsBetaZero, typename element_in_t,
-          typename element_out_t>
+          bool IsFinal, bool IsBetaZero, typename element_t>
 class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, IsFinal, IsBetaZero, element_in_t,
-                  element_out_t, static_cast<int>(gemm_memory_t::local)> {
+                  tile_type, TransA, TransB, IsFinal, IsBetaZero, element_t,
+                  static_cast<int>(gemm_memory_t::local)> {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using value_t = element_in_t;
+  using value_t = typename input_t::value_t;
 
  private:
   /* This structure holds information about the block loading pattern */
@@ -60,8 +59,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   input_t b_;
   output_t cube_;
 
-  element_out_t alpha_;
-  element_out_t beta_;
+  element_t alpha_;
+  element_t beta_;
 
   /* Matrix dimensions */
   const index_t m_;
@@ -76,7 +75,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       tile_type::wg_rows * tile_type::wg_cols;
 
   /* The number of elements per cache line size depends on the element type */
-  static constexpr index_t cl_elems = ClSize / sizeof(element_in_t);
+  static constexpr index_t cl_elems = ClSize / sizeof(value_t);
 
   /* Checking if the tile is valid */
   static_assert(cl_elems % tile_type::wg_rows == 0,
@@ -156,8 +155,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t num_tiles;
 
   PORTBLAS_INLINE
-  GemmPartial(input_t A, input_t B, output_t cube_buffer, element_out_t alpha,
-              element_out_t beta, index_t wg_count_k)
+  GemmPartial(input_t A, input_t B, output_t cube_buffer, element_t alpha,
+              element_t beta, index_t wg_count_k)
       : a_(A),
         b_(B),
         cube_(cube_buffer),
@@ -228,7 +227,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     value_t* rhs_scratch_ptr = scratch_ptr + rhs_scratch_offset;
 
     /* Create and initialise the private res summation registers */
-    element_out_t private_res[private_res_size] = {element_out_t(0)};
+    element_t private_res[private_res_size] = {element_t(0)};
 
     /* workgroup id */
     const index_t group_id = id.get_group(0);
@@ -447,9 +446,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_col_limit>(global_col_index +
                                         lpt * BlockPropertiesType::col_stride <
                                     global_cols);
-      element_in_t val = in_range
-                             ? in_view.template eval<true>(global_mem_index)
-                             : element_in_t(0);
+      value_t val =
+          in_range ? in_view.template eval<true>(global_mem_index) : value_t(0);
 
       local_ptr[local_mem_index +
                 lpt * BlockPropertiesType::local_mem_increment] = val;
