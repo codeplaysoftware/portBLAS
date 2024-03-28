@@ -226,19 +226,14 @@ typename sb_handle_t::event_t _asum(
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
  * @tparam usmManagedMem Specifies if usm memory allocation is automatically
- *                       managed  or not. The memory automatically managed
+ *                       managed  or not. Automatically managed memory
  *                       requires that atomic address space is set to generic.
- *                       This is a strict requirement only for AMD gpus, since
- *                       otherwise it will rely on pcie atomics
- *                       which we cannot enforce, guarantee or check due to its
- *                       hardware nature. Other targets do not have the same
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
  *                       strong dependency and managed memory is handled
- *                       correctly in any case by default. It is automatically
- *                       initialized to false to reduce verbosity of
- *                       initialization for many targets since only one of them,
- *                       with specific allocation type, requires a different
- *                       value. Having a default value allows the compiler to
- *                       handle automatically other templates.
+ *                       correctly by default.
  */
 template <int localSize, int localMemSize, bool usmManagedMem,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -562,19 +557,14 @@ typename sb_handle_t::event_t _nrm2(
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
  * @tparam usmManagedMem Specifies if usm memory allocation is automatically
- *                       managed  or not. The memory automatically managed
+ *                       managed  or not. Automatically managed memory
  *                       requires that atomic address space is set to generic.
- *                       This is a strict requirement only for AMD gpus, since
- *                       otherwise it will rely on pcie atomics
- *                       which we cannot enforce, guarantee or check due to its
- *                       hardware nature. Other targets do not have the same
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
  *                       strong dependency and managed memory is handled
- *                       correctly in any case by default. It is automatically
- *                       initialized to false to reduce verbosity of
- *                       initialization for many targets since only one of them,
- *                       with specific allocation type, requires a different
- *                       value. Having a default value allows the compiler to
- *                       handle automatically other templates.
+ *                       correctly by default.
  */
 template <int localSize, int localMemSize, bool usmManagedMem,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -625,19 +615,15 @@ typename sb_handle_t::event_t _nrm2_impl(
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
  * @tparam usmManagedMem Specifies if usm memory allocation is automatically
- *                       managed  or not. The memory automatically managed
+ *                       managed  or not. Automatically managed memory
  *                       requires that atomic address space is set to generic.
- *                       This is a strict requirement only for AMD gpus, since
- *                       otherwise it will rely on pcie atomics
- *                       which we cannot enforce, guarantee or check due to its
- *                       hardware nature. Other targets do not have the same
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
  *                       strong dependency and managed memory is handled
- *                       correctly in any case by default. It is automatically
- *                       initialized to false to reduce verbosity of
- *                       initialization for many targets since only one of them,
- *                       with specific allocation type, requires a different
- *                       value. Having a default value allows the compiler to
- *                       handle automatically other templates.
+ *                       correctly by default.
+
  */
 template <int localSize, int localMemSize, bool usmManagedMem,
           typename sb_handle_t, typename container_0_t, typename container_1_t,

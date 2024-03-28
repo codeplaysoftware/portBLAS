@@ -25,6 +25,7 @@
 #ifndef PORTBLAS_ASUM_AMD_GPU_BACKEND_HPP
 #define PORTBLAS_ASUM_AMD_GPU_BACKEND_HPP
 #include "interface/blas1_interface.h"
+#include "portblas_helper.h"
 
 namespace blas {
 namespace asum {
@@ -38,18 +39,11 @@ typename sb_handle_t::event_t _asum(
    * This compile time check is absolutely necessary for AMD GPUs.
    * AMD's atomic operations require a specific combination of hardware that
    * cannot be checked nor enforced. Since the reduction operator kernel
-   * implementation uses atomic operations, without that particular hardware combination
-   * the reduction may silently fail. This check enforces a different atomic
-   * address space causing a big performance degradation, but also making the kernel
-   * behave correctly with managed memory (aka malloc_shared allocation).
+   * implementation uses atomic operations, without that particular hardware
+   * combination the reduction may silently fail.
    **/
 #ifdef SB_ENABLE_USM
-  bool usm_managed_mem{false};
-  if constexpr (std::is_pointer_v<decltype(_rs)>) {
-    usm_managed_mem =
-        sycl::usm::alloc::shared ==
-        sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
-  }
+  const bool usm_managed_mem = blas::helper::is_malloc_shared(sb_handle, _rs);
 #else
   constexpr bool usm_managed_mem{false};
 #endif
@@ -135,15 +129,14 @@ typename sb_handle_t::event_t _nrm2(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   /**
-   * Read comment in _asum above.
+   * This compile time check is absolutely necessary for AMD GPUs.
+   * AMD's atomic operations require a specific combination of hardware that
+   * cannot be checked nor enforced. Since the reduction operator kernel
+   * implementation uses atomic operations, without that particular hardware
+   * combination the reduction may silently fail.
    **/
 #ifdef SB_ENABLE_USM
-  bool usm_managed_mem{false};
-  if constexpr (std::is_pointer_v<decltype(_rs)>) {
-    usm_managed_mem =
-        sycl::usm::alloc::shared ==
-        sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
-  }
+  const bool usm_managed_mem = blas::helper::is_malloc_shared(sb_handle, _rs);
 #else
   constexpr bool usm_managed_mem{false};
 #endif
@@ -185,15 +178,14 @@ typename sb_handle_t::event_t _dot(
     container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t& _dependencies) {
   /**
-   * Read comment in _asum above.
+   * This compile time check is absolutely necessary for AMD GPUs.
+   * AMD's atomic operations require a specific combination of hardware that
+   * cannot be checked nor enforced. Since the reduction operator kernel
+   * implementation uses atomic operations, without that particular hardware
+   * combination the reduction may silently fail.
    **/
 #ifdef SB_ENABLE_USM
-  bool usm_managed_mem{false};
-  if constexpr (std::is_pointer_v<decltype(_rs)>) {
-    usm_managed_mem =
-        sycl::usm::alloc::shared ==
-        sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
-  }
+  const bool usm_managed_mem = blas::helper::is_malloc_shared(sb_handle, _rs);
 #else
   constexpr bool usm_managed_mem{false};
 #endif
