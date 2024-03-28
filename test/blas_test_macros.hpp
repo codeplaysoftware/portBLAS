@@ -204,8 +204,7 @@
                                         name_generator);
 #endif  // BLAS_ENABLE_COMPLEX
 
-/** Registers test for all supported data
- * types
+/** Registers test for all supported data types
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
 #define BLAS_REGISTER_TEST_ALL(class_name, combination_t, combination, \

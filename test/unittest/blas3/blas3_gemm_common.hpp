@@ -90,11 +90,12 @@ inline std::vector<scalar_t> interleaved_to_strided(
  * @brief verify gemm correctness against reference BLAS.
  *
  * @tparam scalar_in_t  type of input matrices elements (A, B)
- * @tparam scalar_t  type of output matrix elements (C) and scalars
+ * @tparam scalar_out_t  type of output matrix elements (C) and scalars
  * (gemm_arguments)
  */
-template <typename scalar_in_t, typename scalar_t, helper::AllocType mem_alloc>
-inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
+template <typename scalar_in_t, typename scalar_out_t,
+          helper::AllocType mem_alloc>
+inline void verify_gemm(const gemm_arguments_t<scalar_out_t> arguments) {
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -103,8 +104,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   index_t k;
   char transa;
   char transb;
-  scalar_t alpha;
-  scalar_t beta;
+  scalar_out_t alpha;
+  scalar_out_t beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -137,7 +138,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   std::vector<scalar_in_t> a_m(buffer_size_a);
   std::vector<scalar_in_t> b_m(buffer_size_b);
-  std::vector<scalar_t> c_m_gpu(buffer_size_c);
+  std::vector<scalar_out_t> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
@@ -179,7 +180,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
       blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_a, q);
   auto m_b_gpu =
       blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_b, q);
-  auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_c, q);
+  auto m_c_gpu =
+      blas::helper::allocate<mem_alloc, scalar_out_t>(buffer_size_c, q);
 
   auto copy_a =
       blas::helper::copy_to_device(q, a_m.data(), m_a_gpu, buffer_size_a);
@@ -227,8 +229,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   helper::deallocate<mem_alloc>(m_c_gpu, q);
 }
 
-template <typename scalar_in_t, typename scalar_t = scalar_in_t>
-inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
+template <typename scalar_in_t, typename scalar_out_t = scalar_in_t>
+inline void verify_gemm(const gemm_arguments_t<scalar_out_t> arguments) {
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -237,8 +239,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   index_t k;
   char transa;
   char transb;
-  scalar_t alpha;
-  scalar_t beta;
+  scalar_out_t alpha;
+  scalar_out_t beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -248,12 +250,13 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
-    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::usm>(arguments);
+    verify_gemm<scalar_in_t, scalar_out_t, helper::AllocType::usm>(arguments);
 #else
     GTEST_SKIP();
 #endif
   } else {
-    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::buffer>(arguments);
+    verify_gemm<scalar_in_t, scalar_out_t, helper::AllocType::buffer>(
+        arguments);
   }
 }
 
@@ -279,12 +282,13 @@ static std::string generate_name(
  * @brief verify gemm batched-strided correctness against reference BLAS.
  *
  * @tparam scalar_in_t  type of input matrices elements (A, B)
- * @tparam scalar_t  type of output matrix elements (C) and scalars
+ * @tparam scalar_out_t  type of output matrix elements (C) and scalars
  * (gemm_batched_strided_arguments)
  */
-template <typename scalar_in_t, typename scalar_t, helper::AllocType mem_alloc>
+template <typename scalar_in_t, typename scalar_out_t,
+          helper::AllocType mem_alloc>
 inline void verify_gemm(
-    const gemm_batched_strided_arguments_t<scalar_t> arguments) {
+    const gemm_batched_strided_arguments_t<scalar_out_t> arguments) {
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -293,8 +297,8 @@ inline void verify_gemm(
   index_t k;
   char transa;
   char transb;
-  scalar_t alpha;
-  scalar_t beta;
+  scalar_out_t alpha;
+  scalar_out_t beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -335,7 +339,7 @@ inline void verify_gemm(
 
   std::vector<scalar_in_t> a_m(buffer_size_a);
   std::vector<scalar_in_t> b_m(buffer_size_b);
-  std::vector<scalar_t> c_m_gpu(buffer_size_c);
+  std::vector<scalar_out_t> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
@@ -369,7 +373,8 @@ inline void verify_gemm(
       blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_a, q);
   auto m_b_gpu =
       blas::helper::allocate<mem_alloc, scalar_in_t>(buffer_size_b, q);
-  auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_c, q);
+  auto m_c_gpu =
+      blas::helper::allocate<mem_alloc, scalar_out_t>(buffer_size_c, q);
 
   auto copy_a =
       blas::helper::copy_to_device(q, a_m.data(), m_a_gpu, buffer_size_a);
@@ -403,9 +408,9 @@ inline void verify_gemm(
   helper::deallocate<mem_alloc>(m_c_gpu, q);
 }
 
-template <typename scalar_in_t, typename scalar_t = scalar_in_t>
+template <typename scalar_in_t, typename scalar_out_t = scalar_in_t>
 inline void verify_gemm(
-    const gemm_batched_strided_arguments_t<scalar_t> arguments) {
+    const gemm_batched_strided_arguments_t<scalar_out_t> arguments) {
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -414,8 +419,8 @@ inline void verify_gemm(
   index_t k;
   char transa;
   char transb;
-  scalar_t alpha;
-  scalar_t beta;
+  scalar_out_t alpha;
+  scalar_out_t beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -428,10 +433,11 @@ inline void verify_gemm(
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
-    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::usm>(arguments);
+    verify_gemm<scalar_in_t, scalar_out_t, helper::AllocType::usm>(arguments);
 #endif
   } else {
-    verify_gemm<scalar_in_t, scalar_t, helper::AllocType::buffer>(arguments);
+    verify_gemm<scalar_in_t, scalar_out_t, helper::AllocType::buffer>(
+        arguments);
   }
 }
 
