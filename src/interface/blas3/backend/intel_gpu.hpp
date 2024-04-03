@@ -224,7 +224,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       const typename sb_handle_t::event_t& _dependencies) {
   // The symmetric matrice(s) cases are not enabled with half (fp16) as the Symm
   // operator's specification doesn't include half floating point data.
-  if constexpr (s_a && s_b || ((s_a && _t_b) || (s_b && _t_a))) {
+  if constexpr (s_a || s_b) {
     return _dependencies;
   } else {
     if (batch_type == gemm_batch_type_t::interleaved) {
