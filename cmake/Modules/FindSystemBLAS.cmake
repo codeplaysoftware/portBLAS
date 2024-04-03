@@ -1,4 +1,3 @@
-
 #/***************************************************************************
 # *
 # *  @license
@@ -27,23 +26,42 @@ set(SystemBLAS_FOUND FALSE)
 
 include(FindPackageHandleStandardArgs)
 
-find_library(OPENBLAS_LIBRARIES NAMES openblas libopenblas)
-find_path(OPENBLAS_INCLUDE_DIRS openblas_config.h)
-if(OPENBLAS_LIBRARIES AND OPENBLAS_INCLUDE_DIRS)
+# Let user possibility to set blas path to similar libraries like lapack
+if(BLAS_LIBRARIES AND BLAS_INCLUDE_DIRS)
   find_package(Threads REQUIRED)
   add_library(blas::blas UNKNOWN IMPORTED)
   set_target_properties(blas::blas PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${OPENBLAS_INCLUDE_DIRS}"
+    INTERFACE_INCLUDE_DIRECTORIES "${BLAS_INCLUDE_DIRS}"
     INTERFACE_LINK_LIBRARIES Threads::Threads
-    IMPORTED_LOCATION "${OPENBLAS_LIBRARIES}"
+    IMPORTED_LOCATION "${BLAS_LIBRARIES}"
   )
-  set(OPENBLAS_FOUND TRUE)
-  set(SystemBLAS_LIBRARIES OPENBLAS_LIBRARIES)
+  set(BLAS_FOUND TRUE)
+  set(SystemBLAS_LIBRARIES USER_DEFINED)
 else()
+  set(BLA_VENDOR OpenBLAS)
   find_package(BLAS QUIET)
+  if(BLAS_FOUND)
+    set(OPENBLAS_FOUND TRUE)
+    set(SystemBLAS_LIBRARIES OPENBLAS_LIBRARIES)
+  endif()
+  if(NOT BLAS_FOUND)
+          message(WARNING "openBLAS library was not found on your system")
+    unset(BLA_VENDOR)
+    set(BLA_VENDOR All)
+    find_package(BLAS QUIET)
+    if (BLAS_FOUND)
+      message(WARNING "Found another BLAS library on your system. Not using openBLAS may cause some tests to fail.")
+      message("-- BLAS library found at ${BLAS_LIBRARIES}")
+      set(SystemBLAS_FOUND TRUE)
+      set(SystemBLAS_LIBRARIES BLAS_LIBRARIES)
+    endif()
+  endif()
+
   if(NOT BLAS_FOUND)
     set(BLA_STATIC ON)
     find_package(BLAS QUIET)
+    set(SystemBLAS_FOUND TRUE)
+    set(SystemBLAS_LIBRARIES BLAS_LIBRARIES)
   endif()
 
   if(BLAS_FOUND AND NOT TARGET blas::blas)
@@ -53,10 +71,6 @@ else()
     )
   endif()
 
-  if(BLAS_FOUND)
-    set(SystemBLAS_FOUND TRUE)
-    set(SystemBLAS_LIBRARIES BLAS_LIBRARIES)
-  endif()
 endif()
 
 find_package_handle_standard_args(SystemBLAS
