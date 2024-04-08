@@ -22,8 +22,6 @@
 # *  @filename FindSystemBLAS.cmake
 # *
 # **************************************************************************/
-set(SystemBLAS_FOUND FALSE)
-
 include(FindPackageHandleStandardArgs)
 
 # Let user possibility to set blas path to similar libraries like lapack
@@ -70,5 +68,4 @@ else()
 endif()
 
 find_package_handle_standard_args(SystemBLAS
-  FOUND_VAR SystemBLAS_FOUND
   REQUIRED_VARS SystemBLAS_LIBRARIES)
