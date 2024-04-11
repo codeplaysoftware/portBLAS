@@ -143,7 +143,8 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
 
   list (FIND SYCL_UNITTEST_NOFASTMATH ${blas_test} _index)
-  if (${_index} GREATER -1)
+  if (${_index} GREATER -1 OR (${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM" AND
+    TUNING_TARGET IN_LIST non_intel_target))
     target_compile_options(${test_exec} PRIVATE "-fno-fast-math")
   endif()
 
