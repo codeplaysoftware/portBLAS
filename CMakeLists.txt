@@ -113,12 +113,6 @@ option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
 option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for GEMM" OFF)
 option(BLAS_ENABLE_HALF "Whether to enable sycl::half data type for supported operators" OFF)
 
-if(((NOT INSTALL_HEADER_ONLY) AND (TUNING_TARGET STREQUAL "DEFAULT_CPU"))
-    OR (INSTALL_HEADER_ONLY AND (NOT TUNING_TARGET)))
-  set(BLAS_ENABLE_HALF OFF)
-  message(STATUS "FP16 operations are not supported for CPU targets. BLAS_ENABLE_HALF is disabled")
-endif()
-
 if (SYCL_COMPILER MATCHES "adaptivecpp") 
   if(BLAS_ENABLE_COMPLEX)
     message(STATUS "SYCL Complex data is not supported on AdaptiveCpp/hipSYCL. Complex
