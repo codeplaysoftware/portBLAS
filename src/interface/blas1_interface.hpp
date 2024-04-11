@@ -219,16 +219,25 @@ typename sb_handle_t::event_t _asum(
  * the platform being compiled for and other parameters, provides different
  * template parameters to ensure the most optimal kernel is constructed.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. Automatically managed memory
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly by default.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -238,7 +247,8 @@ typename sb_handle_t::event_t _asum_impl(
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   typename sb_handle_t::event_t ret;
-  auto asumOp = make_wg_atomic_reduction<AbsoluteAddOperator>(rs, vx);
+  auto asumOp =
+      make_wg_atomic_reduction<AbsoluteAddOperator, usmManagedMem>(rs, vx);
   if constexpr (localMemSize != 0) {
     ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
                             static_cast<index_t>(number_WG * localSize),
@@ -540,16 +550,25 @@ typename sb_handle_t::event_t _nrm2(
  * the platform being compiled for and other parameters, provides different
  * template parameters to ensure the most optimal kernel is constructed.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. Automatically managed memory
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly by default.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -560,7 +579,8 @@ typename sb_handle_t::event_t _nrm2_impl(
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
 
-  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto assignOp =
+      make_wg_atomic_reduction<AddOperator, usmManagedMem>(rs, prdOp);
   typename sb_handle_t::event_t ret0;
   if constexpr (localMemSize != 0) {
     ret0 = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
@@ -588,15 +608,25 @@ typename sb_handle_t::event_t _nrm2_impl(
  * different template parameters / configuration to ensure the adequate kernel
  * is called.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. Automatically managed memory
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly by default.
+
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
@@ -612,7 +642,8 @@ typename sb_handle_t::event_t _dot_impl(
                              static_cast<index_t>(1));
 
   auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
-  auto wgReductionOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto wgReductionOp =
+      make_wg_atomic_reduction<AddOperator, usmManagedMem>(rs, prdOp);
 
   if constexpr (localMemSize) {
     ret_event =
