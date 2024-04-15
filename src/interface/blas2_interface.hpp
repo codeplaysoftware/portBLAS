@@ -878,7 +878,7 @@ typename sb_handle_t::event_t _ger_impl(
     container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
     container_t2 _mA, index_t _lda,
     const typename sb_handle_t::event_t& _dependencies, index_t _localSize = 0,
-    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+    bool _useLocalMem = true, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   index_t M = _M;
   index_t N = _N;
   auto mA = make_matrix_view<col_major>(_mA, M, N, _lda);
@@ -887,24 +887,39 @@ typename sb_handle_t::event_t _ger_impl(
   typename VectorViewType<container_t1, index_t, increment_t>::type vy =
       make_vector_view(_vy, _incy, N);
 
-  const index_t localSize =
-      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(M, _nRowsWG);
+  _localSize = (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
+  _nRowsWG = (_nRowsWG == 0) ? _localSize : _nRowsWG;
+  _nColsWG = (_nColsWG == 0) ? _localSize : _nColsWG;
 
-  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
+  assert(_localSize % _nRowsWG == 0);
+  assert((_nRowsWG * _nColsWG) % _localSize == 0);
+  assert(_nColsWG % (_localSize / _nRowsWG) == 0);
 
-  const index_t scratchPadSize =
-      (_localSize == 0) ? localSize : _scratchPadSize;
+  if (_useLocalMem) {
+    assert((_nRowsWG <= _localSize) && (_nColsWG <= _localSize));
+  } else {
+    std::vector<size_t> subgroup_sizes =
+        sb_handle.get_queue()
+            .get_device()
+            .template get_info<cl::sycl::info::device::sub_group_sizes>();
+    size_t min_subgroup_size = *subgroup_sizes.begin();
+    size_t max_subgroup_size = *subgroup_sizes.rbegin();
+    assert(((_nRowsWG * _nColsWG) / _localSize) <= min_subgroup_size);
+    assert(_nRowsWG % max_subgroup_size == 0);
+  }
 
-  const index_t nWGPerCol = (N - 1) / nColsWG + 1;
-  const index_t nWGPerRow = (M - 1) / nRowsWG + 1;
-  const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
+  const index_t nWGPerCol = (N - 1) / _nColsWG + 1;
+  const index_t nWGPerRow = (M - 1) / _nRowsWG + 1;
+  const index_t globalSize = _localSize * nWGPerRow * nWGPerCol;
 
   typename sb_handle_t::event_t ret;
   auto assignOp =
-      make_ger_col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-  return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize,
-                           _dependencies);
+      make_ger(mA, _alpha, vx, vy, _nRowsWG, _nColsWG, nWGPerRow, nWGPerCol);
+
+  return _useLocalMem ? sb_handle.execute(assignOp, _localSize, globalSize,
+                                          _nRowsWG + _nColsWG, _dependencies)
+                      : sb_handle.execute(assignOp, _localSize, globalSize,
+                                          _dependencies);
 }
 
 /*! _SYR.
@@ -1280,10 +1295,30 @@ typename sb_handle_t::event_t inline _ger(
     container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
     container_t2 _mA, index_t _lda,
     const typename sb_handle_t::event_t& _dependencies) {
-  // TODO: Here we can use some heuristics to select localn global, local, and
-  // scratch size per device
+  index_t localSize = 0;
+  bool useLocalMem = true;
+  index_t nRowsWG = 0;
+  index_t nColsWG = 0;
+
+#if defined(INTEL_GPU)
+  localSize = 32;
+  useLocalMem = false;
+  nRowsWG = 32;
+  nColsWG = 8;
+#elif defined(NVIDIA_GPU)
+  localSize = 256;
+  useLocalMem = (_N < 8192 && _M < 8192) ? false : true;
+  nRowsWG = 32;
+  nColsWG = 32;
+#elif defined(AMD_GPU)
+  localSize = (_N < 8192 && _M < 8192) ? 512 : 256;
+  useLocalMem = (_N < 8192 && _M < 8192) ? false : true;
+  nRowsWG = (_N < 8192 && _M < 8192) ? 64 : 128;
+  nColsWG = (_N < 8192 && _M < 8192) ? 64 : 256;
+#endif
+
   return _ger_impl(sb_handle, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda,
-                   _dependencies);
+                   _dependencies, localSize, useLocalMem, nRowsWG, nColsWG);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,
