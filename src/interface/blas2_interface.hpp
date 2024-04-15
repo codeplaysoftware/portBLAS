@@ -901,7 +901,7 @@ typename sb_handle_t::event_t _ger_impl(
     std::vector<size_t> subgroup_sizes =
         sb_handle.get_queue()
             .get_device()
-            .template get_info<sycl::info::device::sub_group_sizes>();
+            .template get_info<cl::sycl::info::device::sub_group_sizes>();
     size_t min_subgroup_size = *subgroup_sizes.begin();
     size_t max_subgroup_size = *subgroup_sizes.rbegin();
     assert(((_nRowsWG * _nColsWG) / _localSize) <= min_subgroup_size);
