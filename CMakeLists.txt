@@ -144,9 +144,8 @@ if (INSTALL_HEADER_ONLY)
   set_target_properties(portblas PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};$<INSTALL_INTERFACE:src>"
   )
-  set(non_intel_target "AMD_GPU" "NVIDIA_GPU")
-  if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND
-      (TUNING_TARGET IN_LIST non_intel_target) )
+  if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
+    (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
       target_compile_options(portblas INTERFACE -fno-fast-math)
       target_compile_options(portblas INTERFACE -mllvm -loopopt=0 )
   endif()

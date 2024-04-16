@@ -85,7 +85,6 @@ endif()
 add_definitions(-DSB_ENABLE_USM=1)
 set(SB_ENABLE_USM 1)
 list(APPEND DPCPP_FLAGS "-DSB_ENABLE_USM=1")
-set(non_intel_target "AMD_GPU" "NVIDIA_GPU")
 
 function(add_sycl_to_target)
   set(options)
@@ -97,10 +96,11 @@ function(add_sycl_to_target)
     "${multi_value_args}"
     ${ARGN}
   )
-  if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND
-      (TUNING_TARGET IN_LIST non_intel_target) )
+if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
+    (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
     target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -fno-fast-math)
     target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -mllvm -loopopt=0 )
+    message(STATUS "Adding -fno-fast-math -mllvm -loopopt=0 to target ${SB_ADD_SYCL_TARGET}")
   endif()
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
