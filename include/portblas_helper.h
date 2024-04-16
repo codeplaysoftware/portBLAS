@@ -223,8 +223,8 @@ inline cl::sycl::event fill(cl::sycl::queue q, element_t *buff, element_t value,
 template <typename sb_handle_t, typename containerT>
 inline bool is_malloc_shared(sb_handle_t &sb_handle, const containerT _rs) {
   if constexpr (std::is_pointer_v<containerT>) {
-    return sycl::usm::alloc::shared ==
-           sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
+    return cl::sycl::usm::alloc::shared ==
+           cl::sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
   } else {
     return false;
   }
