@@ -102,6 +102,12 @@ if(is_dpcpp)
 endif()
 
 
+# Contains tests that fail if compiled with -ffast-math
+set(SYCL_UNITTEST_NOFASTMATH
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
+)
+
 if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
@@ -136,8 +142,9 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas portblas)
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
 
-  if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
-    (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
+  list (FIND SYCL_UNITTEST_NOFASTMATH ${blas_test} _index)
+  if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND (( NOT
+    ${TUNING_TARGET} STREQUAL "INTEL_GPU") OR (${_index} GREATER -1)) ) 
     target_compile_options(${test_exec} PRIVATE "-fno-fast-math")
   endif()
 

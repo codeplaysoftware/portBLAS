@@ -96,7 +96,7 @@ function(add_sycl_to_target)
     "${multi_value_args}"
     ${ARGN}
   )
-if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
+  if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
     (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
     target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -fno-fast-math)
     target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -mllvm -loopopt=0 )
