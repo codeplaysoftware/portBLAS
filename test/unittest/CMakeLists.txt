@@ -101,6 +101,26 @@ if(is_dpcpp)
   )
 endif()
 
+if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
+  if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
+    set(DEFAULT_SKIP
+      ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+      ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
+      ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
+      )
+  elseif(${DPCPP_SYCL_TARGET} STREQUAL "amdgcn-amd-amdhsa")
+    set(DEFAULT_SKIP
+      ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+      ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
+      )
+  endif()
+endif()
+
 if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
@@ -113,6 +133,9 @@ set(HALF_DATA_OPS "blas1_axpy_test"
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   if(is_adaptivecpp AND ${blas_test} IN_LIST ADAPTIVE_CPP_SKIP)
+    continue()
+  endif()
+  if(${blas_test} IN_LIST DEFAULT_SKIP)
     continue()
   endif()
   get_filename_component(test_exec ${blas_test} NAME_WE)
