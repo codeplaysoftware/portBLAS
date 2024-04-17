@@ -448,7 +448,7 @@ PORTBLAS_INLINE bool TupleOp<rhs_t>::valid_thread(
 template <typename rhs_t>
 PORTBLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
     typename TupleOp<rhs_t>::index_t i) {
-  return TupleOp<rhs_t>::value_t(i, cl::sycl::abs(rhs_.eval(i)));
+  return TupleOp<rhs_t>::value_t(i, cl::sycl::fabs(rhs_.eval(i)));
 }
 
 template <typename rhs_t>
