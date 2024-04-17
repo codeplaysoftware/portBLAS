@@ -22,8 +22,8 @@
  *  @filename default_cpu.hpp
  *
  **************************************************************************/
-#ifndef PORTBLAS_GEMM_DEFAULT_CPU_BACKEND_HPP
-#define PORTBLAS_GEMM_DEFAULT_CPU_BACKEND_HPP
+#ifndef PORTBLAS_GEMM_DEFAULT_BACKEND_HPP
+#define PORTBLAS_GEMM_DEFAULT_BACKEND_HPP
 #include "interface/gemm_launcher.h"
 
 namespace blas {

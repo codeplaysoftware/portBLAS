@@ -101,7 +101,7 @@ if(is_dpcpp)
   )
 endif()
 
-if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
+if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
   if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
     set(DEFAULT_SKIP
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
@@ -111,7 +111,7 @@ if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
       ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
       )
-    message(WARNING "Targetting NVIDIA hardware with DEFAULT_CPU TUNING_TARGET.
+    message(WARNING "Targetting NVIDIA hardware with DEFAULT TUNING_TARGET.
     Disabling tests for following operators: iamax, iamin, trsv, tbsv, tpsv, trsm.")
   elseif(${DPCPP_SYCL_TARGET} STREQUAL "amdgcn-amd-amdhsa")
     set(DEFAULT_SKIP
@@ -120,7 +120,7 @@ if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
       ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
       )
-    message(WARNING "Targetting AMD hardware with DEFAULT_CPU TUNING_TARGET.
+    message(WARNING "Targetting AMD hardware with DEFAULT TUNING_TARGET.
     Disabling tests for following operators: iamax, iamin, tbsv, tpsv.")
   endif()
 endif()

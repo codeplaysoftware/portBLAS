@@ -22,8 +22,8 @@
  *  @filename default_cpu.hpp
  *
  **************************************************************************/
-#ifndef PORTBLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
-#define PORTBLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
+#ifndef PORTBLAS_GEMV_DEFAULT_BACKEND_HPP
+#define PORTBLAS_GEMV_DEFAULT_BACKEND_HPP
 #include "interface/blas2_interface.h"
 
 namespace blas {

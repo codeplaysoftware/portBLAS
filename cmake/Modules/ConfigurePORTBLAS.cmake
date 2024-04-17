@@ -56,7 +56,7 @@ if(NAIVE_GEMM)
 endif()
 
 # the TUNING_TARGET variable defines the platform for which the sycl library is tuned
-SET(TUNING_TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
+SET(TUNING_TARGET "DEFAULT" CACHE STRING "Default Platform 'DEFAULT'")
 message(STATUS "${TUNING_TARGET} is chosen as a tuning target")
 
 if(DEFINED TARGET)
