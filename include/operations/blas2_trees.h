@@ -502,6 +502,64 @@ make_trsv(vector_t &lhs_, matrix_t &matrix_, sync_t &sync_) {
               subgroups, is_upper, is_transposed, is_unit>(lhs_, matrix_, k_,
                                                            sync_);
 }
+/**
+ * @struct Ger
+ * @brief Tree node representing the sum of scalar-vector-vector product with a
+ * matrix, i.e., it computes lhs_ such that
+ *
+ *                lhs_ =  scalar_ * ( rhs_1_ * rhs_2_^t ) + lhs_
+ *
+ * @param lhs_ input/output matrix
+ * @param scalar_ value for scaling vector product
+ * @param rhs_1_ first input vector
+ * @param rhs_2_ second input vector
+ * @param nRowsWG_ rows of the workgroup tile
+ * @param nColsWG_ cols of the workgroup tile
+ * @param nWG_row_ number of tiles per global size row
+ * @param nWG_col_ number of tiles per global size column
+ *
+ */
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+struct Ger {
+  using value_t = typename rhs_2_t::value_t;
+  using index_t = typename rhs_2_t::index_t;
+
+  lhs_t lhs_;
+  value_t scalar_;
+  rhs_1_t rhs_1_;
+  rhs_2_t rhs_2_;
+  index_t nRowsWG_;
+  index_t nColsWG_;
+  index_t nWG_row_;
+  index_t nWG_col_;
+
+  Ger(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nRowsWG,
+      index_t &_nColsWG, index_t &_nWG_row, index_t &_nWG_col);
+
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <typename sharedT>
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
+/*!
+ @brief Generator/factory for GER trees.
+ */
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+Ger<lhs_t, rhs_1_t, rhs_2_t> make_ger(lhs_t &lhs_,
+                                      typename lhs_t::value_t scalar_,
+                                      rhs_1_t &rhs_1_, rhs_2_t &rhs_2_,
+                                      typename rhs_2_t::index_t nRowsWG_,
+                                      typename rhs_2_t::index_t nColsWG_,
+                                      typename rhs_2_t::index_t nWG_row_,
+                                      typename rhs_2_t::index_t nWG_col_) {
+  return Ger<lhs_t, rhs_1_t, rhs_2_t>(lhs_, scalar_, rhs_1_, rhs_2_, nRowsWG_,
+                                      nColsWG_, nWG_row_, nWG_col_);
+}
 
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
 // template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>

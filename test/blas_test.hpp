@@ -242,6 +242,7 @@ void set_to_zero_last_nbits(T &val, int32_t nbits = 13) {
       std::conditional_t<sizeof(T) == 64, int64_t,
                           int32_t>;
   integer_t *int_pntr = reinterpret_cast<integer_t *>(&val);
+  *int_pntr = (*int_pntr >> nbits) << nbits;
 }
 
 /**
