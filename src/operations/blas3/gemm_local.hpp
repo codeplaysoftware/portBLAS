@@ -83,7 +83,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            static_cast<int>(gemm_batch_type_t::strided), false> {
  public:
   using tile_type = TileType;
-  using value_t = typename input_t::value_t;
+  using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
   using packetize_out_t = Packetize<VectorSize, element_t, index_t>;

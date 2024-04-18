@@ -37,7 +37,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                   static_cast<int>(gemm_memory_t::local)> {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using value_t = typename input_t::value_t;
+  using value_t = typename std::remove_const<typename input_t::value_t>::type;
 
  private:
   /* This structure holds information about the block loading pattern */
