@@ -106,9 +106,9 @@ if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
     set(DEFAULT_SKIP
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
-      ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
       )
     message(WARNING "Targetting NVIDIA hardware with DEFAULT TUNING_TARGET.
@@ -119,9 +119,10 @@ if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
+      ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
       )
     message(WARNING "Targetting AMD hardware with DEFAULT TUNING_TARGET.
-    Disabling tests for following operators: iamax, iamin, tbsv, tpsv.")
+    Disabling tests for following operators: iamax, iamin, tbsv, tpsv, trsv.")
   endif()
 endif()
 
