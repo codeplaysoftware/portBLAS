@@ -100,10 +100,9 @@ set(PORTBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 set(PORTBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 if(INSTALL_HEADER_ONLY)
-  set(PORTBLAS_SRC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<INSTALL_INTERFACE:src>)
-else()
-  set(PORTBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  set(PORTBLAS_INSTALL_SRC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<INSTALL_INTERFACE:src>)
 endif()
+set(PORTBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(PORTBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE})
 
@@ -146,10 +145,15 @@ include(CmakeFunctionHelper)
 if (INSTALL_HEADER_ONLY)
   add_library(portblas INTERFACE)
   set_target_properties(portblas PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};${PORTBLAS_SRC}"
-  )
-  target_compile_definitions(portblas INTERFACE "SB_ENABLE_USM")
-  target_compile_definitions(portblas INTERFACE "BLAS_ENABLE_COMPLEX=${BLAS_ENABLE_COMPLEX}")
+    INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};${PORTBLAS_INSTALL_SRC}")
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-fsycl" is_dpcpp)
+  if(is_dpcpp)
+    target_compile_definitions(portblas INTERFACE "SB_ENABLE_USM")
+  endif()
+  if(${BLAS_ENABLE_COMPLEX})
+    target_compile_definitions(portblas INTERFACE "BLAS_ENABLE_COMPLEX")
+  endif()
   target_compile_definitions(portblas INTERFACE ${TUNING_TARGET})
   if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
     (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
@@ -215,7 +219,7 @@ install(DIRECTORY ${PORTBLAS_INCLUDE}
   FILES_MATCHING PATTERN "*.h"
 )
 if (INSTALL_HEADER_ONLY)
-  install(DIRECTORY ${PORTBLAS_SRC}
+  install(DIRECTORY ${PORTBLAS_INSTALL_SRC}
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     COMPONENT portblas
     FILES_MATCHING PATTERN "*.hpp"
