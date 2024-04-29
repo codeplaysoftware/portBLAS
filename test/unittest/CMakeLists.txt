@@ -135,6 +135,8 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas portblas)
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
 
+  # Cmake identifies compilers as IntelLLVM only those distributed with Intel oneAPI releases,
+  # so this flag doesn't apply to intel/llvm open source compiler.
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
     target_compile_options(${test_exec} PRIVATE "-fno-fast-math")
   endif()

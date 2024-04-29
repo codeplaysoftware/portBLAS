@@ -96,11 +96,13 @@ function(add_sycl_to_target)
     "${multi_value_args}"
     ${ARGN}
   )
+  # Cmake identifies as IntelLLVM compiler only those distributed with intel oneAPI releases,
+  # so this flag doesn't apply to intel/llvm open source compiler.
   if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
     (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
     target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -fno-fast-math)
-    target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -mllvm -loopopt=0 )
-    message(STATUS "Adding -fno-fast-math -mllvm -loopopt=0 to target ${SB_ADD_SYCL_TARGET}")
+    target_compile_options(${SB_ADD_SYCL_TARGET} PRIVATE -mllvm=-loopopt=0)
+    message(STATUS "Adding -fno-fast-math -mllvm=-loopopt=0 to target ${SB_ADD_SYCL_TARGET}")
   endif()
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
