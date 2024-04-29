@@ -155,6 +155,8 @@ if (INSTALL_HEADER_ONLY)
     target_compile_definitions(portblas INTERFACE "BLAS_ENABLE_COMPLEX")
   endif()
   target_compile_definitions(portblas INTERFACE ${TUNING_TARGET})
+  target_compile_options(portblas INTERFACE -Wno-deprecated-declarations)
+  target_compile_options(portblas INTERFACE -Wno-deprecated-copy-with-user-provided-copy)
   if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
     (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
       target_compile_options(portblas INTERFACE -fno-fast-math)
