@@ -134,6 +134,12 @@ foreach(portblas_bench ${sources})
     target_link_libraries(bench_${bench_exec} PRIVATE blas::blas)
   endif()
 
+  # Cmake identifies compilers as IntelLLVM only those distributed with Intel oneAPI releases,
+  # so this flag doesn't apply to intel/llvm open source compiler.
+  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
+    target_compile_options(bench_${bench_exec} PRIVATE "-fno-fast-math")
+  endif()
+
   message(STATUS "Created benchmark: ${bench_exec}")
   install(TARGETS bench_${bench_exec}
     RUNTIME
