@@ -94,22 +94,14 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   using element_t =
       typename ResolveReturnType<op, rhs_t>::type::value_t::value_t;
 
-#ifndef __ADAPTIVECPP__
   // reduction within the sub_group
   for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
-    if (sg_local_id < i) {
-      element_t shfl_val = sycl::shift_group_left(sg, val.get_value(), i);
-      index_t shfl_idx = sycl::shift_group_left(sg, val.get_index(), i);
-      value_t shfl{shfl_idx, shfl_val};
-      val = op::eval(val, shfl);
-    }
+    element_t shfl_val = cl::sycl::shift_group_left(sg, val.get_value(), i);
+    index_t shfl_idx = cl::sycl::shift_group_left(sg, val.get_index(), i);
+    value_t shfl{shfl_idx, shfl_val};
+    val = op::eval(val, shfl);
   }
-#else
-  // AdaptiveCpp uses a different interface "shift_group_left" which is
-  // recognized by the compiler but throws JIT errors at runtime. Currently this
-  // part is skipped as non-local memory kernel is never called with
-  // AdaptiveCpp.
-#endif
+
   const index_t lhs_idx =
       ndItem.get_group_linear_id() * (local_range / sg_local_range) +
       sg.get_group_linear_id();

@@ -106,8 +106,6 @@ endif()
 if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
   if (${DPCPP_SYCL_TARGET} MATCHES "nvidia")
     set(TESTS_TO_SKIP
-      ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
-      ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp

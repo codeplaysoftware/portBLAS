@@ -79,7 +79,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 1000000),                  // size
-    ::testing::Values(-1, 5),                            // incX
+    ::testing::Values(1, -1, 5),                         // incX
     ::testing::Values(generation_mode_t::Random, generation_mode_t::Limit,
                       generation_mode_t::Incrementing,
                       generation_mode_t::Decrementing),
