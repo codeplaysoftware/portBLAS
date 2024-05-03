@@ -401,8 +401,7 @@ to clone submodule(s).
 
 ### Compile with DPC++
 ```bash
-export CC=[path/to/intel/clang]
-export CXX=[path/to/intel/clang++]
+export CXX=[path/to/intel/icpx]
 cd build
 cmake -GNinja ../ -DSYCL_COMPILER=dpcpp
 ninja
@@ -416,6 +415,13 @@ Other possible triplets are `nvptx64-nvidia-cuda`, and
 advisable for NVIDIA and **mandatory for AMD** to provide the specific device
 architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
 for NVIDIA or `gfx908` for AMD.
+
+#### DPC++ Compiler Support
+
+As DPCPP SYCL compiler the project is fully compatible with `icpx` provided by
+intel [oneAPI base-toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html#gs.7t6x52)
+which is the suggested one. PortBLAS can be compiled also with the [open source intel/llvm](https://github.com/intel/llvm)
+compiler, but not all the latest changes are tested.
 
 ### Compile with AdaptiveCpp *(Formerly hipSYCL)*
 The following instructions concern the **generic** *(clang-based)* flow supported

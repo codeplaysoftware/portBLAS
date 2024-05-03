@@ -98,8 +98,8 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   // reduction within the sub_group
   for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
     if (sg_local_id < i) {
-      element_t shfl_val = sg.shuffle_down(val.get_value(), i);
-      index_t shfl_idx = sg.shuffle_down(val.get_index(), i);
+      element_t shfl_val = sycl::shift_group_left(sg, val.get_value(), i);
+      index_t shfl_idx = sycl::shift_group_left(sg, val.get_index(), i);
       value_t shfl{shfl_idx, shfl_val};
       val = op::eval(val, shfl);
     }
