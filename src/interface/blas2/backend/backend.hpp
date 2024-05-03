@@ -31,5 +31,5 @@
 #elif NVIDIA_GPU
 #include "interface/blas2/backend/nvidia_gpu.hpp"
 #else
-#include "interface/blas2/backend/default_cpu.hpp"
+#include "interface/blas2/backend/default.hpp"
 #endif

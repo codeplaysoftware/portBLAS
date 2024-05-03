@@ -29,5 +29,5 @@
 #elif defined NVIDIA_GPU
 #include "interface/extension/backend/nvidia_gpu.hpp"
 #else
-#include "interface/extension/backend/default_cpu.hpp"
+#include "interface/extension/backend/default.hpp"
 #endif

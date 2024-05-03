@@ -19,7 +19,7 @@
  *
  *  portBLAS: BLAS implementation using SYCL
  *
- *  @filename default_cpu.hpp
+ *  @filename default.hpp
  *
  **************************************************************************/
 #ifndef PORTBLAS_GEMV_DEFAULT_BACKEND_HPP
