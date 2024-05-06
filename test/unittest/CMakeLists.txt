@@ -73,18 +73,20 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
 
-# Skip these tests for AdaptiveCpp for SPIRV/OpenCL targets 
-# that use SYCL 2020 features like group reduction or hang 
-# during execution (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
-set(ADAPTIVE_CPP_SKIP 
-  ${PORTBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
-  # Hang during execution (without failing)
-  ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
-)
+if(is_adaptivecpp)
+  # Skip these tests for AdaptiveCpp for SPIRV/OpenCL targets
+  # that use SYCL 2020 features like group reduction or hang
+  # during execution (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
+  set(TEST_TO_SKIP
+    ${PORTBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
+    # Hang during execution (without failing)
+    ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
+  )
+endif()
 
 if(${BLAS_ENABLE_EXTENSIONS})
   list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/extension/transpose_test.cpp
@@ -102,8 +104,10 @@ if(is_dpcpp)
 endif()
 
 if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
-  if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
-    set(DEFAULT_SKIP
+  string(REGEX MATCH "nvidia_gpu" is_nvidia ${DPCPP_SYCL_TARGET})
+  string(REGEX MATCH "amd_gpu" is_amd ${DPCPP_SYCL_TARGET})
+  if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" OR is_nvidia STREQUAL "nvidia_gpu")
+    set(TEST_TO_SKIP
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
@@ -113,8 +117,8 @@ if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
       )
     message(WARNING "Targetting NVIDIA hardware with DEFAULT TUNING_TARGET.
     Disabling tests for following operators: iamax, iamin, trsv, tbsv, tpsv, trsm.")
-  elseif(${DPCPP_SYCL_TARGET} STREQUAL "amdgcn-amd-amdhsa")
-    set(DEFAULT_SKIP
+  elseif(${DPCPP_SYCL_TARGET} STREQUAL "amdgcn-amd-amdhsa" OR is_amd STREQUAL "amd_gpu")
+    set(TEST_TO_SKIP
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
       ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
       ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
@@ -137,10 +141,7 @@ set(HALF_DATA_OPS "blas1_axpy_test"
                   )
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
-  if(is_adaptivecpp AND ${blas_test} IN_LIST ADAPTIVE_CPP_SKIP)
-    continue()
-  endif()
-  if(${blas_test} IN_LIST DEFAULT_SKIP)
+  if(${blas_test} IN_LIST TEST_TO_SKIP)
     continue()
   endif()
   get_filename_component(test_exec ${blas_test} NAME_WE)
