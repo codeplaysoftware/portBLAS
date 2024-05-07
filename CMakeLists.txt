@@ -99,6 +99,9 @@ set(PORTBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(PORTBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 set(PORTBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
+if(INSTALL_HEADER_ONLY)
+  set(PORTBLAS_INSTALL_SRC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<INSTALL_INTERFACE:src>)
+endif()
 set(PORTBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(PORTBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE})
@@ -142,8 +145,24 @@ include(CmakeFunctionHelper)
 if (INSTALL_HEADER_ONLY)
   add_library(portblas INTERFACE)
   set_target_properties(portblas PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};$<INSTALL_INTERFACE:src>"
-  )
+    INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};${PORTBLAS_INSTALL_SRC}")
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-fsycl" is_dpcpp)
+  if(is_dpcpp)
+    target_compile_definitions(portblas INTERFACE "SB_ENABLE_USM")
+  endif()
+  if(${BLAS_ENABLE_COMPLEX})
+    target_compile_definitions(portblas INTERFACE "BLAS_ENABLE_COMPLEX")
+  endif()
+  target_compile_definitions(portblas INTERFACE ${TUNING_TARGET})
+  target_compile_options(portblas INTERFACE -Wno-deprecated-declarations)
+  target_compile_options(portblas INTERFACE -Wno-deprecated-copy-with-user-provided-copy)
+  if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
+    (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
+      target_compile_options(portblas INTERFACE -fno-fast-math)
+      target_compile_options(portblas INTERFACE -mllvm=-loopopt=0)
+      message(STATUS "Adding -fno-fast-math -mllvm=-loopopt=0 to portblas")
+  endif()
 else()
   add_subdirectory(src)
   build_library(portblas ${BLAS_ENABLE_EXTENSIONS})
@@ -202,7 +221,7 @@ install(DIRECTORY ${PORTBLAS_INCLUDE}
   FILES_MATCHING PATTERN "*.h"
 )
 if (INSTALL_HEADER_ONLY)
-  install(DIRECTORY ${PORTBLAS_SRC}
+  install(DIRECTORY ${PORTBLAS_INSTALL_SRC}
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     COMPONENT portblas
     FILES_MATCHING PATTERN "*.hpp"
