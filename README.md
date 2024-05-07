@@ -419,10 +419,9 @@ for NVIDIA or `gfx908` for AMD.
 It is possible to use the `DEFAULT` target even for AMD and NVIDIA GPUs, but
 defining `-DDPCPP_SYCL_TARGET` and `-DDPCPP_SYCL_ARCH` is mandatory. The rules
 mentioned above also apply in this case.
-Using `DEFAULT` as the target will speedup compilation time at expense of
-runtime. Moreover, currently, some operators don't work, and therefore, their
-tests are disabled. For full compatibility and performance, set also `TUNING_TARGET`
-to the appropriate one.
+Using `DEFAULT` as the target will speedup compilation at the expense of
+runtime performance. Additionally, some operators will be disabled.
+For full compatibility and best performance, set the `TUNING_TARGET` appropriately.
 
 #### DPC++ Compiler Support
 
