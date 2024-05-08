@@ -145,7 +145,7 @@ typename sb_handle_t::event_t _trsv(
       return blas::internal::_trsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
     } else {
-      std::cout << "Trsv operator not currently not supported on Intel GPUs\n";
+      std::cout << "Trsv operator currently not supported on Intel GPUs\n";
       return {};
     }
   } else {
@@ -173,7 +173,7 @@ typename sb_handle_t::event_t _tbsv(
       return blas::internal::_tbsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
     } else {
-      std::cout << "Tbsv operator not currently not supported on Intel GPUs\n";
+      std::cout << "Tbsv operator currently not supported on Intel GPUs\n";
       return {};
     }
   } else {
@@ -200,7 +200,7 @@ typename sb_handle_t::event_t _tpsv(
       return blas::internal::_tpsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _vx, _incx, _dependencies);
     } else {
-      std::cout << "Tpsv operator not currently not supported on Intel GPUs\n";
+      std::cout << "Tpsv operator currently not supported on Intel GPUs\n";
       return {};
     }
   } else {
