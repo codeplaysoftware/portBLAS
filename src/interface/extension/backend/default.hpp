@@ -19,11 +19,11 @@
  *
  *  portBLAS: BLAS implementation using SYCL
  *
- *  @filename default_cpu.hpp
+ *  @filename default.hpp
  *
  **************************************************************************/
-#ifndef PORTBLAS_TRANSPOSE_DEFAULT_CPU_BACKEND_HPP
-#define PORTBLAS_TRANSPOSE_DEFAULT_CPU_BACKEND_HPP
+#ifndef PORTBLAS_TRANSPOSE_DEFAULT_BACKEND_HPP
+#define PORTBLAS_TRANSPOSE_DEFAULT_BACKEND_HPP
 #include "interface/extension_interface.h"
 
 namespace blas {
