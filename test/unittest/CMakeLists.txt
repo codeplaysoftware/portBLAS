@@ -109,7 +109,7 @@ if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
       ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
       )
     message(WARNING "Targetting NVIDIA hardware with DEFAULT TUNING_TARGET.
-    Disabling tests for following operators: iamax, iamin, trsv, tbsv, tpsv, trsm.")
+    Disabling tests for following operator: trsm.")
   endif()
 endif()
 
