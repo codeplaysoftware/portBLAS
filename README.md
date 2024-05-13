@@ -416,6 +416,13 @@ advisable for NVIDIA and **mandatory for AMD** to provide the specific device
 architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
 for NVIDIA or `gfx908` for AMD.
 
+It is possible to use the `DEFAULT` target even for AMD and NVIDIA GPUs, but
+defining `-DDPCPP_SYCL_TARGET` and `-DDPCPP_SYCL_ARCH` is mandatory. The rules
+mentioned above also apply in this case.
+Using `DEFAULT` as the target will speedup compilation at the expense of
+runtime performance. Additionally, some operators will be disabled.
+For full compatibility and best performance, set the `TUNING_TARGET` appropriately.
+
 #### DPC++ Compiler Support
 
 As DPCPP SYCL compiler the project is fully compatible with `icpx` provided by
@@ -487,7 +494,7 @@ Some of the supported options are:
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
 | `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `adaptivecpp` and `computecpp`*(deprecated)*. |
-| `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
+| `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |

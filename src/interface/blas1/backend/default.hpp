@@ -22,8 +22,8 @@
  *  @filename defaul_cpu.hpp
  *
  **************************************************************************/
-#ifndef PORTBLAS_ASUM_DEFAULT_CPU_BACKEND_HPP
-#define PORTBLAS_ASUM_DEFAULT_CPU_BACKEND_HPP
+#ifndef PORTBLAS_ASUM_DEFAULT_BACKEND_HPP
+#define PORTBLAS_ASUM_DEFAULT_BACKEND_HPP
 #include "interface/blas1_interface.h"
 
 namespace blas {
