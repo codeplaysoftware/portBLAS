@@ -138,9 +138,9 @@ typename sb_handle_t::event_t _trsv(
     container_t1 _vx, increment_t _incx,
     typename sb_handle_t::event_t _dependencies) {
   const auto device = sb_handle.get_queue().get_device();
-  const std::string vendor =
-      device.template get_info<sycl::info::device::vendor>();
   if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<sycl::info::device::vendor>();
     if (vendor.find("Intel") == vendor.npos) {
       return blas::internal::_trsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
