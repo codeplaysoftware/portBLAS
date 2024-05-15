@@ -37,7 +37,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                   static_cast<int>(gemm_memory_t::local)> {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using value_t = element_t;
+  using value_t = typename std::remove_const<typename input_t::value_t>::type;
 
  private:
   /* This structure holds information about the block loading pattern */
@@ -75,7 +75,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       tile_type::wg_rows * tile_type::wg_cols;
 
   /* The number of elements per cache line size depends on the element type */
-  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
+  static constexpr index_t cl_elems = ClSize / sizeof(value_t);
 
   /* Checking if the tile is valid */
   static_assert(cl_elems % tile_type::wg_rows == 0,
@@ -446,8 +446,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_col_limit>(global_col_index +
                                         lpt * BlockPropertiesType::col_stride <
                                     global_cols);
-      element_t val = in_range ? in_view.template eval<true>(global_mem_index)
-                               : element_t(0);
+      value_t val =
+          in_range ? in_view.template eval<true>(global_mem_index) : value_t(0);
 
       local_ptr[local_mem_index +
                 lpt * BlockPropertiesType::local_mem_increment] = val;

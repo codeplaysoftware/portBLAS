@@ -32,15 +32,17 @@ namespace backend {
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename std::enable_if<is_sycl_scalar<element_t>::value &&
-                            !is_half<element_t>::value,
-                        typename sb_handle_t::event_t>::type
+typename std::enable_if<
+    is_sycl_scalar<element_t>::value &&
+        !is_half<typename ValueType<container_0_t>::type>::value,
+    typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
       container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
+  using element_in_t = typename ValueType<container_0_t>::type;
   // Unused configuration cases
   if constexpr (s_a && s_b || ((s_a && _t_b) || (s_b && _t_a))) {
     return _dependencies;
@@ -131,7 +133,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
         } else {
           // Need to increase the work group size for double for the
           // launcher to be instancianted
-          constexpr int wg_size = sizeof(element_t) == 8 ? 8 : 16;
+          constexpr int wg_size = sizeof(element_in_t) == 8 ? 8 : 16;
           return blas::Gemm_Launcher<
               container_0_t, container_1_t, container_2_t, 256, true, true,
               true, 64, Tile<4, 4, wg_size, wg_size>, _t_a, _t_b, s_a, s_b,
@@ -158,7 +160,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
         } else {
           // Need to increase the work group size for double for the
           // launcher to be instancianted
-          constexpr int wg_size = sizeof(element_t) == 8 ? 8 : 16;
+          constexpr int wg_size = sizeof(element_in_t) == 8 ? 8 : 16;
           return blas::Gemm_Launcher<
               container_0_t, container_1_t, container_2_t, 256, true, true,
               true, 64, Tile<4, 4, wg_size, wg_size>, _t_a, _t_b, s_a, s_b,
@@ -214,7 +216,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename std::enable_if<is_half<element_t>::value,
+typename std::enable_if<is_half<typename ValueType<container_0_t>::type>::value,
                         typename sb_handle_t::event_t>::type
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,

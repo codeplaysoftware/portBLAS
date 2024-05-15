@@ -64,7 +64,7 @@ namespace blas {
  * @tparam TransB  iff true, matrix B will be transposed on the fly
  * @tparam SymmA   whether the matrix A is a symmetric triangular matrix
  * @tparam SymmB   whether the matrix B is a symmetric triangular matrix
- * @tparam element_t  type of matrix elements
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
@@ -83,10 +83,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            static_cast<int>(gemm_batch_type_t::strided), false> {
  public:
   using tile_type = TileType;
-  using value_t = element_t;
+  using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
+  using packetize_out_t = Packetize<VectorSize, element_t, index_t>;
   using vector_t = typename packetize_t::PacketType;
+  using vector_out_t = typename packetize_out_t::PacketType;
   using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
@@ -111,7 +113,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static constexpr bool symm_b = SymmB;
 
   //! @brief Number of elements which fit within a cache line.
-  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
+  static constexpr index_t cl_elems = ClSize / sizeof(value_t);
   //! @brief Number of work items within a work group
   static constexpr index_t wg_size = wg_rows * wg_cols;
   //! @brief Number of rows within a work-group level tile
@@ -127,7 +129,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "Work group size should be a multiple "
                 "of elements in a cache line\n"
                 " --- this is ensured iff:"
-                " cl_size | sizeof(element_t) * wg_rows * wg_cols");
+                " cl_size | sizeof(value_t) * wg_rows * wg_cols");
 
   static_assert(wg_size % block_rows == 0,
                 "Work group size should be a multiple "
@@ -146,8 +148,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "Cache line size must be a multiple of packet_size");
 
 #ifdef BLAS_ENABLE_COMPLEX
-  static_assert((VectorSize == 1 && is_complex_sycl<element_t>::value) ||
-                    !is_complex_sycl<element_t>::value,
+  static_assert((VectorSize == 1 && is_complex_sycl<value_t>::value) ||
+                    !is_complex_sycl<value_t>::value,
                 "Vector size should be equal to 1 for Complex Data types");
 #endif
 
@@ -189,10 +191,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static PORTBLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
     str << "Gemm <" << double_buffer << ", " << nbc_a << ", " << nbc_b << ", "
-        << cl_elems * sizeof(element_t) << ", " << tile_type::get_type_string()
-        << ", " << type_string<value_t>::get_value() << "gemm_memory:local, "
-        << "gemm_algorithm:standard, "
-        << "gemm_vectorization:full, "
+        << cl_elems * sizeof(value_t) << ", " << tile_type::get_type_string()
+        << ", " << type_string<value_t>::get_value() << "_"
+        << type_string<element_t>::get_value() << "gemm_memory:local, "
+        << "gemm_algorithm:standard, " << "gemm_vectorization:full, "
         << "vector size" << VectorSize << ", batch_type:strided>";
     return str.str();
   }
@@ -304,8 +306,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t row_c = wg_row + item_id % wg_rows * vector_offset;
     const index_t col_c = wg_col + (item_id / wg_rows) * item_cols;
 
-    element_t reg_a[item_rows];
-    element_t reg_b;
+    value_t reg_a[item_rows];
+    value_t reg_b;
     ptr_C += row_c + col_c * ldc;
 
     const index_t mc = m - row_c;
@@ -431,7 +433,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       InputPointerType orig_A, const index_t &lda, InputPointerType orig_B,
       const index_t &ldb, OutputPointerType orig_C, const index_t &ldc,
       ScratchPointerType s1, ScratchPointerType s2, ScratchPointerType s3,
-      ScratchPointerType s4, element_t *reg_a, element_t &reg_b,
+      ScratchPointerType s4, value_t *reg_a, value_t &reg_b,
       const bool out_of_range, index_t batch_stride, index_t wg_batch_id,
       index_t batch_size) noexcept {
     index_t ofs = 1;
@@ -526,7 +528,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename OutputPointerType>
   PORTBLAS_INLINE typename std::enable_if<internal>::type store_packet(
       element_t *reg, OutputPointerType out_ptr) {
-    vector_t out_vec{};
+    vector_out_t out_vec{};
 
     out_vec.template load<address_t::private_space>(
         0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
@@ -735,8 +737,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
   PORTBLAS_INLINE void compute_block_gemm(index_t, InputPointerType B,
-                                          InputPointerType A, element_t *reg_a,
-                                          element_t &reg_b,
+                                          InputPointerType A, value_t *reg_a,
+                                          value_t &reg_b,
                                           element_t *reg_res) noexcept {
     // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9
     // Nano.

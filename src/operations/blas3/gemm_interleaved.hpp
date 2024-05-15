@@ -96,7 +96,7 @@ PORTBLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  *                    level tiles to use, see Tile
  * @tparam TransA  if true, matrix A will be transposed on the fly
  * @tparam TransB  if true, matrix B will be transposed on the fly
- * @tparam element_t  type of matrix elements
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam is_beta_zero  whether to optimize away the beta * C addition
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  * joint_matrix or not
@@ -111,7 +111,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
            static_cast<int>(gemm_batch_type_t::interleaved), false> {
  public:
-  using value_t = element_t;
+  using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   static constexpr int local_memory_size = 0;
@@ -143,11 +143,14 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
    * is vectorizing over the batch dimension */
   using packet_type = typename internal::packet<value_t, VectorSize>::type;
 
+  using packet_out_type =
+      typename internal::packet<element_t, VectorSize>::type;
+
   static_assert(item_batchs % VectorSize == 0,
                 "Item batch must be divisible by vector size");
 
 #ifdef BLAS_ENABLE_COMPLEX
-  static_assert(!is_complex_sycl<element_t>::value,
+  static_assert(!is_complex_sycl<value_t>::value,
                 "Interleaved GEMM is not supported for Complex Data types");
 #endif
 
@@ -187,9 +190,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
     std::ostringstream str{};
     str << "Gemm <" << false << ", " << false << ", " << false << ", " << ClSize
         << ", " << tile_type::get_type_string() << ", "
-        << type_string<value_t>::get_value() << "gemm_memory:no_local, "
-        << "gemm_algorithm:standard, "
-        << "gemm_vectorization:full, "
+        << type_string<value_t>::get_value() << "_"
+        << type_string<element_t>::get_value() << "gemm_memory:no_local, "
+        << "gemm_algorithm:standard, " << "gemm_vectorization:full, "
         << "vector size" << VectorSize << ", batch_type:interleaved>";
     return str.str();
   }
@@ -289,7 +292,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
                                      in_ptr_t A, in_ptr_t B, out_ptr_t C) {
     packet_type reg_a[item_rows * item_batchs / VectorSize];
     packet_type reg_b[item_cols * item_batchs / VectorSize];
-    packet_type reg_res[item_rows * item_cols * item_batchs / VectorSize];
+    packet_out_type reg_res[item_rows * item_cols * item_batchs / VectorSize];
     scaling_c<need_check_boundary>(boundary_check, m_start, n_start, mb_start,
                                    reg_res, C);
     const index_t stride_k_a = (trans_a ? 1 : lda_) * batch_size_;
@@ -367,7 +370,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   template <bool need_check_boundary, typename check_t, typename ptr_t>
   PORTBLAS_INLINE typename std::enable_if<need_check_boundary>::type store(
       check_t boundary_check, index_t m_start, index_t n_start,
-      index_t mb_start, packet_type *reg_res, ptr_t C) {
+      index_t mb_start, packet_out_type *reg_res, ptr_t C) {
 #pragma unroll
     for (int i = 0; i < item_cols; ++i) {
       auto output = C;
@@ -391,7 +394,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
                   boundary_check(mb_start + (b * wg_batchs) + p, batch_size_);
               if (is_in) {
                 output[b * wg_batchs + p] =
-                    reinterpret_cast<value_t *>(reg_res)[p];
+                    reinterpret_cast<element_t *>(reg_res)[p];
               }
             }
             ++reg_res;
@@ -408,7 +411,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   // The internal block that does not need any boundary check
   template <bool need_check_boundary, typename check_t, typename ptr_t>
   PORTBLAS_INLINE typename std::enable_if<!need_check_boundary>::type store(
-      check_t, index_t, index_t, index_t, packet_type *reg_res, ptr_t C) {
+      check_t, index_t, index_t, index_t, packet_out_type *reg_res, ptr_t C) {
 #pragma unroll
     for (int i = 0; i < item_cols; ++i) {
       auto output = C;
@@ -430,7 +433,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
             bool beta_zero = is_beta_zero>
   PORTBLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
       check_t boundary_check, index_t m_start, index_t n_start,
-      index_t mb_start, packet_type *reg_res, ptr_t C) {
+      index_t mb_start, packet_out_type *reg_res, ptr_t C) {
 #pragma unroll
     for (int i = 0; i < item_cols; ++i) {
       auto output = C;
@@ -450,9 +453,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
             for (int p = 0; p < VectorSize; ++p) {
               auto is_in = do_check<need_check_boundary>(
                   boundary_check(mb_start + (b * wg_batchs) + p, batch_size_));
-              reinterpret_cast<value_t *>(reg_res)[p] =
-                  is_in ? value_t{output[b * wg_batchs + p] * beta_}
-                        : value_t{0};
+              reinterpret_cast<element_t *>(reg_res)[p] =
+                  is_in ? element_t{output[b * wg_batchs + p] * beta_}
+                        : element_t{0};
             }
             ++reg_res;
             continue;
@@ -470,11 +473,11 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   template <bool need_check_boundary, typename check_t, typename ptr_t,
             bool beta_zero = is_beta_zero>
   PORTBLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
-      check_t, index_t, index_t, index_t, packet_type *reg_res, ptr_t) {
+      check_t, index_t, index_t, index_t, packet_out_type *reg_res, ptr_t) {
 #pragma unroll
     for (int i = 0; i < item_rows * item_cols * (item_batchs / VectorSize);
          ++i) {
-      reg_res[i] = packet_type{};
+      reg_res[i] = packet_out_type{};
     }
   }
 
@@ -486,28 +489,29 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
    * @param reg_res  2D register array used to store the result C
    */
   PORTBLAS_INLINE void compute_block(packet_type *reg_a, packet_type *reg_b,
-                                     packet_type *reg_res) noexcept {
+                                     packet_out_type *reg_res) noexcept {
 #pragma unroll
     for (int i = 0; i < item_cols; ++i) {
 #pragma unroll
       for (int j = 0; j < item_rows; ++j) {
 #pragma unroll
         for (int b = 0; b < item_batchs / VectorSize; ++b) {
+          if constexpr (std::is_same_v<value_t, element_t>
 #ifdef __ADAPTIVECPP__
-          if constexpr (is_half<element_t>::value) {
-            *reg_res = reg_a[j * (item_batchs / VectorSize) + b] *
-                           reg_b[i * (item_batchs / VectorSize) + b] +
-                       *reg_res;
-          } else {
+                        && !is_half<value_t>::value
+#endif  // __ADAPTIVECPP__
+          ) {
             *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
                                      reg_b[i * (item_batchs / VectorSize) + b],
                                      *reg_res);
+          } else {
+#pragma unroll
+            for (int v = 0; v < VectorSize; ++v) {
+              (*reg_res)[v] = reg_a[j * (item_batchs / VectorSize) + b][v] *
+                                  reg_b[i * (item_batchs / VectorSize) + b][v] +
+                              (*reg_res)[v];
+            }
           }
-#else
-          *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
-                                   reg_b[i * (item_batchs / VectorSize) + b],
-                                   *reg_res);
-#endif
           ++reg_res;
         }
       }

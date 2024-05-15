@@ -53,7 +53,7 @@ namespace blas {
  * kernel.
  * @tparam TransA  if true, matrix A will be transposed on the fly
  * @tparam TransB  if true, matrix B will be transposed on the fly
- * @tparam element_t  type of matrix elements
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  * joint_matrix or not
  */
@@ -68,7 +68,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            static_cast<int>(gemm_vectorization_t::partial), VectorSize,
            static_cast<int>(gemm_batch_type_t::strided), false> {
  public:
-  using value_t = element_t;
+  using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
@@ -139,9 +139,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     std::ostringstream str{};
     str << "Gemm <" << DoubleBuffer << ", " << NbcA << ", " << NbcB << ", "
         << ClSize << ", " << tile_type::get_type_string() << ", "
-        << type_string<value_t>::get_value() << "gemm_memory:no_local, "
-        << "gemm_algorithm:standard, "
-        << "gemm_vectorization:partial, "
+        << type_string<value_t>::get_value() << "_"
+        << type_string<element_t>::get_value() << "gemm_memory:no_local, "
+        << "gemm_algorithm:standard, " << "gemm_vectorization:partial, "
         << "vector size" << VectorSize << ", batch_type:strided>";
     return str.str();
   }
@@ -357,8 +357,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       const index_t &A_ptr_index, const index_t &B_ptr_index,
       const check_boundary_m_t &boundary_check_m,
       const check_boundary_n_t &boundary_check_n,
-      const check_boundary_c_t &boundary_check_c, element_t *reg_a,
-      element_t *reg_b, const bool out_of_range, const index_t &batch_stride,
+      const check_boundary_c_t &boundary_check_c, value_t *reg_a,
+      value_t *reg_b, const bool out_of_range, const index_t &batch_stride,
       const index_t &wg_batch_id, index_t batch_size, const index_t &lda,
       const index_t &ldb, const index_t &ldc) noexcept {
     do {
@@ -367,7 +367,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* 2D register array used to store the result C*/
-      value_t reg_res[item_rows * item_cols];
+      element_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary, a_packet_size, b_packet_size>(
           reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
           out_of_range);
@@ -454,7 +454,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <index_t item_size, index_t next_element, bool check_block,
             index_t work_per_load, typename PointerType,
             typename check_boundary>
-  PORTBLAS_INLINE void load(PointerType ptr, element_t *reg, const index_t &ld,
+  PORTBLAS_INLINE void load(PointerType ptr, value_t *reg, const index_t &ld,
                             index_t index, const check_boundary &chk_boundary,
                             const bool out_of_range) noexcept {
     if (out_of_range) {
@@ -469,15 +469,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           do_check<check_block>(chk_boundary(index + (work_per_load - 1)));
 
       using l_vector_t =
-          typename Packetize<work_per_load, element_t, index_t>::PacketType;
+          typename Packetize<work_per_load, value_t, index_t>::PacketType;
       l_vector_t in_vec{0};
       if (in_range) {
         in_vec.template load<address_t::global_space>(
             0,
-            cl::sycl::multi_ptr<const element_t, address_t::global_space>(ptr));
+            cl::sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
       }
       in_vec.template store<address_t::private_space>(
-          0, cl::sycl::multi_ptr<element_t, address_t::private_space>(reg));
+          0, cl::sycl::multi_ptr<value_t, address_t::private_space>(reg));
 
       // Move pointers and update index for next load
       ptr += ld;
@@ -494,7 +494,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg_res  2D register array used to store the result C
    */
   PORTBLAS_INLINE void compute_block_gemm_no_shared(
-      element_t *reg_a, element_t *reg_b, element_t *reg_res) noexcept {
+      value_t *reg_a, value_t *reg_b, element_t *reg_res) noexcept {
 #pragma unroll
     for (int i = 0; i < item_cols; i++) {
 #pragma unroll

@@ -41,6 +41,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
+  using element_in_t = typename ValueType<container_0_t>::type;
   // Unused configuration cases
   if constexpr (s_a && s_b || ((s_a && _t_b) || (s_b && _t_a))) {
     return _dependencies;
@@ -53,7 +54,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     const auto n_elem_access = (_M * _K + _K * _N + _M * _N);
     const auto arith_ratio = n_fma / n_elem_access;
     static constexpr int ClSize = 64;
-    static constexpr int tileWgSize = ClSize / sizeof(element_t);
+    static constexpr int tileWgSize = ClSize / sizeof(element_in_t);
     if (batch_type == gemm_batch_type_t::interleaved) {
       return blas::Gemm_Launcher<
           container_0_t, container_1_t, container_2_t, 64, false, false, false,
@@ -242,8 +243,9 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
+  using element_in_t = typename ValueType<container_0_t>::type;
   static constexpr int ClSize = 64;
-  static constexpr int tileWgSize = ClSize / sizeof(element_t);
+  static constexpr int tileWgSize = ClSize / sizeof(element_in_t);
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
   if (batch_size == 1 && (_M / _N > 8 || _N / _M > 8)) {
