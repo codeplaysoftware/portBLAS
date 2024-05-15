@@ -140,13 +140,13 @@ typename sb_handle_t::event_t _trsv(
   const auto device = sb_handle.get_queue().get_device();
   if (device.is_gpu()) {
     const std::string vendor =
-        device.template get_info<sycl::info::device::vendor>();
+        device.template get_info<cl::sycl::info::device::vendor>();
     if (vendor.find("Intel") == vendor.npos) {
       return blas::internal::_trsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
     } else {
-      std::cout << "Trsv operator currently not supported on Intel GPUs\n";
-      return {};
+      throw std::runtime_error(
+          "Trsv operator currently not supported on Intel GPUs");
     }
   } else {
     return blas::internal::_trsv_impl<4, 2, uplo, trn, diag>(
@@ -167,14 +167,14 @@ typename sb_handle_t::event_t _tbsv(
     const typename sb_handle_t::event_t& _dependencies) {
   const auto device = sb_handle.get_queue().get_device();
   const std::string vendor =
-      device.template get_info<sycl::info::device::vendor>();
+      device.template get_info<cl::sycl::info::device::vendor>();
   if (device.is_gpu()) {
     if (vendor.find("Intel") == vendor.npos) {
       return blas::internal::_tbsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
     } else {
-      std::cout << "Tbsv operator currently not supported on Intel GPUs\n";
-      return {};
+      throw std::runtime_error(
+          "Tbsv operator currently not supported on Intel GPUs");
     }
   } else {
     return blas::internal::_tbsv_impl<4, 2, uplo, trn, diag>(
@@ -194,14 +194,14 @@ typename sb_handle_t::event_t _tpsv(
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
   const auto device = sb_handle.get_queue().get_device();
   const std::string vendor =
-      device.template get_info<sycl::info::device::vendor>();
+      device.template get_info<cl::sycl::info::device::vendor>();
   if (device.is_gpu()) {
     if (vendor.find("Intel") == vendor.npos) {
       return blas::internal::_tpsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _vx, _incx, _dependencies);
     } else {
-      std::cout << "Tpsv operator currently not supported on Intel GPUs\n";
-      return {};
+      throw std::runtime_error(
+          "Tpsv operator currently not supported on Intel GPUs");
     }
   } else {
     return blas::internal::_tpsv_impl<4, 2, uplo, trn, diag>(
