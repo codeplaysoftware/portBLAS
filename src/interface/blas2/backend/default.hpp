@@ -166,9 +166,9 @@ typename sb_handle_t::event_t _tbsv(
     index_t _lda, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
   const auto device = sb_handle.get_queue().get_device();
-  const std::string vendor =
-      device.template get_info<cl::sycl::info::device::vendor>();
   if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<cl::sycl::info::device::vendor>();
     if (vendor.find("Intel") == vendor.npos) {
       return blas::internal::_tbsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
@@ -193,9 +193,9 @@ typename sb_handle_t::event_t _tpsv(
     sb_handle_t& sb_handle, index_t _N, container_t0 _mA, container_t1 _vx,
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
   const auto device = sb_handle.get_queue().get_device();
-  const std::string vendor =
-      device.template get_info<cl::sycl::info::device::vendor>();
   if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<cl::sycl::info::device::vendor>();
     if (vendor.find("Intel") == vendor.npos) {
       return blas::internal::_tpsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _vx, _incx, _dependencies);
