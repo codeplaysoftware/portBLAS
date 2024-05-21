@@ -103,16 +103,6 @@ if(is_dpcpp)
   )
 endif()
 
-if(is_dpcpp AND ${TUNING_TARGET} STREQUAL "DEFAULT")
-  if (${DPCPP_SYCL_TARGET} MATCHES "nvidia")
-    set(TESTS_TO_SKIP
-      ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
-      )
-    message(WARNING "Targetting NVIDIA hardware with DEFAULT TUNING_TARGET.
-    Disabling tests for following operator: trsm.")
-  endif()
-endif()
-
 if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
