@@ -381,7 +381,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* register array used to store the result*/
-      value_t reg_res[item_rows * item_cols];
+      element_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary, packet_size>(
           reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
           out_of_range);
