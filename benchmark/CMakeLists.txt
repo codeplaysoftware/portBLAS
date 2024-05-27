@@ -100,34 +100,7 @@ add_custom_command(OUTPUT git_config.h
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# Assume ComputeCpp not available by default.
-set(ComputeCpp_INFO_AVAILABLE false)
-set(ComputeCpp_VERSION_NUMBER "N/A")
-set(ComputeCpp_EDITION "N/A")
-
-if(is_computecpp)
-  execute_process(COMMAND ${ComputeCpp_DEVICE_COMPILER_EXECUTABLE} "--version"
-    OUTPUT_VARIABLE ComputeCpp_DEVICE_COMPILER_VERSION
-    RESULT_VARIABLE ComputeCpp_DEVICE_COMPILER_EXECUTABLE_RESULT
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  if(NOT ComputeCpp_DEVICE_COMPILER_EXECUTABLE_RESULT EQUAL "0")
-    message(WARNING "Compute++ not found - Error obtaining device compiler and ComputeCpp version!")
-  else()
-    # Store information about ComputeCpp/compiler for benchmarking.
-    set(ComputeCpp_INFO_AVAILABLE true)
-    string(REGEX MATCH
-      "(CE|PE|RC)" ComputeCpp_EDITION ${ComputeCpp_DEVICE_COMPILER_VERSION})
-    if(${ComputeCpp_EDITION} STREQUAL "RC")
-      set(ComputeCpp_EDITION "Internal")
-    endif()
-    string(REGEX MATCH "([0-9]+\.[0-9]+\.[0-9]+)"
-      ComputeCpp_VERSION_NUMBER ${ComputeCpp_DEVICE_COMPILER_VERSION})
-  endif()
-endif()
-
-configure_file(computecpp_version_config.h.in computecpp_version_config.h @ONLY)
-
-add_library(bench_info STATIC bench_info.cc git_config.h computecpp_version_config.h)
+add_library(bench_info STATIC bench_info.cc git_config.h)
 target_include_directories(bench_info PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 if(VERBOSE)

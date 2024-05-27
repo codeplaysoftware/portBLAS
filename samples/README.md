@@ -2,7 +2,7 @@ portBLAS samples
 ===
 
 ## How to compile the samples
-A SYCL Compiler (DPCPP, hipSYCL or ComputeCpp) along with the target device's 
+A SYCL Compiler (DPCPP or AdaptiveCpp) along with the target device's 
 relevant compute drivers *(OpenCL, CUDA etc..)* are required to compile and 
 run the samples.   
 Any project that integrates portBLAS can either use it as :
@@ -13,7 +13,7 @@ Any project that integrates portBLAS can either use it as :
 
 This folder contains a basic CMake configuration file and a module to find
 portBLAS *(which will be used as a header-only framework)*. It also uses a module
-to find the SYCL Compiler(DPCPP, hipSYCL or computeCpp *-deprecated-*) that is 
+to find the SYCL Compiler(DPCPP or AdaptiveCpp) that is 
 located in the folder `cmake/Modules`.
 
 Sample usage with DPCPP Compiler: 

@@ -749,7 +749,7 @@ else() # default cpu backend
 endif()
 add_library(${func} OBJECT ${gemm_sources})
 set_target_compile_def(${func})
-# The blas library depends on FindComputeCpp
+
 target_include_directories(${func} PRIVATE ${PORTBLAS_SRC} ${PORTBLAS_INCLUDE}
                            ${PORTBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
 message(STATUS "Adding SYCL to target ${func}")

@@ -60,8 +60,6 @@ else()
       message(WARNING "Selected AdaptiveCpp as backend, but the compiler is not 
               fully supported")
     endif()
-  elseif(SYCL_COMPILER MATCHES "computecpp")
-    set(is_computecpp ON)
   else()
     message(WARNING "SYCL_COMPILER <${SYCL_COMPILER}> is unknown.")
   endif()
@@ -69,22 +67,7 @@ endif()
 
 message(STATUS "Using SYCL implementation: ${SYCL_COMPILER}")
 
-if(is_computecpp)
-  find_package(ComputeCpp REQUIRED)
-  # Add some performance flags to the calls to compute++.
-  # NB: This must be after finding ComputeCpp
-  list(APPEND COMPUTECPP_USER_FLAGS
-    -O3
-    -fsycl-split-modules=20
-    -mllvm -inline-threshold=10000
-    -Xclang -cl-mad-enable
-    # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-    -no-serial-memop
-  )
-  set(SYCL_INCLUDE_DIRS ${ComputeCpp_INCLUDE_DIRS})
-
-  
-elseif(is_dpcpp)
+if(is_dpcpp)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__SYCL_DISABLE_NAMESPACE_INLINE__=ON -O3 -Xclang -cl-mad-enable")
   if(NOT DEFINED DPCPP_SYCL_TARGET)

@@ -35,10 +35,6 @@ the project.
     - [Instaling portBLAS](#instaling-portBLAS)
     - [Doxygen](#doxygen)
     - [CMake options](#cmake-options)
-    - [ComputeCpp Compilation (Deprecated)](#computecpp-deprecated)
-      - [Compile with ComputeCpp](#compile-with-computecpp)
-      - [POWER\_VR support](#power_vr-support-computecpp-only)
-      - [Cross-Compile](#cross-compile-computecpp-only)
   - [Tests and benchmarks](#tests-and-benchmarks)
   - [Contributing to the project](#contributing-to-the-project)
     - [Guides and Other Documents](#guides-and-other-documents)
@@ -493,7 +489,7 @@ Some of the supported options are:
 |---|---|---|
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
-| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `adaptivecpp` and `computecpp`*(deprecated)*. |
+| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp` and  `adaptivecpp`. |
 | `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
@@ -513,51 +509,6 @@ Some of the supported options are:
 
 portBLAS ComputeCpp compilation is deprecated since ComputeCpp releasing has been
 discontinued. More information about this are found in this [announcement](https://codeplay.com/portal/news/2023/07/07/the-future-of-computecpp). 
-
-### Compile with ComputeCpp
-
-```bash
-cd build
-cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp -DSYCL_COMPILER=computecpp
-ninja
-```
-
-### Cross-Compile *(ComputeCpp Only)*
-
-To cross-compile portBLAS first the following environment variables must be
-set:
-
-```bash
-export COMPUTECPP_TOOLCHAIN_DIR="PATH TO TOOLCHAIN_DIR"
-export COMPUTECPP_TARGET_TRIPLE="PATH TO TARGET_TRIPLE"
-export COMPUTECPP_SYSROOT_DIR="$PATH TO SYSROOT_DIR"
-```
-
-Clone the [ComputeCpp-SDK](https://github.com/codeplaysoftware/computecpp-sdk) to retrieve the toolchain file.
-The following CMake command can be used to cross-compile portBLAS:
-
-```bash
-cmake  -GNinja                                                                         \
-    ${SOURCE_ROOT}                                                                     \
-   -DCMAKE_PREFIX_PATH="${OPENBLAS_PATH}"                                              \
-   -DComputeCpp_DIR="${COMPUTECPP_DEVICE_PATH}"                                        \
-   -DComputeCpp_HOST_DIR="${COMPUTECPP_X86_PATH}"                                      \
-   -DCMAKE_TOOLCHAIN_FILE="/path/to/computecpp-sdk/cmake/toolchains/gcc-generic.cmake" \
-   -DCMAKE_BUILD_TYPE='Release'                                                        \
-   -DCMAKE_INSTALL_PREFIX=${CROSS_COMPILED_PORTBLAS_INSTALL}                           \
-   -DOpenCL_INCLUDE_DIR="${OpenCL_Headers_PATH}"                                       \
-   -DOpenCL_LIBRARY="${OpenCL_LIBRARY}"                                                \
-   -DCOMPUTECPP_BITCODE="${DEVICE_BITCODE}"                                            \
-   -DCMAKE_CXX_FLAGS='-O3'                                                             \
-   -DTUNING_TARGET="${CHOSEN_TARGET}"
-```
-
-### POWER_VR support *(ComputeCpp Only)*
-
-To enable the PowerVR target tuning, pass: `-DTUNING_TARGET=POWER_VR`
-
-To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
-
 
 ## Tests and benchmarks
 

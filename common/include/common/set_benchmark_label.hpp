@@ -40,10 +40,6 @@
 #include <hip/hip_runtime.h>
 #endif
 
-extern bool const computecpp_available;
-extern char const* const computecpp_version;
-extern char const* const computecpp_edition;
-
 extern const char* commit_date;
 extern const char* commit_hash;
 
@@ -60,7 +56,7 @@ namespace device_info {
 inline void add_device_info(cl::sycl::device const& device,
                             std::map<std::string, std::string>& key_value_map) {
   // OpenCL is unclear whether strings returned from clGet*Info() should be
-  // null terminated, and ComputeCpp currently copies embedded nulls.
+  // null terminated.
   // On some OpenCL implementations this results in strings that behave
   // unexpectedly when appended to. This lambda trims those strings.
   auto trim = [](std::string s) -> std::string {
@@ -127,29 +123,6 @@ inline void add_device_info(std::map<std::string, std::string>& key_value_map) {
 
 }  // namespace device_info
 
-namespace computecpp_info {
-
-/**
- * Add ComputeCpp meta-data (if available) to the benchmark label. The
- * version of compute++ is tied to the version of ComputeCpp, so the associated
- * meta-data of compute++ will be the same.
- *
- * portBLAS benchmarks will include these attributes only if ComputeCpp info is
- * available. Benchmarks from other libraries such as cublas etc. will not
- * include them.
- *
- * \param [out] key_value_map The benchmark key value pair to hold the info.
- */
-inline void add_computecpp_version(
-    std::map<std::string, std::string>& key_value_map) {
-  if (computecpp_available) {
-    key_value_map["@computecpp-version"] = computecpp_version;
-    key_value_map["@computecpp-edition"] = computecpp_edition;
-  }
-}
-
-}  // namespace computecpp_info
-
 namespace datatype_info {
 /**
  * Add the datatype used to the benchmark label.
@@ -215,7 +188,6 @@ namespace internal {
 template <typename scalar_t>
 inline void add_common_labels(
     std::map<std::string, std::string>& key_value_map) {
-  computecpp_info::add_computecpp_version(key_value_map);
   datatype_info::add_datatype_info<scalar_t>(key_value_map);
 
   key_value_map["@library"] = "portBLAS";

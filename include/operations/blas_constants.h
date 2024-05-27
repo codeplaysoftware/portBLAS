@@ -69,25 +69,11 @@ struct IndexValueTuple {
   index_t ind;
   value_t val;
 
-  // This operator is required due to a ComputeCPP bug
-  // (If the RHS of this operator is static const, then llvm.memcpy is broken)
-  constexpr IndexValueTuple(const IndexValueTuple<index_t, value_t> &other)
-      : val(other.val), ind(other.ind) {}
-
   constexpr explicit IndexValueTuple(index_t _ind, value_t _val)
-      : ind(_ind), val(_val){};
+      : ind(_ind), val(_val) {};
   PORTBLAS_INLINE index_t get_index() const { return ind; }
   PORTBLAS_INLINE typename GetTupleValue<value_t>::return_t get_value() const {
     return GetTupleValue<value_t>::get(val);
-  }
-  // This operator is required due to a ComputeCPP bug
-  // (If the RHS of this operator is static const, then llvm.memcpy is broken)
-  IndexValueTuple<index_t, value_t> &operator=(
-      const IndexValueTuple<index_t, value_t> &other) {
-    val = other.val;
-    ind = other.ind;
-
-    return *this;
   }
 };
 
@@ -262,19 +248,5 @@ struct constant_pair {
 };
 
 }  // namespace blas
-
-#ifndef __ADAPTIVECPP__
-template <typename ind_t, typename val_t>
-struct cl::sycl::is_device_copyable<blas::IndexValueTuple<ind_t, val_t>>
-    : std::true_type {};
-
-template <typename ind_t, typename val_t>
-struct cl::sycl::is_device_copyable<const blas::IndexValueTuple<ind_t, val_t>>
-    : std::true_type {};
-
-template <typename ind_t, typename val_t>
-struct std::is_trivially_copyable<blas::IndexValueTuple<ind_t, val_t>>
-    : std::true_type {};
-#endif
 
 #endif  // BLAS_CONSTANTS_H

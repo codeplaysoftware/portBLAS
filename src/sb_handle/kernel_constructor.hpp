@@ -80,42 +80,6 @@ struct LocalMemory<value_t, using_local_memory::disabled> {
   */
   PORTBLAS_INLINE LocalMemory(size_t, cl::sycl::handler &) {}
 };
-/*!
-@brief A struct for containing a local accessor if shared memory is enabled.
-Specialised case for using_local_memory == subgroup, which contains a subgroup
-local accessor.
-@tparam value_t Value type of the accessor.
-*/
-#ifdef __COMPUTECPP__
-template <typename value_t>
-struct LocalMemory<value_t, using_local_memory::subgroup> {
-  /*!
-  @brief Constructor that creates a local accessor from a size and a SYCL
-  command group handler.
-  @param size Size in elements of the local accessor.
-  @param cgh SYCL command group handler.
-  */
-  PORTBLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
-      : subgroupAcc(cl::sycl::range<1>(size), cgh) {}
-
-  /*!
-  @brief Subscript operator that forwards on to the subgroup accessor subscript
-  operator.
-  @param id SYCL id.
-  @return Reference to an element of the subgroup accessor.
-  */
-  PORTBLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
-    return subgroupAcc[id];
-  }
-
-  /*!
-  @brief subgroup accessor.
-  */
-  cl::sycl::accessor<value_t, 1, cl::sycl::access::mode::read_write,
-                     cl::sycl::access::target::subgroup_local>
-      subgroupAcc;
-};
-#endif
 
 /*!
 @brief Template struct for containing an eval function, which uses shared memory

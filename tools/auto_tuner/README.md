@@ -15,7 +15,7 @@ Building
 3. Run `CMake` and `Ninja` from the build directory:
 
 ```
-$ cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp [-DTUNING_TARGET=supported backend]
+$ cmake -GNinja ../ [-DTUNING_TARGET=supported backend]
 $ ninja
 ```
 
