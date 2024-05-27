@@ -150,14 +150,17 @@ if (INSTALL_HEADER_ONLY)
   check_cxx_compiler_flag("-fsycl" is_dpcpp)
   if(is_dpcpp)
     target_compile_definitions(portblas INTERFACE "SB_ENABLE_USM")
-    if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM"
-           AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2024.1)
-         OR NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
-       # Apply only for oneAPI releases >= 2024.1 OR for intel/llvm.
-       target_link_options(portblas INTERFACE "-mllvm=-enable-global-offset=false")
-       target_compile_options(portblas INTERFACE "-mllvm=-enable-global-offset=false")
-       message(STATUS "Adding -mllvm=-enable-global-offset=false to portblas")
-     endif()
+    if ((${TUNING_TARGET} STREQUAL "NVIDIA_GPU") OR (${TUNING_TARGET} STREQUAL "AMD_GPU"))
+      # Apply only in case of NVIDIA_GPU and AMD_GPU targets.
+      if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM"
+             AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2024.1)
+           OR NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
+         # Apply only for oneAPI releases >= 2024.1 OR for intel/llvm.
+         target_link_options(portblas INTERFACE "-mllvm=-enable-global-offset=false")
+         target_compile_options(portblas INTERFACE "-mllvm=-enable-global-offset=false")
+         message(STATUS "Adding -mllvm=-enable-global-offset=false to portblas")
+       endif()
+    endif()
   endif()
   if(${BLAS_ENABLE_COMPLEX})
     target_compile_definitions(portblas INTERFACE "BLAS_ENABLE_COMPLEX")
