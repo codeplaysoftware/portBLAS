@@ -105,7 +105,7 @@ function(add_sycl_to_target)
     target_link_options(${SB_ADD_SYCL_TARGET} PRIVATE -mllvm=-loopopt=0)
     message(STATUS "Adding -fno-fast-math -mllvm=-loopopt=0 to target ${SB_ADD_SYCL_TARGET}")
   endif()
-  if ((${TUNING_TARGET} STREQUAL "NVIDIA_GPU") OR (${TUNING_TARGET} STREQUAL "AMD_GPU"))
+  if (${DPCPP_SYCL_TARGET} MATCHES "nvidia" OR ${DPCPP_SYCL_TARGET} MATCHES "amd")
     # Apply only in case of NVIDIA_GPU and AMD_GPU targets.
     if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM"
           AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2024.1)
