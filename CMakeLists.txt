@@ -150,8 +150,8 @@ if (INSTALL_HEADER_ONLY)
   check_cxx_compiler_flag("-fsycl" is_dpcpp)
   if(is_dpcpp)
     target_compile_definitions(portblas INTERFACE "SB_ENABLE_USM")
-    if ((${TUNING_TARGET} STREQUAL "NVIDIA_GPU") OR (${TUNING_TARGET} STREQUAL "AMD_GPU"))
-      # Apply only in case of NVIDIA_GPU and AMD_GPU targets.
+    check_cxx_compiler_flag("-mllvm=-enable-global-offset=false" support_disable_global_offset)
+    if (${support_disable_global_offset})
       if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM"
              AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2024.1)
            OR NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
