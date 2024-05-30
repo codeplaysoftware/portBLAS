@@ -93,8 +93,6 @@ function(set_target_compile_def in_target)
     target_compile_definitions(${in_target} PUBLIC INTEL_GPU=1)
   elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")
     target_compile_definitions(${in_target} PUBLIC AMD_GPU=1)
-  elseif(${TUNING_TARGET} STREQUAL "POWER_VR")
-    target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
   elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     target_compile_definitions(${in_target} PUBLIC NVIDIA_GPU=1)
   else()
@@ -501,31 +499,6 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
       endif()
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
-elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
-  set(supported_types
-    "float"
-    "half"
-  )
-  foreach(data ${supported_types})
-    add_gemm_configuration(
-      "${data}" 96 "true" "false" "false"
-      16 4 6 12 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      128 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 1 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 128 "false" "false" "false"
-      16 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      32 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
-  endforeach()
 elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"

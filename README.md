@@ -505,11 +505,6 @@ Some of the supported options are:
 | `BLAS_ENABLE_HALF` | `ON`/`OFF` | Determines whether to enable Half data type support *(Support is limited to some Level 1 operators and Gemm)* (`OFF` by default) |
 | `BLAS_INDEX_TYPES` | `int32_t;int64_t` | Determines the type(s) to use for `index_t` and `increment_t`. Default is `int` |
 
-## ComputeCpp Compilation *(Deprecated)*
-
-portBLAS ComputeCpp compilation is deprecated since ComputeCpp releasing has been
-discontinued. More information about this are found in this [announcement](https://codeplay.com/portal/news/2023/07/07/the-future-of-computecpp). 
-
 ## Tests and benchmarks
 
 The tests and benchmarks have their own documentation:

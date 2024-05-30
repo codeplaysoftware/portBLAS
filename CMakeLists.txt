@@ -106,12 +106,6 @@ set(PORTBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(PORTBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE})
 
-if(IMGDNN_DIR)
-  add_definitions(-DIMGDNN_LIBRARY)
-  find_package(IMGDNN REQUIRED)
-  list(APPEND THIRD_PARTIES_INCLUDE ${IMGDNN_INCLUDE_DIRS})
-endif()
-
 option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
 option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for GEMM" OFF)
 option(BLAS_ENABLE_HALF "Whether to enable sycl::half data type for supported operators" OFF)
@@ -195,9 +189,6 @@ else()
   elseif(is_adaptivecpp)
     set(sycl_impl AdaptiveCpp::acpp-rt)
     add_sycl_to_target(TARGET portblas SOURCES)
-  endif()
-  if(IMGDNN_DIR)
-    target_link_libraries(portblas PUBLIC IMGDNN::IMGDNN)
   endif()
   set_target_properties(portblas PROPERTIES
     INTERFACE_LINK_LIBRARIES ${sycl_impl}
