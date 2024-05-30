@@ -320,7 +320,7 @@ struct CollapseIndexTupleOperator : public Operators {
   static PORTBLAS_INLINE
       typename ResolveReturnType<CollapseIndexTupleOperator, rhs_t>::type
       eval(const lhs_t &l, const rhs_t &r) {
-    return rhs_t::value_t(static_cast<rhs_t>(r).get_index() * l +
+    return typename rhs_t::value_t(static_cast<rhs_t>(r).get_index() * l +
                               static_cast<rhs_t>(r).val.get_index(),
                           static_cast<rhs_t>(r).get_value());
   }

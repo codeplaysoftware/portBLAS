@@ -28,13 +28,14 @@ set(PORTBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 set(SYCL_EXPRTEST_SRCS
   ${PORTBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
   ${PORTBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
-)
+  ${PORTBLAS_EXPRTEST}/collapse_nested_tuple.cpp
+  )
 
 # Temporary disabling the following tests for Intel DPC++ as currently Intel compiler crashes while running the following tests
 # https://github.com/intel/llvm/issues/7075
-if(NOT is_dpcpp)
-  list(APPEND SYCL_EXPRTEST_SRCS "${PORTBLAS_EXPRTEST}/collapse_nested_tuple.cpp")
-endif()
+#if(NOT is_dpcpp)
+#  list(APPEND SYCL_EXPRTEST_SRCS "${PORTBLAS_EXPRTEST}/collapse_nested_tuple.cpp")
+#endif()
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
