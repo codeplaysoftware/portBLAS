@@ -50,12 +50,12 @@ struct Operators {};
  * else.
  */
 struct AbsoluteValue {
-
 #ifdef BLAS_ENABLE_HALF
   template <typename value_t>
-  using is_floating_point = std::integral_constant<
-      bool, std::is_floating_point<value_t>::value ||
-                std::is_same<value_t, cl::sycl::half>::value>;
+  using is_floating_point =
+      std::integral_constant<bool,
+                             std::is_floating_point<value_t>::value ||
+                                 std::is_same<value_t, cl::sycl::half>::value>;
 #else
   template <typename value_t>
   using is_floating_point = std::is_floating_point<value_t>;
@@ -321,8 +321,8 @@ struct CollapseIndexTupleOperator : public Operators {
       typename ResolveReturnType<CollapseIndexTupleOperator, rhs_t>::type
       eval(const lhs_t &l, const rhs_t &r) {
     return typename rhs_t::value_t(static_cast<rhs_t>(r).get_index() * l +
-                              static_cast<rhs_t>(r).val.get_index(),
-                          static_cast<rhs_t>(r).get_value());
+                                       static_cast<rhs_t>(r).val.get_index(),
+                                   static_cast<rhs_t>(r).get_value());
   }
 
   template <typename rhs_t>

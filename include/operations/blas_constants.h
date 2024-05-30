@@ -75,7 +75,6 @@ struct IndexValueTuple {
   PORTBLAS_INLINE typename GetTupleValue<value_t>::return_t get_value() const {
     return GetTupleValue<value_t>::get(val);
   }
-
 };
 
 /*!
