@@ -1,15 +1,12 @@
-portBLAS Implementation
+# portBLAS Implementation
 ===
 
 [![Build and Test](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml/badge.svg?event=push)](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml)
 
-portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL 1.2](
-https://www.khronos.org/registry/sycl/specs/sycl-1.2.pdf), the
-[Khronos](http://www.khronos.org) abstraction layer for [OpenCL](https://www.khronos.org/opencl/).
+portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL](https://www.khronos.org/sycl/).
 
-portBLAS is a current work in progress research project from an ongoing
-collaboration with the *High Performance Computing & Architectures (HPCA) group*
-from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
+portBLAS is an ongoing collaboration with the *High Performance Computing 
+& Architectures (HPCA) group* from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
 portBLAS is written using modern C++. The current implementation uses C++11
 features.
@@ -33,14 +30,15 @@ the project.
     - [Experimental Joint Matrix Support](#jm_support)
   - [Requirements](#requirements)
   - [Setup](#setup)
-    - [Compile with ComputeCpp](#compile-with-computecpp)
     - [Compile with DPC++](#compile-with-dpc)
-    - [Compile with hipSYCL](#compile-with-hipsycl)
+    - [Compile with AdaptiveCpp *(Formerly hipSYCL)*](#compile-with-adaptivecpp)
     - [Instaling portBLAS](#instaling-portBLAS)
-    - [POWER\_VR support (ComputeCpp Only)](#power_vr-support-computecpp-only)
     - [Doxygen](#doxygen)
     - [CMake options](#cmake-options)
-    - [Cross-Compile (ComputeCpp Only)](#cross-compile-computecpp-only)
+    - [ComputeCpp Compilation (Deprecated)](#computecpp-deprecated)
+      - [Compile with ComputeCpp](#compile-with-computecpp)
+      - [POWER\_VR support](#power_vr-support-computecpp-only)
+      - [Cross-Compile](#cross-compile-computecpp-only)
   - [Tests and benchmarks](#tests-and-benchmarks)
   - [Contributing to the project](#contributing-to-the-project)
     - [Guides and Other Documents](#guides-and-other-documents)
@@ -207,30 +205,32 @@ The following table sums up the interface that can be found in
 For all these operations:
 
 * `vx` and `vy` are containers for vectors `x` and `y`.
-* `incx` and `incy` are their increments (number of steps to jump to the next
-   value, 1 for contiguous values).
-* `N`, an integer, is the size of the vectors (less than or equal to the size of
-  the containers).
+* `incx` and `incy` are their increments *(number of steps to jump to the next
+   value, 1 for contiguous values)*.
+* `N`, an integer, is the size of the vectors *(less than or equal to the size of
+  the containers)*.
 * `alpha` is a scalar.
 * `rs` is a container of size 1, containing either a scalar, an integer, or an
   index-value tuple.
-* `c` and `s` for `_rot` are scalars (cosine and sine)
+* `c` and `s` for `_rot` are scalars *(cosine and sine)*.
+* `sb` for `_sdsdot` is a single precision scalar to be added to output.
 
 | operation | arguments                                       | description                                                                                                                                                                  |
 |-----------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `_asum`   | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Absolute sum of the vector `x`; written in `rs` if passed, else returned                                                                                                                               |
 | `_axpy`   | `sb_handle`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`  | Vector multiply-add: `y = alpha * x + y`                                                                                                                                     |
 | `_copy`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`           | Copies a vector to another: `y = x`                                                                                                                                          |
-| `_dot`    | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`]  | Dot product of two vectors `x` and `y`; written in `rs` if passed, else returned                                                                                             |
-| `_asum`   | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Absolute sum of the vector `x`; written in `rs` if passed, else returned                                                                                                     |
-| `_iamax`  | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the maximum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
-| `_iamin`  | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the minimum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
-| `_swap`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`           | Interchanges two vectors: `y = x` and `x = y`                                                                                                                                |
-| `_scal`   | `sb_handle`, `N`, `alpha`, `vx`, `incx`                | Scalar product of a vector: `x = alpha * x`                                                                                                                                  |
+| `_dot`    | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`   [, `rs`] | Dot product of two vectors `x` and `y`; written to `rs` if passed, else returned                                                                                             |
+| `_sdsdot`    | `sb_handle`, `N`, `sb`, `vx`, `incx`, `vy`, `incy`[, `rs`] | Compute sum of a constant `sb` with the double precision  dot product of two single precision vectors `x` and `y`; written in `rs` if passed, else returned                                                                                            |
 | `_nrm2`   | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Euclidean norm of the vector `x`; written in `rs` if passed, else returned                                                                                                   |
 | `_rot`    | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `x` and `y` with a cosine `c` and a sine `s`                                                                                                     |
 | `_rotg`   | `sb_handle`, `a`, `b`, `c`, `s`                        | Given the Cartesian coordinates (`a`, `b`) of a point, return the parameters `c`, `s`, `r`, and `z` associated with the Givens rotation.                                     |
 | `_rotm`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`, `param`  | Applies a modified Givens rotation to `x` and `y`.                                                                                                                           |
 | `_rotmg`  | `sb_handle`, `d1`, `d2`, `x1`, `y1` `param`            | Given the Cartesian coordinates (`x1`, `y1`) of a point, return the components of a modified Givens transformation matrix that zeros the y-component of the resulting point. |
+| `_scal`   | `sb_handle`, `N`, `alpha`, `vx`, `incx`                | Scalar product of a vector: `x = alpha * x`                                                                                                                                  |
+| `_swap`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`           | Interchanges two vectors: `y = x` and `x = y`                                                                                                                                |
+| `_iamax`  | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Index of the first occurence of the maximum element in `x`; written to `rs` if passed, else returned.                                                              |
+| `_iamin`  | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Index of the first occurence of the minimum element in `x`; written to `rs` if passed, else returned.                                                            |
 
 ### BLAS 2
 
@@ -256,19 +256,26 @@ For all these operations:
   its neighbor in the next column and same row. `lda` must be at least `M`.
 * `vx` and `vy` are containers for vectors `x` and `y`.
 * `incx` and `incy` are their increments (cf BLAS 1).
+* `K` Number of sub/super-diagonals of the matrix.
 
 | operation | arguments | description |
 |---|---|---|
-| `_gemv` | `sb_handle`, `trans`, `M`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy`  | Generalised matrix-vector product followed by a vector sum: `y = alpha * A * x + beta * y`. *Note: the dimensions of the vectors depend on the transpose mode (`x`: `N` and `y`: `M` for mode `'n'` ; `x`: `M` and `y`: `N` otherwise)* |
 | `_gbmv` | `sb_handle`, `trans`, `M`, `N`, `KL`, `KU`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy`  | Generalised band matrix-vector product followed by a vector sum: `y = alpha * A * x + beta * y`. *Note: the dimensions of the vectors depend on the transpose mode (`x`: `N` and `y`: `M` for mode `'n'` ; `x`: `M` and `y`: `N` otherwise)* |
-| `_trmv`  | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx` | Matrix-vector product for a triangular matrix: `x = A * x` |
-| `_symv` | `sb_handle`, `uplo`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy` | Variant of GEMV for a symmetric matrix (`y = alpha * A * x + beta * y`). *Note: `uplo` specifies which side of the matrix will be read* |
+| `_gemv` | `sb_handle`, `trans`, `M`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy`  | Generalised matrix-vector product followed by a vector sum: `y = alpha * A * x + beta * y`. *Note: the dimensions of the vectors depend on the transpose mode (`x`: `N` and `y`: `M` for mode `'n'` ; `x`: `M` and `y`: `N` otherwise)* |
 | `_ger` | `sb_handle`, `M`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector-vector product followed by a matrix sum: `A = alpha * x * yT + A` |
+| `_sbmv`| `sb_handle`, `uplo`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy` | Compute a scalar-matrix-vector product and add the result to a scalar-vector product, with a symmetric band matrix: `y = alpha * mA * x + beta * y` |
+| `_spmv` | `sb_handle`, `uplo`, `N`, `alpha`, `mA`, `vx`, `incx`, `beta`, `vy`, `incy` |  Symmetric packed matrix-vector product: `y = alpha * A * x + beta * y` |
+| `_spr` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mPA` | Symmetric vector-vector product followed by a matrix sum: `mPA = alpha * x * xT + mPA` |
+| `_spr2` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mPA` | Compute two scalar-vector-vector products and add them to a symmetric packed matrix: `mPA = alpha * x * yT + alpha * y * xT + mPA` |
+| `_symv` | `sb_handle`, `uplo`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy` | Variant of GEMV for a symmetric matrix (`y = alpha * A * x + beta * y`). *Note: `uplo` specifies which side of the matrix will be read* |
 | `_syr` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mA`, `lda` | Generalised vector squaring followed by a sum with a symmetric matrix: `A = alpha * x * xT + A` |
 | `_syr2` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector products followed by a sum with a symmetric matrix: `A = alpha*x*yT + alpha*y*xT + A` |
-| `_spr` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mPA` | Symmetric vector-vector product followed by a matrix sum: `mPA = alpha * x * xT + mPA` |
-| `_spmv` | `sb_handle`, `uplo`, `N`, `alpha`, `mA`, `vx`, `incx`, `beta`, `vy`, `incy` |  Symmetric packed matrix-vector product: `y = alpha * A * x + beta * y` |
-| `_tpmv` | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `mA`, `vx`, `incx` | Triangular packed matrix-vector product: `x = A * x` |
+| `_tbmv` | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `K`, `mA`, `lda`, `vx`, `incx` |  Compute a matrix-vector product with a triangular band matrix:  `A = A * x` |
+| `_tbsv` | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `K`, `mA`, `lda`, `vx`, `incx` | Solve a system of linear equations whose coefficients are in a triangular band matrix: `A * x = b` |
+| `_tpmv`| `sb_handle`, `uplo`, `trans`, `diag`, `N`, `mA`, `vx`, `incx` | Triangular packed matrix-vector product: `x = A * x` |
+| `_tpsv` | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `mA`, `vx`, `incx` | Solve a system of linear equations whose coefficients are in a triangular packed matrix: `A * x = b` |
+| `_trmv`  | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx` | Matrix-vector product for a triangular matrix: `x = A * x` |
+| `_trsv` | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `mA`, `lda`, `vx`, `incx` | Compute a matrix-vector product with a triangular band matrix: `A * x = b` |
 
 ### BLAS 3
 
@@ -277,7 +284,7 @@ The following table sums up the interface that can be found in
 
 For all these operations:
 
-* `A`, `B` and `C` are containers for the column-major matrices A, B and C.
+* `mA`, `mB` and `mC` are containers for the column-major matrices A, B and C.
 * `lda`, `ldb` and `ldc` are the leading dimensions of the matrices A, B and C
   (cf BLAS 2). The leading dimension of a matrix must be greater than or equal
   to its number of rows.
@@ -291,15 +298,19 @@ For all these operations:
 * `uplo` is a `char` that provides information about triangular matrices: `u` for
   upper triangular and `l` for lower triangular matrices.
 * `diag` is a `char` that provides information about the diagonal elements of a
-  triangular matrix: `u` if the matrix is unit triangular (all diagonal elements
-  are 1), else `n`.
+  triangular matrix: `u` if the matrix is unit triangular *(all diagonal elements
+  are 1)*, else `n`.
+* `stride_a`, `stride_b` and `stride_c` are the striding size between consecutive 
+matrices in a batched-strided entry for the inputs/outputs. 
+* `batch_type` for `_gemm_batched` is either `strided` *(by default)* or `interleaved`*(More details about it here : [Gemm.md](doc/Gemm.md))*.
 
 | operation | arguments | description |
 |---|---|---|
-| `_gemm` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
-| `_gemm_batched` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size`, `batch_type` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
-| `_gemm_strided_batched` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `stridea`, `B`, `ldb`, `strideb`, `beta`, `C`, `ldc`, `stridec`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices.
-| `_trsm` | `sb_handle`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
+| `_gemm` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `mA`, `lda`, `mB`, `ldb`, `beta`, `mC`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
+| `_gemm_batched` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `mA`, `lda`, `mB`, `ldb`, `beta`, `mC`, `ldc`, `batch_size`, `batch_type` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
+| `_gemm_strided_batched` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `mA`, `lda`, `stride_a`, `mB`, `ldb`, `stride_b`, `beta`, `mC`, `ldc`, `stride_c`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices.
+| `_symm` | `sb_handle`, `side` , `uplo` , `M`, `N`, `alpha`, `mA`, `lda`, `mB`, `ldb`, `beta`, `mC`, `ldc`| Compute a scalar-matrix-matrix product and add the result to a scalar-matrix product, where one of the matrices in the multiplication is symmetric. |
+| `_trsm` | `sb_handle`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `mA`, `lda`, `mB`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
 ### EXTENSION
 
@@ -314,17 +325,17 @@ For all these operations:
   to its number of rows. In the case of in-place copy/transpose, the same matrix `A`
   is used with two different leading dimensions for input & output.
 * `stride_a`, `stride_b` and `stride_c` are the striding size between consecutive 
-matrices in a batched entry for inputs/outputs A, B and C. 
-* `inc_a` and `inc_b` are the distance between consecutive elements in A & B matrices.
+matrices in a batched entry for the inputs/outputs. 
+* `inc_a` and `inc_b` are the jump-count between consecutive elements in A & B matrices.
 * `transa` and `transb` are the transpose modes of the matrices A and B
   (cf BLAS 2).
-* `M` and `N` are the dimensions of the matrices.
+* `M` and `N` are the dimensions of the matrices (Rows and Columns respectively).
 * `alpha` and `beta` are scaling scalars.
 * `batch_size` is the number of batch matrices.
-* `inc_a` and `inc_b` are integers. The distance between element in the same column.
 
 | operation | arguments | description |
 |---|---|---|
+| `_axpy_batch` | `sb_handle`, `N`, `alpha`, `vx`, `incx`, `stride_x`, `vy`, `incy`, `stride_y`, `batch_size` | Perform multiple axpy operators in batch |
 | `_omatcopy` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb`  | Perform an out-of-place scaled matrix transpose or copy operation using a general dense matrix. |
 | `_omatcopy2`| `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `inc_a`, `B`, `ldb`, `inc_b`  | Computes two-strided scaling and out-of-place transposition or copying of general dense matrices. |
 | `_omatadd`| `sb_handle`, `transa`, `transb`, `M`, `N`, `alpha`, `A`, `lda`, `beta`, `B`, `ldb`, `C`,`ldc`  | Computes scaled general dense matrix addition with possibly transposed arguments. |
@@ -340,7 +351,7 @@ Other non-official extension operators :
 ### Experimental Joint Matrix Support
 
 portBLAS now supports sub-group based collective GEMM operation using the experimental 
-[`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_oneapi_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
+[`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
 NVIDIA Ampere GPUs and beyond. The requirements for using this experimental support 
 are: 
 ```bash
@@ -355,12 +366,12 @@ The user should expect erroneous behaviour from the code if both of these requir
 
 ## Requirements
 
-portBLAS is designed to work with any SYCL 1.2.1 implementation.
+portBLAS is designed to work with any SYCL implementation.
 We do not use any OpenCL interoperability, hence, the code is pure C++.
-The project is developed using [ComputeCpp CE Edition](http://www.computecpp.com)
-using Ubuntu 16.04 on Intel OpenCL CPU and Intel GPU.
-In order to build the sources, GCC 5.4 or higher is required.
-The build system is CMake version 3.4.2 or higher.
+The project is developed using [DPCPP open source](https://github.com/intel/llvm)
+or [oneapi release](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html#gs.2iaved),
+using Ubuntu 22.04 on Intel OpenCL CPU, Intel GPU, NVIDIA GPU and AMD GPU.
+The build system is CMake version 3.4.3 or higher.
 
 A BLAS library, such as [OpenBLAS](https://github.com/xianyi/OpenBLAS), is also
 required to build and verify the test results. 
@@ -380,24 +391,17 @@ added to the `CMAKE_PREFIX_PATH` when building portBLAS (see
 **IMPORTANT NOTE:** The `TARGET` CMake variable is no longer supported. It has
 been replaced by `TUNING_TARGET`, which accepts the same options.
 `TUNING_TARGET` affects only the tuning configuration and has no effect on the target
-triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
-setting them.
+triplet for DPC++ or the AdaptiveCpp/hipSYCL target. Please refer to the sections 
+below for setting them.
 
-1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
+1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order 
+to clone submodule(s).
 2. Create a build directory
-3. Run `CMake` from the build directory (see options in the section below):
-
-### Compile with ComputeCpp
-```bash
-cd build
-cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp -DSYCL_COMPILER=computecpp
-ninja
-```
+3. Run `CMake` from the build directory *(see options in the section below)*:
 
 ### Compile with DPC++
 ```bash
-export CC=[path/to/intel/clang]
-export CXX=[path/to/intel/clang++]
+export CXX=[path/to/intel/icpx]
 cd build
 cmake -GNinja ../ -DSYCL_COMPILER=dpcpp
 ninja
@@ -412,25 +416,62 @@ advisable for NVIDIA and **mandatory for AMD** to provide the specific device
 architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
 for NVIDIA or `gfx908` for AMD.
 
-### Compile with hipSYCL
+It is possible to use the `DEFAULT` target even for AMD and NVIDIA GPUs, but
+defining `-DDPCPP_SYCL_TARGET` and `-DDPCPP_SYCL_ARCH` is mandatory. The rules
+mentioned above also apply in this case.
+Using `DEFAULT` as the target will speedup compilation at the expense of
+runtime performance. Additionally, some operators will be disabled.
+For full compatibility and best performance, set the `TUNING_TARGET` appropriately.
+
+#### DPC++ Compiler Support
+
+As DPCPP SYCL compiler the project is fully compatible with `icpx` provided by
+intel [oneAPI base-toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html#gs.7t6x52)
+which is the suggested one. PortBLAS can be compiled also with the [open source intel/llvm](https://github.com/intel/llvm)
+compiler, but not all the latest changes are tested.
+
+### Compile with AdaptiveCpp *(Formerly hipSYCL)*
+The following instructions concern the **generic** *(clang-based)* flow supported
+by AdaptiveCpp.
+
 ```bash
 cd build
-cmake -GNinja ../ -DhipSYCL_DIR=/path/to/hipSYCL/install/lib/cmake/hipSYCL -DSYCL_COMPILER=hipsycl
+export CC=[path/to/system/clang]
+export CXX=[path/to/AdaptiveCpp/install/bin/acpp]
+export ACPP_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
+cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp \
+      -DSYCL_COMPILER=adaptivecpp -DACPP_TARGETS=$ACPP_TARGETS
 ninja
 ```
-To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
+To build for other than the default backend *(host cpu through `omp`*)*, set the `ACPP_TARGETS` environment
+variable or specify `-DACPP_TARGETS` as 
+[documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md). 
+The available backends are the ones built with AdaptiveCpp in the first place.  
 
-### Instaling portBLAS
+Similarly to DPCPP's `sycl-ls`, AdaptiveCpp's `acpp-info` helps display the available
+backends informations. In case of building AdaptiveCpp against llvm *(generic-flow)*,
+the `llvm-to-xxx.so` library files should be visible by the runtime to target the 
+appropriate device, which can be ensured by setting the ENV variable : 
+
+```bash
+export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL:$LD_LIBRARY_PATH]
+export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL/llvm-to-backend:$LD_LIBRARY_PATH]
+```
+
+*Notes :*
+- Some operator kernels are implemented using extensions / SYCL 2020 features not yet implemented 
+in AdaptiveCpp and are not supported when portBLAS is built with it. These operators include 
+`asum`, `nrm2`, `dot`, `sdsdot`, `rot`, `trsv`, `tbsv` and `tpsv`.
+- The default `omp` host CPU backend *(as well as its optimized variant `omp.accelerated`)* hasn't been
+not been fully integrated into the library and currently causes some tests to fail *(interleaved batched
+gemm in particular)*. It's thus advised to use the llvm/OpenCL generic flow when targetting CPUs.
+
+### Installing portBLAS
 To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
 
 ```bash
 ninja install
 ```
-### POWER_VR support (ComputeCpp Only)
-
-To enable the PowerVR target tuning, pass: `-DTUNING_TARGET=POWER_VR`
-
-To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
 
 ### Doxygen
 
@@ -452,20 +493,36 @@ Some of the supported options are:
 |---|---|---|
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
-| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `hipsycl`. |
-| `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
+| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `adaptivecpp` and `computecpp`*(deprecated)*. |
+| `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
+| `ENABLE_JOINTMATRIX_TESTS` | `ON`/`OFF` | Build additional tests that use joint_matrix extension; `OFF` by default |
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
+| `BLAS_MEMPOOL_BENCHMARK` | `ON`/`OFF` |  Determines whether to enable the scratchpad memory pool for benchmark execution. `OFF` by default |
 | `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
 | `BLAS_ENABLE_EXTENSIONS` | `ON`/`OFF` | Determines whether to enable portBLAS extensions (`ON` by default) |
-| `BLAS_DATA_TYPES` | `half;float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float` |
+| `BLAS_DATA_TYPES` | `float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float`. Enabling other types such as complex or half requires setting their respective options *(next)*. |
+| `BLAS_ENABLE_COMPLEX` | `ON`/`OFF` | Determines whether to enable Complex data type support *(GEMM Operators only)* (`OFF` by default) |
+| `BLAS_ENABLE_HALF` | `ON`/`OFF` | Determines whether to enable Half data type support *(Support is limited to some Level 1 operators and Gemm)* (`OFF` by default) |
 | `BLAS_INDEX_TYPES` | `int32_t;int64_t` | Determines the type(s) to use for `index_t` and `increment_t`. Default is `int` |
-| `BLAS_ENABLE_COMPLEX` | `ON`/`OFF` | Determines whether to enable Complex data type support *(GEMM Kernels only)* (`ON` by default) |
 
-### Cross-Compile (ComputeCpp Only)
+## ComputeCpp Compilation *(Deprecated)*
+
+portBLAS ComputeCpp compilation is deprecated since ComputeCpp releasing has been
+discontinued. More information about this are found in this [announcement](https://codeplay.com/portal/news/2023/07/07/the-future-of-computecpp). 
+
+### Compile with ComputeCpp
+
+```bash
+cd build
+cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp -DSYCL_COMPILER=computecpp
+ninja
+```
+
+### Cross-Compile *(ComputeCpp Only)*
 
 To cross-compile portBLAS first the following environment variables must be
 set:
@@ -494,6 +551,12 @@ cmake  -GNinja                                                                  
    -DCMAKE_CXX_FLAGS='-O3'                                                             \
    -DTUNING_TARGET="${CHOSEN_TARGET}"
 ```
+
+### POWER_VR support *(ComputeCpp Only)*
+
+To enable the PowerVR target tuning, pass: `-DTUNING_TARGET=POWER_VR`
+
+To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
 
 
 ## Tests and benchmarks

@@ -19,11 +19,11 @@
  *
  *  portBLAS: BLAS implementation using SYCL
  *
- *  @filename default_cpu.hpp
+ *  @filename default.hpp
  *
  **************************************************************************/
-#ifndef PORTBLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
-#define PORTBLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
+#ifndef PORTBLAS_GEMV_DEFAULT_BACKEND_HPP
+#define PORTBLAS_GEMV_DEFAULT_BACKEND_HPP
 #include "interface/blas2_interface.h"
 
 namespace blas {
@@ -137,8 +137,21 @@ typename sb_handle_t::event_t _trsv(
     sb_handle_t& sb_handle, index_t _N, container_t0 _mA, index_t _lda,
     container_t1 _vx, increment_t _incx,
     typename sb_handle_t::event_t _dependencies) {
-  return blas::internal::_trsv_impl<4, 2, uplo, trn, diag>(
-      sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
+  const auto device = sb_handle.get_queue().get_device();
+  if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<cl::sycl::info::device::vendor>();
+    if (vendor.find("Intel") == vendor.npos) {
+      return blas::internal::_trsv_impl<32, 4, uplo, trn, diag>(
+          sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
+    } else {
+      throw std::runtime_error(
+          "Trsv operator currently not supported on Intel GPUs");
+    }
+  } else {
+    return blas::internal::_trsv_impl<4, 2, uplo, trn, diag>(
+        sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
+  }
 }
 }  // namespace backend
 }  // namespace trsv
@@ -152,8 +165,21 @@ typename sb_handle_t::event_t _tbsv(
     sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
-  return blas::internal::_tbsv_impl<4, 2, uplo, trn, diag>(
-      sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
+  const auto device = sb_handle.get_queue().get_device();
+  if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<cl::sycl::info::device::vendor>();
+    if (vendor.find("Intel") == vendor.npos) {
+      return blas::internal::_tbsv_impl<32, 4, uplo, trn, diag>(
+          sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
+    } else {
+      throw std::runtime_error(
+          "Tbsv operator currently not supported on Intel GPUs");
+    }
+  } else {
+    return blas::internal::_tbsv_impl<4, 2, uplo, trn, diag>(
+        sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
+  }
 }
 }  // namespace backend
 }  // namespace tbsv
@@ -163,12 +189,24 @@ namespace backend {
 template <uplo_type uplo, transpose_type trn, diag_type diag,
           typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, index_t _N,
-                                    container_t0 _mA, container_t1 _vx,
-                                    increment_t _incx,
-                                    const typename sb_handle_t::event_t& _dependencies) {
-  return blas::internal::_tpsv_impl<4, 2, uplo, trn, diag>(sb_handle, _N, _mA,
-                                                           _vx, _incx, _dependencies);
+typename sb_handle_t::event_t _tpsv(
+    sb_handle_t& sb_handle, index_t _N, container_t0 _mA, container_t1 _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
+  const auto device = sb_handle.get_queue().get_device();
+  if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<cl::sycl::info::device::vendor>();
+    if (vendor.find("Intel") == vendor.npos) {
+      return blas::internal::_tpsv_impl<32, 4, uplo, trn, diag>(
+          sb_handle, _N, _mA, _vx, _incx, _dependencies);
+    } else {
+      throw std::runtime_error(
+          "Tpsv operator currently not supported on Intel GPUs");
+    }
+  } else {
+    return blas::internal::_tpsv_impl<4, 2, uplo, trn, diag>(
+        sb_handle, _N, _mA, _vx, _incx, _dependencies);
+  }
 }
 }  // namespace backend
 }  // namespace tpsv

@@ -26,8 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t =
-    std::tuple<std::string, char, char, index_t, scalar_t, index_t>;
+using combination_t = std::tuple<std::string, char, index_t, scalar_t, index_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
@@ -35,9 +34,9 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t n;
   index_t lda_mul;
   index_t incX;
-  char layout, uplo;
+  char uplo;
   scalar_t alpha;
-  std::tie(alloc, layout, uplo, n, alpha, incX) = combi;
+  std::tie(alloc, uplo, n, alpha, incX) = combi;
   index_t mA_size = n * n;
   index_t x_size = 1 + (n - 1) * std::abs(incX);
 
@@ -46,11 +45,9 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(x_v);
 
   // Output matrix
-  std::vector<scalar_t> a_mp(mA_size, 7.0);
-  std::vector<scalar_t> a_cpu_mp(mA_size, 7.0);
-
-  uplo = (uplo == 'u' && layout == 'c') || (uplo == 'l' && layout == 'r') ? 'u'
-                                                                          : 'l';
+  std::vector<scalar_t> a_mp(mA_size);
+  fill_random(a_mp);
+  std::vector<scalar_t> a_cpu_mp = a_mp;
 
   // SYSTEM SPR
   reference_blas::spr<scalar_t>(&uplo, n, alpha, x_v.data(), incX,
@@ -91,9 +88,9 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t n;
   index_t lda_mul;
   index_t incX;
-  char layout, uplo;
+  char uplo;
   scalar_t alpha;
-  std::tie(alloc, layout, uplo, n, alpha, incX) = combi;
+  std::tie(alloc, uplo, n, alpha, incX) = combi;
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
@@ -110,7 +107,6 @@ void run_test(const combination_t<scalar_t> combi) {
 template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
-                       ::testing::Values('r', 'c'),      // matrix layout
                        ::testing::Values('u', 'l'),      // UPLO
                        ::testing::Values(1024, 2048, 4096, 8192, 16384),  // n
                        ::testing::Values<scalar_t>(0.0, 1.0, 1.5),  // alpha
@@ -121,7 +117,6 @@ const auto combi =
 template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values("usm", "buf"),       // allocation type
-                       ::testing::Values('r', 'c'),           // matrix layout
                        ::testing::Values('u', 'l'),           // UPLO
                        ::testing::Values(14, 63, 257, 1010),  // n
                        ::testing::Values<scalar_t>(1.0),      // alpha
@@ -133,10 +128,10 @@ template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   std::string alloc;
-  char layout, uplo;
+  char uplo;
   int n, incX;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, alloc, layout, uplo, n, alpha, incX);
+  BLAS_GENERATE_NAME(info.param, alloc, uplo, n, alpha, incX);
 }
 
 BLAS_REGISTER_TEST_ALL(Spr, combination_t, combi, generate_name);

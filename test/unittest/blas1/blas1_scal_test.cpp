@@ -40,11 +40,17 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> x_v(size * incX);
   std::vector<scalar_t> x_cpu_v(x_v);
 
+  auto q = make_queue();
+
+  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+      !q.get_device().has(cl::sycl::aspect::fp16)) {
+    GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
+  }
+
   // Reference implementation
   reference_blas::scal(size, alpha, x_cpu_v.data(), incX);
 
   // SYCL implementation
-  auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
   // Iterators

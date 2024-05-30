@@ -32,7 +32,11 @@
 #ifdef BLAS_ENABLE_COMPLEX
 #define SYCL_EXT_ONEAPI_COMPLEX
 #include <complex>
+#if __has_include(<ext/oneapi/experimental/complex/complex.hpp>)
+#include <ext/oneapi/experimental/complex/complex.hpp>
+#else
 #include <ext/oneapi/experimental/sycl_complex.hpp>
+#endif
 #endif
 
 namespace blas {
@@ -194,6 +198,10 @@ struct is_sycl_scalar<float *> : std::false_type {};
 
 template <>
 struct is_sycl_scalar<double *> : std::false_type {};
+
+template <class type>
+struct is_half
+    : std::integral_constant<bool, std::is_same_v<type, cl::sycl::half>> {};
 
 #ifdef BLAS_ENABLE_COMPLEX
 // SYCL Complex type alias

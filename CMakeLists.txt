@@ -73,6 +73,10 @@ if (NOT INSTALL_HEADER_ONLY)
   include(ConfigurePORTBLAS)
   include(SYCL)
   find_package(PythonInterp 3 REQUIRED)
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/py_gen/README.md" )
+    message(FATAL_ERROR "Repository not cloned recursively, missing submodule.\n"
+       "To continue please clone submodule using `git submodule update --init`")
+  endif()
 endif()
 
 if (MSVC)
@@ -95,6 +99,9 @@ set(PORTBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(PORTBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 set(PORTBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
+if(INSTALL_HEADER_ONLY)
+  set(PORTBLAS_INSTALL_SRC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<INSTALL_INTERFACE:src>)
+endif()
 set(PORTBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(PORTBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE})
@@ -106,7 +113,21 @@ if(IMGDNN_DIR)
 endif()
 
 option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
-option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
+option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for GEMM" OFF)
+option(BLAS_ENABLE_HALF "Whether to enable sycl::half data type for supported operators" OFF)
+
+if (SYCL_COMPILER MATCHES "adaptivecpp") 
+  if(BLAS_ENABLE_COMPLEX)
+    message(STATUS "SYCL Complex data is not supported on AdaptiveCpp/hipSYCL. Complex
+            data type is disabled")
+    set(BLAS_ENABLE_COMPLEX OFF)
+  endif()
+  if(BLAS_MEMPOOL_BENCHMARK)
+    message(STATUS "Memory pool feature is not supported on AdaptiveCpp/hipSYCL. Corresponding
+            benchmarks are disabled")
+    set(BLAS_MEMPOOL_BENCHMARK OFF)
+  endif()
+endif()
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
@@ -117,13 +138,40 @@ option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported op
 # * BLAS_INDEX_TYPES
 # * NAIVE_GEMM
 # * BLAS_ENABLE_COMPLEX
+# * BLAS_ENABLE_HALF
+
 include(CmakeFunctionHelper)
 
 if (INSTALL_HEADER_ONLY)
   add_library(portblas INTERFACE)
   set_target_properties(portblas PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};$<INSTALL_INTERFACE:src>"
-  )
+    INTERFACE_INCLUDE_DIRECTORIES "${PORTBLAS_INCLUDE};${PORTBLAS_INSTALL_SRC}")
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-fsycl" is_dpcpp)
+  if(is_dpcpp)
+    target_compile_definitions(portblas INTERFACE "SB_ENABLE_USM")
+    if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM"
+           AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2024.1)
+         OR NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
+       # Apply only for oneAPI releases >= 2024.1 OR for intel/llvm.
+       target_link_options(portblas INTERFACE "-mllvm=-enable-global-offset=false")
+       target_compile_options(portblas INTERFACE "-mllvm=-enable-global-offset=false")
+       message(STATUS "Adding -mllvm=-enable-global-offset=false to portblas")
+     endif()
+  endif()
+  if(${BLAS_ENABLE_COMPLEX})
+    target_compile_definitions(portblas INTERFACE "BLAS_ENABLE_COMPLEX")
+  endif()
+  target_compile_definitions(portblas INTERFACE ${TUNING_TARGET})
+  target_compile_options(portblas INTERFACE -Wno-deprecated-declarations)
+  target_compile_options(portblas INTERFACE -Wno-deprecated-copy-with-user-provided-copy)
+  if((${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM") AND NOT
+    (${TUNING_TARGET} STREQUAL "INTEL_GPU") )
+      target_compile_options(portblas INTERFACE -fno-fast-math)
+      target_compile_options(portblas INTERFACE -mllvm=-loopopt=0)
+      target_link_options(portblas INTERFACE -mllvm=-loopopt=0)
+      message(STATUS "Adding -fno-fast-math -mllvm=-loopopt=0 to portblas")
+  endif()
 else()
   add_subdirectory(src)
   build_library(portblas ${BLAS_ENABLE_EXTENSIONS})
@@ -136,8 +184,8 @@ else()
       target_link_libraries(portblas PUBLIC ComputeCpp::ComputeCpp)
     elseif(is_dpcpp)
       target_link_libraries(portblas PUBLIC DPCPP::DPCPP)
-    elseif(is_hipsycl)
-      target_link_libraries(portblas PUBLIC hipSYCL::hipSYCL-rt)
+    elseif(is_adaptivecpp)
+      target_link_libraries(portblas PUBLIC AdaptiveCpp::acpp-rt)
     endif()
   endif()
   if(is_computecpp)
@@ -145,8 +193,8 @@ else()
   elseif(is_dpcpp)
     set(sycl_impl DPCPP::DPCPP)
     add_sycl_to_target(TARGET portblas SOURCES)
-  elseif(is_hipsycl)
-    set(sycl_impl hipSYCL::hipSYCL-rt)
+  elseif(is_adaptivecpp)
+    set(sycl_impl AdaptiveCpp::acpp-rt)
     add_sycl_to_target(TARGET portblas SOURCES)
   endif()
   if(IMGDNN_DIR)
@@ -182,7 +230,7 @@ install(DIRECTORY ${PORTBLAS_INCLUDE}
   FILES_MATCHING PATTERN "*.h"
 )
 if (INSTALL_HEADER_ONLY)
-  install(DIRECTORY ${PORTBLAS_SRC}
+  install(DIRECTORY ${PORTBLAS_INSTALL_SRC}
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     COMPONENT portblas
     FILES_MATCHING PATTERN "*.hpp"
@@ -203,6 +251,7 @@ export(EXPORT portblas
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
+option(ENABLE_JOINTMATRIX_TESTS "Whether to build joint_matrix GEMM tests" OFF)
 if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_TESTING)
   message(STATUS "Tests are disabled when installing portBLAS in header only mode")
   set(BLAS_ENABLE_TESTING OFF)
@@ -216,6 +265,7 @@ endif()
 option(BLAS_ENABLE_CONST_INPUT "Whether to enable kernel instantiation with const input buffer" ON)
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
+option(BLAS_MEMPOOL_BENCHMARK "Whether to use the memory pool in benchmarks" OFF)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
 option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_CUBLAS_BENCHMARKS "Whether to build cuBLAS benchmarks" OFF)
@@ -240,6 +290,7 @@ if (BLAS_BUILD_SAMPLES)
 endif()
 
 option(BLAS_ENABLE_AUTO_TUNERS "Whether to enable building GEMM auto tuners" OFF)
+option(BLAS_ENABLE_AUTO_TUNER_MEMPOOL "Whether to enable memory pool for GEMM auto tuners" OFF)
 if(${BLAS_ENABLE_AUTO_TUNERS})
   # Note that the auto tuners are very slow to compile, so we avoid adding
   # them to the ALL target.

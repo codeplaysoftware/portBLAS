@@ -100,7 +100,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
      is_upper, is_transposed, is_unitdiag>::eval(local_memory_t local_mem,
                                                  cl::sycl::nd_item<1> ndItem) {
   value_t ret = 0;
-#if (SYCL_LANGUAGE_VERSION >= 202000) && !(defined __HIPSYCL__)
+#if (SYCL_LANGUAGE_VERSION >= 202000) && !(defined __ADAPTIVECPP__)
 
   constexpr bool is_forward =
       (is_upper && is_transposed) || (!is_upper && !is_transposed);
@@ -137,9 +137,9 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
   value_t *const par_x = loc_x + loc_x_dim + loc_x_dim * l_idy;
   value_t *const loc_recip = loc_x + loc_x_dim;
 
-  auto a = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed,
-                            sycl::memory_scope::device,
-                            sycl::access::address_space::global_space>(
+  auto a = cl::sycl::atomic_ref<int32_t, cl::sycl::memory_order::relaxed,
+                                cl::sycl::memory_scope::device,
+                                cl::sycl::access::address_space::global_space>(
       sync_.eval(0));
 
   // Get the wg_id of actual workgroup
@@ -185,7 +185,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
   volatile int32_t *p = &sync_.eval(1);
   int32_t ready_block =
       (l_idy == 0)
-          ? sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p)
+          ? cl::sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p)
           : 0;
 
   const index_t steps =
@@ -210,7 +210,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
       while (!((is_forward && (curr_block < ready_block)) ||
                (!is_forward && (curr_block > ready_block))))
         ready_block =
-            sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p);
+            cl::sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p);
 
       loc_x[l_idx] = (curr_offset < _N) ? lhs_.eval(curr_offset) : value_t(0);
     }
@@ -272,9 +272,9 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
     for (index_t _it = 0; _it < loc_x_dim; ++_it) {
       const index_t l_diag = is_forward ? _it : (loc_x_dim - 1 - _it);
 
-      r_diag =
-          sycl::group_broadcast(ndItem.get_sub_group(),
-                                is_unitdiag ? r_x : r_x * A_diag_recip, l_diag);
+      r_diag = cl::sycl::group_broadcast(ndItem.get_sub_group(),
+                                         is_unitdiag ? r_x : r_x * A_diag_recip,
+                                         l_diag);
       _A = (is_transposed) ? loc_A[l_lda * l_idx + l_diag]
                            : loc_A[l_lda * l_diag + l_idx];
       r_x -= _A * r_diag;
@@ -286,12 +286,14 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
     if (g_idx < _N) *lhs_p = ret = loc_x[l_idx];
   }
 
-  sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
+  cl::sycl::atomic_fence(cl::sycl::memory_order::seq_cst,
+                         cl::sycl::memory_scope::device);
 
   volatile int32_t *sync = sync_.get_pointer() + 1;
   if (!not_wi0) *sync = wg_id + (is_forward ? 1 : -1);
 
-  sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
+  cl::sycl::atomic_fence(cl::sycl::memory_order::seq_cst,
+                         cl::sycl::memory_scope::device);
 
 #endif
   return ret;

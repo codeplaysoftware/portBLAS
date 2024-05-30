@@ -136,12 +136,20 @@ typename sb_handle_t::event_t _asum(
  * \brief Prototype for the internal implementation of the ASUM operation. See
  * documentation in the blas1_interface.hpp file for details.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem = false,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
+    const typename sb_handle_t::event_t &_dependencies);
+
+template <int localSize, int localMemSize, bool is_max, bool single,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _iamax_iamin_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t _nWG,
     const typename sb_handle_t::event_t &_dependencies);
 
 /**
@@ -156,6 +164,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies);
+
 /**
  * \brief IAMIN finds the index of the first element having minimum
  * @param _vx BufferIterator or USM pointer
@@ -187,7 +196,7 @@ typename sb_handle_t::event_t _swap(
     const typename sb_handle_t::event_t &_dependencies);
 
 /**
- * \brief SCALAR  operation on a vector
+ * \brief SCALAR operation on a vector
  * @param sb_handle_t sb_handle
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
@@ -198,6 +207,37 @@ template <typename sb_handle_t, typename element_t, typename container_0_t,
 typename sb_handle_t::event_t _scal(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, const typename sb_handle_t::event_t &_dependencies);
+
+/**
+ * \brief SCALAR operation on a matrix. (this is a generalization of
+ * vector-based _scal operator meant for internal use within the library, namely
+ * for GEMM and inplace-Matcopy operators)
+ * @param sb_handle_t sb_handle
+ * @param _A Input/Output BufferIterator or USM pointer
+ * @param _incA Increment for the matrix A
+ * @param _lda Leading dimension for the matrix A
+ * @param _M number of rows
+ * @param _N number of columns
+ * @param alpha scaling scalar
+ * @param _dependencies Vector of events
+ */
+template <typename sb_handle_t, typename element_t, typename container_0_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies);
+
+/*!
+ * \brief Prototype for the internal implementation of the _scal_matrix
+ * operator.
+ */
+template <bool has_inc, typename sb_handle_t, typename element_t,
+          typename container_0_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix_impl(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
@@ -217,9 +257,9 @@ typename sb_handle_t::event_t _nrm2(
  * \brief Prototype for the internal implementation of the NRM2 operator. See
  * documentation in the blas1_interface.hpp file for details.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem = false,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -229,8 +269,8 @@ typename sb_handle_t::event_t _nrm2_impl(
  * \brief Prototype for the internal implementation of the Dot operator. See
  * documentation in the blas1_interface.hpp file for details.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
+template <int localSize, int localMemSize, bool usmManagedMem = false,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,

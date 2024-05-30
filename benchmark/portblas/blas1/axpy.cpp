@@ -42,6 +42,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
+  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+      !q.get_device().has(cl::sycl::aspect::fp16)) {
+    state.SkipWithError("Unsupported fp16 (half) on this device.");
+  }
+
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);

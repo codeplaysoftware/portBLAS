@@ -32,7 +32,6 @@
 #include <complex>
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
 #if SYCL_LANGUAGE_VERSION < 202000
 #include <CL/sycl.hpp>
 inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
@@ -49,7 +48,6 @@ class numeric_limits<cl::sycl::half> {
 };
 }  // namespace std
 #endif  // SYCL_LANGUAGE_VERSION
-#endif  // BLAS_DATA_TYPE_HALF
 
 namespace utils {
 
@@ -85,7 +83,6 @@ scalar_t abs(std::complex<scalar_t> value) noexcept {
 }
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
 template <>
 inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::isnan(static_cast<float>(value));
@@ -100,8 +97,6 @@ template <>
 inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::abs(static_cast<float>(value));
 }
-
-#endif  // BLAS_DATA_TYPE_HALF
 
 template <typename scalar_t>
 scalar_t clamp_to_limits(scalar_t v) {
@@ -120,17 +115,20 @@ scalar_t clamp_to_limits(scalar_t v) {
  * Indicates the tolerated margin for relative differences
  */
 template <typename scalar_t>
-inline scalar_t getRelativeErrorMargin() {
+inline scalar_t getRelativeErrorMargin(const int32_t margin_multiplier = 1) {
   /* Measured empirically with gemm. The dimensions of the matrices (even k)
    * don't seem to have an impact on the observed relative differences
    * In the cases where the relative error is relevant (non close to zero),
    * relative differences of up to 0.002 were observed for float
    */
-  return static_cast<scalar_t>(0.005);
+  scalar_t margin = 0.005;
+  // increase error margin for mixed precision calculation
+  // for trsm operator.
+  return margin * margin_multiplier;
 }
 
 template <>
-inline double getRelativeErrorMargin<double>() {
+inline double getRelativeErrorMargin<double>(const int32_t) {
   /* Measured empirically with gemm. The dimensions of the matrices (even k)
    * don't seem to have an impact on the observed relative differences
    * In the cases where the relative error is relevant (non close to zero),
@@ -139,49 +137,49 @@ inline double getRelativeErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
-#ifdef BLAS_DATA_TYPE_HALF
-
 template <>
-inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
+inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>(const int32_t) {
   // Measured empirically with gemm
   return 0.05f;
 }
-#endif
+
 /**
  * Indicates the tolerated margin for absolute differences (used in case the
  * scalars are close to 0)
  */
 template <typename scalar_t>
-inline scalar_t getAbsoluteErrorMargin() {
+inline scalar_t getAbsoluteErrorMargin(const int32_t margin_multiplier = 1) {
   /* Measured empirically with gemm.
    * In the cases where the relative error is irrelevant (close to zero),
    * absolute differences of up to 0.0006 were observed for float
    */
-  return 0.001f;
+  scalar_t margin = 0.001f;
+  // increase error margin for mixed precision calculation
+  // for trsm operator.
+  return margin * margin_multiplier;
 }
 
 template <>
-inline double getAbsoluteErrorMargin<double>() {
+inline double getAbsoluteErrorMargin<double>(const int32_t) {
   /* Measured empirically with gemm.
    * In the cases where the relative error is irrelevant (close to zero),
    * absolute differences of up to 10^-12 were observed for double
    */
   return 0.0000000001;  // 10^-10
 }
-#ifdef BLAS_DATA_TYPE_HALF
 
 template <>
-inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
+inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>(const int32_t) {
   // Measured empirically with gemm.
   return 1.0f;
 }
-#endif
 
 /**
  * Compare two scalars and returns false if the difference is not acceptable.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
-inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
+inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2,
+                         const int32_t margin_multiplier = 1) {
   // Shortcut, also handles case where both are zero
   if (scalar1 == scalar2) {
     return true;
@@ -196,26 +194,29 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
 
   // Close to zero, the relative error doesn't work, use absolute error
   if (scalar1 == scalar_t{0} || scalar2 == scalar_t{0} ||
-      absolute_diff < getAbsoluteErrorMargin<epsilon_t>()) {
-    return (absolute_diff < getAbsoluteErrorMargin<epsilon_t>());
+      absolute_diff < getAbsoluteErrorMargin<epsilon_t>(margin_multiplier)) {
+    return (absolute_diff <
+            getAbsoluteErrorMargin<epsilon_t>(margin_multiplier));
   }
   // Use relative error
   const auto absolute_sum = utils::abs(scalar1) + utils::abs(scalar2);
-  return (absolute_diff / absolute_sum) < getRelativeErrorMargin<epsilon_t>();
+  return (absolute_diff / absolute_sum) <
+         getRelativeErrorMargin<epsilon_t>(margin_multiplier);
 }
 
 /**
  * Compare two vectors and returns false if the difference is not acceptable.
  * The second vector is considered the reference.
  * @tparam scalar_t the type of data present in the input vectors
- * @tparam epilon_t the type used as tolerance. Lower precision types
+ * @tparam epsilon_t the type used as tolerance. Lower precision types
  * (cl::sycl::half) will have a higher tolerance for errors
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<scalar_t> const& vec,
                             std::vector<scalar_t> const& ref,
                             std::ostream& err_stream = std::cerr,
-                            std::string end_line = "\n") {
+                            std::string end_line = "\n",
+                            const int32_t margin_multiplier = 1) {
   if (vec.size() != ref.size()) {
     err_stream << "Error: tried to compare vectors of different sizes"
                << std::endl;
@@ -223,7 +224,7 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   }
 
   for (int i = 0; i < vec.size(); ++i) {
-    if (!almost_equal<scalar_t, epsilon_t>(vec[i], ref[i])) {
+    if (!almost_equal<scalar_t, epsilon_t>(vec[i], ref[i], margin_multiplier)) {
       err_stream << "Value mismatch at index " << i << ": " << vec[i]
                  << "; expected " << ref[i] << end_line;
       return false;
@@ -238,7 +239,7 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
  * not acceptable. The second vector is considered the reference.
  * @tparam scalar_t the type of complex underying data present in the input
  * vectors
- * @tparam epilon_t the type used as tolerance.
+ * @tparam epsilon_t the type used as tolerance.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<std::complex<scalar_t>> const& vec,

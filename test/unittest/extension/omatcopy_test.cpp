@@ -69,8 +69,9 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_out =
       helper::copy_to_device<scalar_t>(q, B.data(), matrix_out, size_b);
 
-  auto omatcopy_event = blas::_omatcopy(sb_handle, trans, m, n, alpha, matrix_in, ld_in, matrix_out,
-                  ld_out, {copy_in, copy_out});
+  auto omatcopy_event =
+      blas::_omatcopy(sb_handle, trans, m, n, alpha, matrix_in, ld_in,
+                      matrix_out, ld_out, {copy_in, copy_out});
 
   sb_handle.wait(omatcopy_event);
 
@@ -106,7 +107,6 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 }
 
-
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
@@ -120,11 +120,11 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values("usm", "buf"),        // allocation type
-                       ::testing::Values<char>('n', 't'),         // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),    // allocation type
+                       ::testing::Values<char>('n', 't'),  // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
-                       ::testing::Values<scalar_t>(0, 1, 2),   // alpha
+                       ::testing::Values<scalar_t>(0, 1, 2),      // alpha
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
                        ::testing::Values<index_t>(1, 2, 3));      // ld_out_m
 #endif

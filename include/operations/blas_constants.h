@@ -212,7 +212,6 @@ struct constant<complex_sycl<value_t>, Indicator> {
 };
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
 template <>
 struct constant<cl::sycl::half, const_val::zero>
     : constant<float, const_val::zero> {};
@@ -252,7 +251,6 @@ struct constant<cl::sycl::half, const_val::abs_min>
 template <>
 struct constant<cl::sycl::half, const_val::collapse>
     : constant<float, const_val::collapse> {};
-#endif  // BLAS_DATA_TYPE_HALF
 
 template <typename iv_type, const_val IndexIndicator, const_val ValueIndicator>
 struct constant_pair {
@@ -264,5 +262,19 @@ struct constant_pair {
 };
 
 }  // namespace blas
+
+#ifndef __ADAPTIVECPP__
+template <typename ind_t, typename val_t>
+struct cl::sycl::is_device_copyable<blas::IndexValueTuple<ind_t, val_t>>
+    : std::true_type {};
+
+template <typename ind_t, typename val_t>
+struct cl::sycl::is_device_copyable<const blas::IndexValueTuple<ind_t, val_t>>
+    : std::true_type {};
+
+template <typename ind_t, typename val_t>
+struct std::is_trivially_copyable<blas::IndexValueTuple<ind_t, val_t>>
+    : std::true_type {};
+#endif
 
 #endif  // BLAS_CONSTANTS_H

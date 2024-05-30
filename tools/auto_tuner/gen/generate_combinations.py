@@ -393,7 +393,7 @@ def write_source_files(config_list, config_source, output_dir):
 #define INSTANTIATE_TUNE(DTYPE, TRA, TRB, MEM, ALGO, BATCH, VEC, ...)    \
   template TestResultEntry                                   \
   tune<__VA_ARGS__, GemmConfig<TRA, TRB, MEM, ALGO, BATCH, VEC>, DTYPE>( \
-  int r, GemmArgs<DTYPE> a);
+  portblas_handle_t &sb_handle, int r, GemmArgs<DTYPE> a);
 
 #define BENCH_PARAMS(MEM, ALGO, BATCH, VEC, ...) \
   INSTANTIATE_TUNE(float, false, false, MEM, ALGO, BATCH, VEC, __VA_ARGS__) \

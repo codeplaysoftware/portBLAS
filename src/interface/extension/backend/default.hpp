@@ -19,11 +19,11 @@
  *
  *  portBLAS: BLAS implementation using SYCL
  *
- *  @filename default_cpu.hpp
+ *  @filename default.hpp
  *
  **************************************************************************/
-#ifndef PORTBLAS_TRANSPOSE_DEFAULT_CPU_BACKEND_HPP
-#define PORTBLAS_TRANSPOSE_DEFAULT_CPU_BACKEND_HPP
+#ifndef PORTBLAS_TRANSPOSE_DEFAULT_BACKEND_HPP
+#define PORTBLAS_TRANSPOSE_DEFAULT_BACKEND_HPP
 #include "interface/extension_interface.h"
 
 namespace blas {
@@ -37,12 +37,12 @@ typename sb_handle_t::event_t _transpose_outplace(
     container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
     container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
     index_t _batch_size, const typename sb_handle_t::event_t& _dependencies) {
-  if (_M * _N < (1 << 20)) {
+  if (_M * _N < (1 << 16)) {
     return blas::internal::_transpose_outplace_impl<16, 64, 64, false>(
         sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
         _ld_out, _inc_out, _stride_out, _batch_size, _dependencies);
   } else {
-    return blas::internal::_transpose_outplace_impl<32, 128, 64, false>(
+    return blas::internal::_transpose_outplace_impl<32, 32, 64, false>(
         sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
         _ld_out, _inc_out, _stride_out, _batch_size, _dependencies);
   }
@@ -58,13 +58,13 @@ typename sb_handle_t::event_t _transpose_add(
     index_t _b_rows, index_t _b_cols, index_t _stride_b, container_2_t c_,
     index_t _ld_c, index_t _stride_c, index_t _batch_size,
     const typename sb_handle_t::event_t& _dependencies) {
-  if (_M * _N < (1 << 20)) {
+  if (_M * _N < (1 << 16)) {
     return blas::internal::_transpose_add_impl<both_trans, 16, 64, 64, false>(
         sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
         _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
         _batch_size, _dependencies);
   } else {
-    return blas::internal::_transpose_add_impl<both_trans, 32, 128, 64, false>(
+    return blas::internal::_transpose_add_impl<both_trans, 32, 32, 64, false>(
         sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
         _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
         _batch_size, _dependencies);
@@ -111,6 +111,29 @@ typename sb_handle_t::event_t _omatadd_batch(
 }
 }  // namespace backend
 }  // namespace omatadd_batch
+
+namespace axpy_batch {
+namespace backend {
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _axpy_batch(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
+  // local_size taken empirically
+  constexpr index_t local_size = static_cast<index_t>(256);
+  const auto nWG = (_N + local_size - 1) / local_size;
+  // the limit for _N*batch_size is taken empirically from test on i9 CPU
+  const index_t global_size = (_N * _batch_size >= 163840)
+                                  ? local_size * nWG
+                                  : local_size * nWG * _batch_size;
+  return blas::internal::_axpy_batch_impl<256, 32>(
+      sb_handle, _N, _alpha, _vx, _incx, _stride_x, _vy, _incy, _stride_y,
+      _batch_size, _dependencies, global_size);
+}
+}  // namespace backend
+}  // namespace axpy_batch
 }  // namespace blas
 
 #endif

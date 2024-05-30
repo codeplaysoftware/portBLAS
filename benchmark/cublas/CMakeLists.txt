@@ -75,18 +75,27 @@ set(sources
 ) 
 
 # Operators supporting COMPLEX types benchmarking
-set(CPLX_OPS "gemm" "gemm_batched" "gemm_batched_strided")
+set(CPLX_OPS "gemm" 
+             "gemm_batched"
+             "gemm_batched_strided")
+
+# Operators supporting HALF type benchmarking
+set(HALF_DATA_OPS "gemm"
+                  "gemm_batched"
+                  "gemm_batched_strided"
+)
 
 # Add individual benchmarks for each method
 foreach(cublas_bench ${sources})
   get_filename_component(bench_cublas_exec ${cublas_bench} NAME_WE)
   add_executable(bench_cublas_${bench_cublas_exec} ${cublas_bench} main.cpp)
-  target_link_libraries(bench_cublas_${bench_cublas_exec} PRIVATE benchmark CUDA::toolkit CUDA::cublas CUDA::cudart portblas Clara::Clara bench_info)
+  target_link_libraries(bench_cublas_${bench_cublas_exec} PRIVATE benchmark CUDA::toolkit CUDA::cublas CUDA::cudart Clara::Clara bench_info)
   target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
-  if(${BLAS_ENABLE_COMPLEX})
-    if("${bench_cublas_exec}" IN_LIST CPLX_OPS)
-      target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
-    endif()
+  if((${BLAS_ENABLE_COMPLEX}) AND ("${bench_cublas_exec}" IN_LIST CPLX_OPS))
+    target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
+  endif()
+  if((${BLAS_ENABLE_HALF}) AND ("${bench_cublas_exec}" IN_LIST HALF_DATA_OPS))
+    target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE BLAS_ENABLE_HALF=1)
   endif()
   add_sycl_to_target(
     TARGET bench_cublas_${bench_cublas_exec}

@@ -502,6 +502,64 @@ make_trsv(vector_t &lhs_, matrix_t &matrix_, sync_t &sync_) {
               subgroups, is_upper, is_transposed, is_unit>(lhs_, matrix_, k_,
                                                            sync_);
 }
+/**
+ * @struct Ger
+ * @brief Tree node representing the sum of scalar-vector-vector product with a
+ * matrix, i.e., it computes lhs_ such that
+ *
+ *                lhs_ =  scalar_ * ( rhs_1_ * rhs_2_^t ) + lhs_
+ *
+ * @param lhs_ input/output matrix
+ * @param scalar_ value for scaling vector product
+ * @param rhs_1_ first input vector
+ * @param rhs_2_ second input vector
+ * @param nRowsWG_ rows of the workgroup tile
+ * @param nColsWG_ cols of the workgroup tile
+ * @param nWG_row_ number of tiles per global size row
+ * @param nWG_col_ number of tiles per global size column
+ *
+ */
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+struct Ger {
+  using value_t = typename rhs_2_t::value_t;
+  using index_t = typename rhs_2_t::index_t;
+
+  lhs_t lhs_;
+  value_t scalar_;
+  rhs_1_t rhs_1_;
+  rhs_2_t rhs_2_;
+  index_t nRowsWG_;
+  index_t nColsWG_;
+  index_t nWG_row_;
+  index_t nWG_col_;
+
+  Ger(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nRowsWG,
+      index_t &_nColsWG, index_t &_nWG_row, index_t &_nWG_col);
+
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <typename sharedT>
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
+/*!
+ @brief Generator/factory for GER trees.
+ */
+template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+Ger<lhs_t, rhs_1_t, rhs_2_t> make_ger(lhs_t &lhs_,
+                                      typename lhs_t::value_t scalar_,
+                                      rhs_1_t &rhs_1_, rhs_2_t &rhs_2_,
+                                      typename rhs_2_t::index_t nRowsWG_,
+                                      typename rhs_2_t::index_t nColsWG_,
+                                      typename rhs_2_t::index_t nWG_row_,
+                                      typename rhs_2_t::index_t nWG_col_) {
+  return Ger<lhs_t, rhs_1_t, rhs_2_t>(lhs_, scalar_, rhs_1_, rhs_2_, nRowsWG_,
+                                      nColsWG_, nWG_row_, nWG_col_);
+}
 
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
 // template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>
@@ -580,10 +638,22 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
       lhs_, scalar_, rhs_1_, rhs_2_, nWG_row_, nWG_col_, local_memory_size_);
 }
 
-/**** SPR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
-/* This class performs rank 1/2 update for symmetric packed matrices. For more
- * details on matrix refer to the explanation here:
- * https://spec.oneapi.io/versions/1.1-rev-1/elements/oneMKL/source/domains/matrix-storage.html#matrix-storage
+/**
+ * @struct Spr
+ * @brief Tree node representing a rank 1/2 update for symmetric packed
+ * matrices, i.e.,
+ *
+ *  Spr : lhs_ = alpha_ * rhs_1_ * rhs_2_' + lhs_
+ *  Spr2: lhs_ = alpha_ * rhs_1_ * rhs_2_' + alpha_ * rhs_2_ * rhs_1_' + lhs_
+ *
+ *
+ * @tparam Single   true for SPR, false for SPR2
+ * @tparam isUpper  specifies whether the triangular input matrix is upper
+ * @param alpha_  scaling factor for vector multiplication
+ * @param N_      matrix size
+ * @param lhs_    input/output matrix
+ * @param rhs_1_  input vector
+ * @param rhs_2_  input vector
  */
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
@@ -591,82 +661,33 @@ struct Spr {
   using value_t = typename rhs_1_t::value_t;
   using index_t = typename rhs_1_t::index_t;
 
+  value_t alpha_;
+  index_t N_;
   lhs_t lhs_;
   rhs_1_t rhs_1_;
   rhs_2_t rhs_2_;
-  value_t alpha_;
-  index_t N_, incX_1_, incX_2_;
-  // cl::sycl::sqrt(float) gives incorrect results when
-  // the operand becomes big. The sqrt_overflow_limit was
-  // identified empirically by testing the spr operator
-  // for matrix sizes up to 16384x16384 on the integrated
-  // Intel GPU. To make the experiment generic and to reduce
-  // the chances of failing tests on different hardware we opt
-  // for a more naive limit. (1048576 = 1024 * 1024)
-  static constexpr index_t sqrt_overflow_limit = 1048576;
 
-  Spr(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, index_t _incX_1,
-      rhs_2_t &_r2, index_t _incX_2);
+  Spr(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, rhs_2_t &_r2);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
-  // Row-Col index calculation for Upper Packed Matrix
-  template <bool Upper>
-  PORTBLAS_ALWAYS_INLINE static typename std::enable_if<Upper>::type
-  compute_row_col(const int64_t id, const index_t size, index_t &row,
-                  index_t &col) {
-    int64_t internal = 1 + 8 * id;
-    float val = internal * 1.f;
-    float sqrt = 0.f;
-    float divisor = id >= sqrt_overflow_limit ? size * 1.f : 1.f;
-    val = internal / (divisor * divisor);
-    sqrt = cl::sycl::sqrt(val) * divisor;
-    col = static_cast<index_t>((-1 + sqrt) / 2);
-    row = id - col * (col + 1) / 2;
-    // adjust the row/col if out of bounds
-    if (row > col) {
-      int diff = row - col;
-      col += diff;
-      row -= col;
-    } else if (row < 0) {
-      col--;
-      row = id - col * (col + 1) / 2;
-    }
-  }
-
-  // Row-Col index calculation for Lower Packed Matrix
-  template <bool Upper>
-  PORTBLAS_ALWAYS_INLINE static typename std::enable_if<!Upper>::type
-  compute_row_col(const int64_t id, const index_t size, index_t &row,
-                  index_t &col) {
-    index_t temp = 2 * size + 1;
-    int64_t internal = temp * temp - 8 * id;
-    float val = internal * 1.f;
-    float sqrt = 0.f;
-    float divisor = internal >= sqrt_overflow_limit ? 2.f * size : 1.f;
-    val = internal / (divisor * divisor);
-    sqrt = cl::sycl::sqrt(val) * divisor;
-    col = static_cast<index_t>((temp - sqrt) / 2);
-    row = id - (col * (temp - col)) / 2 + col;
-    // adjust row-col if out of bounds
-    if (row < 0 || col < 0 || row >= size || col >= size || row < col) {
-      index_t diff = id < size || row < col ? -1 : row >= size ? 1 : 0;
-      col += diff;
-      row = id - (col * (temp - col)) / 2 + col;
-    }
-  }
+  index_t int_sqrt(int64_t s);
+  void compute_row_col(const int64_t id, const index_t size, index_t &row,
+                       index_t &col);
 };
 
+/*!
+ @brief Generator/factory for SPR/SPR2 trees.
+ */
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t> make_spr(
     lhs_t &lhs_, typename rhs_1_t::index_t _N, typename lhs_t::value_t alpha_,
-    rhs_1_t &rhs_1_, typename rhs_1_t::index_t incX_1, rhs_2_t &rhs_2_,
-    typename rhs_1_t::index_t incX_2) {
+    rhs_1_t &rhs_1_, rhs_2_t &rhs_2_) {
   return Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>(lhs_, _N, alpha_, rhs_1_,
-                                                       incX_1, rhs_2_, incX_2);
+                                                       rhs_2_);
 }
 
 }  // namespace blas

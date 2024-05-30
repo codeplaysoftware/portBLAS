@@ -36,7 +36,9 @@
 #include <cuComplex.h>
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <cuda_fp16.h>
 #include <cuda_runtime.h>
+
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
 
@@ -273,6 +275,21 @@ static inline std::tuple<double, double> timef_cuda(function_t func,
 
   return std::make_tuple(overall_time, static_cast<double>(elapsed_time) * 1E6);
 }
+
+/**
+ * Reference type of the underlying benchmark data aimed to match the
+ * cuda/cuBLAS scalar types.
+ */
+template <typename T, typename Enable = void>
+struct CudaType {
+  using type = T;
+};
+
+// When T is sycl::half, use cuda's __cuda as type.
+template <typename T>
+struct CudaType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+  using type = __half;
+};
 
 }  // namespace utils
 }  // namespace blas_benchmark

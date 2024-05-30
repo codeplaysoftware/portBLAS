@@ -141,6 +141,10 @@ using omatadd_batch_param_t =
     std::tuple<char, char, index_t, index_t, scalar_t, scalar_t, index_t,
                index_t, index_t, index_t, index_t, index_t, index_t>;
 
+template <typename scalar_t>
+using axpy_batch_param_t =
+    std::tuple<index_t, scalar_t, index_t, index_t, index_t, index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -487,17 +491,29 @@ static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(
   } else {
     return parse_csv_file<blas3_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 7) {
+          if (v.size() == 7) {
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]));
+            } catch (...) {
+              throw std::runtime_error("invalid parameter");
+            }
+          } else if (v.size() == 9) {
+            // Case where complex alpha and beta are passed, take the real
+            // part only
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[7]));
+            } catch (...) {
+              throw std::runtime_error("invalid parameter");
+            }
+          } else {
             throw std::runtime_error(
-                "invalid number of parameters (7 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]));
-          } catch (...) {
-            throw std::runtime_error("invalid parameter");
+                "invalid number of parameters (7 or 9 expected)");
           }
         });
   }
@@ -537,18 +553,32 @@ static inline std::vector<blas3_cplx_param_t<scalar_t>> get_blas3_cplx_params(
   } else {
     return parse_csv_file<blas3_cplx_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 9) {
+          if (v.size() == 9) {
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]));
+            } catch (...) {
+              throw std::runtime_error("invalid parameter");
+            }
+          } else if (v.size() == 7) {
+            // Case where scalar alpha and beta are passed, duplicate the value
+            // for both real and imaginary parts
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[5]),
+                  str_to_scalar<scalar_t>(v[6]), str_to_scalar<scalar_t>(v[6]));
+            } catch (...) {
+              throw std::runtime_error("invalid parameter");
+            }
+
+          } else {
             throw std::runtime_error(
-                "invalid number of parameters (9 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]));
-          } catch (...) {
-            throw std::runtime_error("invalid parameter");
+                "invalid number of parameters (9 or 7 expected)");
           }
         });
   }
@@ -585,20 +615,36 @@ get_gemm_batched_strided_cplx_params(Args& args) {
   } else {
     return parse_csv_file<gemm_batched_strided_cplx_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 13) {
+          if (v.size() == 13) {
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]),
+                  str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]),
+                  str_to_int<index_t>(v[11]), str_to_int<index_t>(v[12]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+
+          } else if (v.size() == 11) {
+            // Case where scalar alpha and beta are passed, duplicate the value
+            // for both real and imaginary parts
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[5]),
+                  str_to_scalar<scalar_t>(v[6]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                  str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+          } else {
             throw std::runtime_error(
-                "invalid number of parameters (13 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]),
-                str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]),
-                str_to_int<index_t>(v[11]), str_to_int<index_t>(v[12]));
-          } catch (...) {
-            std::throw_with_nested(std::runtime_error("invalid parameter"));
+                "invalid number of parameters (13 or 11 expected)");
           }
         });
   }
@@ -635,19 +681,34 @@ get_gemm_cplx_batched_params(Args& args) {
   } else {
     return parse_csv_file<gemm_batched_cplx_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 11) {
+          if (v.size() == 11) {
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]),
+                  str_to_int<index_t>(v[9]), str_to_batch_type(v[10]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+          } else if (v.size() == 9) {
+            // Case where scalar alpha and beta are passed, duplicate the value
+            // for both real and imaginary parts
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[5]),
+                  str_to_scalar<scalar_t>(v[6]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+
+          } else {
             throw std::runtime_error(
-                "invalid number of parameters (11 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]),
-                str_to_int<index_t>(v[9]), str_to_batch_type(v[10]));
-          } catch (...) {
-            std::throw_with_nested(std::runtime_error("invalid parameter"));
+                "invalid number of parameters (11 or 9 expected)");
           }
         });
   }
@@ -684,18 +745,32 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
   } else {
     return parse_csv_file<gemm_batched_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 9) {
+          if (v.size() == 9) {
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+          } else if (v.size() == 11) {
+            // Case where complex alpha and beta are passed, take the real
+            // part only
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[7]),
+                  str_to_int<index_t>(v[9]), str_to_batch_type(v[10]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+
+          } else {
             throw std::runtime_error(
-                "invalid number of parameters (9 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
-          } catch (...) {
-            std::throw_with_nested(std::runtime_error("invalid parameter"));
+                "invalid number of parameters (9 or 11 expected)");
           }
         });
   }
@@ -731,19 +806,33 @@ get_gemm_batched_strided_params(Args& args) {
   } else {
     return parse_csv_file<gemm_batched_strided_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 11) {
+          if (v.size() == 11) {
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                  str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                  str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+          } else if (v.size() == 13) {
+            // Case where complex alpha and beta are passed, take the real
+            // part only
+            try {
+              return std::make_tuple(
+                  v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                  str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                  str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[7]),
+                  str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]),
+                  str_to_int<index_t>(v[11]), str_to_int<index_t>(v[12]));
+            } catch (...) {
+              std::throw_with_nested(std::runtime_error("invalid parameter"));
+            }
+          } else {
             throw std::runtime_error(
-                "invalid number of parameters (11 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
-                str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]));
-          } catch (...) {
-            std::throw_with_nested(std::runtime_error("invalid parameter"));
+                "invalid number of parameters (11 or 13 expected)");
           }
         });
   }
@@ -762,7 +851,8 @@ get_trsm_batched_params(Args& args) {
     warning_no_csv();
     std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
     constexpr index_t dmin = 512, dmax = 8192;
-    // Stride Multipliers are set by default and correspond to default striding
+    // Stride Multipliers are set by default and correspond to default
+    // striding
     constexpr index_t stride_a_mul = 1;
     constexpr index_t stride_b_mul = 1;
     constexpr index_t batch_size = 8;
@@ -802,8 +892,9 @@ get_trsm_batched_params(Args& args) {
 }
 /**
  * @fn get_reduction_params
- * @brief Returns a vector containing the reduction benchmark parameters, either
- * read from a file according to the command-line args, or the default ones.
+ * @brief Returns a vector containing the reduction benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
  */
 template <typename scalar_t>
 static inline std::vector<reduction_param_t> get_reduction_params(Args& args) {
@@ -916,9 +1007,9 @@ static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
 }
 /**
  * @fn get_trsm_params
- * @brief Returns a vector containing the trsm benchmark parameters (also valid
- * for trmm), either read from a file according to the command-line args, or the
- * default ones.
+ * @brief Returns a vector containing the trsm benchmark parameters (also
+ * valid for trmm), either read from a file according to the command-line
+ * args, or the default ones.
  */
 template <typename scalar_t>
 static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
@@ -1238,15 +1329,13 @@ static inline std::vector<matcopy_param_t<scalar_t>> get_matcopy_params(
     std::vector<matcopy_param_t<scalar_t>> matcopy_default;
     constexpr index_t dmin = 64, dmax = 8192;
     constexpr scalar_t alpha{2};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
     for (char trans : {'n', 't'}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-              matcopy_default.push_back(
-                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul));
-            }
-          }
+          matcopy_default.push_back(
+              std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul));
         }
       }
     }
@@ -1272,8 +1361,9 @@ static inline std::vector<matcopy_param_t<scalar_t>> get_matcopy_params(
 
 /**
  * @fn get_omatcopy2_params
- * @brief Returns a vector containing the omatcopy2 benchmark parameters, either
- * read from a file according to the command-line args, or the default ones.
+ * @brief Returns a vector containing the omatcopy2 benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
  */
 template <typename scalar_t>
 static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
@@ -1283,17 +1373,15 @@ static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
     std::vector<omatcopy2_param_t<scalar_t>> omatcopy2_default;
     constexpr index_t dmin = 1024, dmax = 8192;
     constexpr scalar_t alpha{2};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
     for (char trans : {'n', 't'}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t inc_a = 1; inc_a < 3; ++inc_a) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t inc_b = 1; inc_b < 3; ++inc_b) {
-                  omatcopy2_default.push_back(std::make_tuple(
-                      trans, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b));
-                }
-              }
+          for (index_t inc_a = 1; inc_a < 3; ++inc_a) {
+            for (index_t inc_b = 1; inc_b < 3; ++inc_b) {
+              omatcopy2_default.push_back(std::make_tuple(
+                  trans, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b));
             }
           }
         }
@@ -1332,21 +1420,20 @@ get_matcopy_batch_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
-    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr index_t dmin = 256, dmax = 4096;
     constexpr scalar_t alpha{2};
     constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
+    constexpr index_t ldc_mul = 1;
     for (char trans : {'n', 't'}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-              matcopy_batch_default.push_back(
-                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
-                                  stride_a_mul, stride_b_mul, batch_size));
-            }
-          }
+          matcopy_batch_default.push_back(
+              std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
+                              stride_a_mul, stride_b_mul, batch_size));
         }
       }
     }
@@ -1382,22 +1469,19 @@ static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<omatadd_param_t<scalar_t>> omatadd_default;
-    constexpr index_t dmin = 64, dmax = 8192;
+    constexpr index_t dmin = 64, dmax = 4096;
     constexpr scalar_t alpha{2};
     constexpr scalar_t beta{2};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
+    constexpr index_t ldc_mul = 1;
     for (char trans_a : {'n', 't'}) {
       for (char trans_b : {'n', 't'}) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t n = dmin; n <= dmax; n *= 2) {
-            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
-                  omatadd_default.push_back(
-                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
-                                      lda_mul, ldb_mul, ldc_mul));
-                }
-              }
-            }
+            omatadd_default.push_back(std::make_tuple(trans_a, trans_b, m, n,
+                                                      alpha, beta, lda_mul,
+                                                      ldb_mul, ldc_mul));
           }
         }
       }
@@ -1435,27 +1519,23 @@ get_omatadd_batch_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<omatadd_batch_param_t<scalar_t>> omatadd_batch_default;
-    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr index_t dmin = 1024, dmax = 4096;
     constexpr scalar_t alpha{2};
     constexpr scalar_t beta{2};
     constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
     constexpr index_t stride_c_mul{1};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
+    constexpr index_t ldc_mul = 1;
     for (char trans_a : {'n', 't'}) {
-      for (char trans_b : {'n', 't'}) {
+      for (char trans_b : {'n'}) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t n = dmin; n <= dmax; n *= 2) {
-            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
-                  omatadd_batch_default.push_back(
-                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
-                                      lda_mul, ldb_mul, ldc_mul, stride_a_mul,
-                                      stride_b_mul, stride_c_mul, batch_size));
-                }
-              }
-            }
+            omatadd_batch_default.push_back(std::make_tuple(
+                trans_a, trans_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
+                stride_a_mul, stride_b_mul, stride_c_mul, batch_size));
           }
         }
       }
@@ -1484,6 +1564,49 @@ get_omatadd_batch_params(Args& args) {
 }
 
 /**
+ * @fn get_axpy_batch_params
+ * @brief Returns a vector containing the axpy_batch benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<axpy_batch_param_t<scalar_t>> get_axpy_batch_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<axpy_batch_param_t<scalar_t>> axpy_batch_default;
+    constexpr index_t dmin = 1 << 10, dmax = 1 << 22;
+    constexpr index_t batch_size{5};
+    constexpr index_t incX{1};
+    constexpr index_t incY{1};
+    constexpr index_t stride_x_mul{1};
+    constexpr index_t stride_y_mul{1};
+    constexpr scalar_t alpha{1};
+    for (auto n = dmin; n <= dmax; n *= 2) {
+      axpy_batch_default.push_back(std::make_tuple(
+          n, alpha, incX, incY, stride_x_mul, stride_y_mul, batch_size));
+    }
+    return axpy_batch_default;
+  } else {
+    return parse_csv_file<axpy_batch_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 7) {
+            throw std::runtime_error(
+                "invalid number of parameters (7 expected)");
+          }
+          try {
+            return std::make_tuple(
+                str_to_int<index_t>(v[0]), str_to_scalar<scalar_t>(v[1]),
+                str_to_int<index_t>(v[2]), str_to_int<index_t>(v[3]),
+                str_to_int<index_t>(v[4]), str_to_int<index_t>(v[5]),
+                str_to_int<index_t>(v[6]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+/**
  * @fn get_type_name
  * @brief Returns a string with the given type. The C++ specification
  * doesn't guarantee that typeid(T).name is human readable so we specify the
@@ -1501,6 +1624,11 @@ inline std::string get_type_name<float>() {
 template <>
 inline std::string get_type_name<double>() {
   return "double";
+}
+
+template <>
+inline std::string get_type_name<cl::sycl::half>() {
+  return "half";
 }
 
 #ifdef BLAS_ENABLE_COMPLEX
@@ -1533,7 +1661,10 @@ template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
   static std::random_device rd;
   static std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+  using random_scalar_t =
+      std::conditional_t<std::is_same_v<scalar_t, cl::sycl::half>, float,
+                         scalar_t>;
+  std::uniform_real_distribution<random_scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
 }
 
@@ -1806,7 +1937,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
 #define BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 /** Registers benchmark for the cl::sycl::half data type
  * @see BLAS_REGISTER_BENCHMARK
  */
@@ -1814,7 +1945,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
   register_benchmark<cl::sycl::half>(args, sb_handle_ptr, success)
 #else
 #define BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success)
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 #ifdef BLAS_ENABLE_COMPLEX
 /** Registers benchmark for the float complex data type

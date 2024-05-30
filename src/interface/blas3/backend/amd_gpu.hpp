@@ -41,12 +41,20 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
+  using element_in_t = typename ValueType<container_0_t>::type;
   // Unused configuration cases
   if constexpr (s_a && s_b || ((s_a && _t_b) || (s_b && _t_a))) {
     return _dependencies;
   } else {
+    // computing arithmetic ratio with combination of input to use it as
+    // heuristic numerator is the number of fma, denominator is the number of
+    // bytes access.
+    const auto n_fma = (static_cast<int64_t>(_M) * static_cast<int64_t>(_K) *
+                        static_cast<int64_t>(_N));
+    const auto n_elem_access = (_M * _K + _K * _N + _M * _N);
+    const auto arith_ratio = n_fma / n_elem_access;
     static constexpr int ClSize = 64;
-    static constexpr int tileWgSize = ClSize / sizeof(element_t);
+    static constexpr int tileWgSize = ClSize / sizeof(element_in_t);
     if (batch_type == gemm_batch_type_t::interleaved) {
       return blas::Gemm_Launcher<
           container_0_t, container_1_t, container_2_t, 64, false, false, false,
@@ -59,6 +67,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                 _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
                                 _stridec, batch_size, _dependencies);
     }
+
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
     if (batch_size == 1 &&
@@ -123,11 +132,82 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       }
     } else
 #endif  // GEMM_TALL_SKINNY_SUPPORT
-      if (_M * _N <= 65536) {
+      // Following configurations are taken using the auto tuner on amd-mi210
+      // and divided following their arith_ratio or another ratio between _N
+      // and _K input size
+      if ((_N >> 4) > _K) {
+        if (arith_ratio <= 100) {
+          return blas::Gemm_Launcher<
+              container_0_t, container_1_t, container_2_t, 256, false, false,
+              true, 64, Tile<4, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
+              static_cast<int>(gemm_memory_t::local),
+              static_cast<int>(gemm_algorithm_t::standard),
+              static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+              static_cast<int>(gemm_batch_type_t::strided)>::
+              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                    _stridea, _b, _ldb, _strideb, _beta, _c,
+                                    _ldc, _stridec, batch_size, _dependencies);
+        } else {
+          return blas::Gemm_Launcher<
+              container_0_t, container_1_t, container_2_t, 256, false, false,
+              true, 32, Tile<8, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
+              static_cast<int>(gemm_memory_t::local),
+              static_cast<int>(gemm_algorithm_t::standard),
+              static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+              static_cast<int>(gemm_batch_type_t::strided)>::
+              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                    _stridea, _b, _ldb, _strideb, _beta, _c,
+                                    _ldc, _stridec, batch_size, _dependencies);
+        }
+      } else if (arith_ratio >= 360) {
         return blas::Gemm_Launcher<
             container_0_t, container_1_t, container_2_t, 256, false, false,
-            false, ClSize, Tile<1, 1, tileWgSize, tileWgSize>, _t_a, _t_b, s_a,
-            s_b, static_cast<int>(gemm_memory_t::local),
+            true, 32, Tile<8, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
+            static_cast<int>(gemm_memory_t::local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided)>::
+            template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                  _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                  _stridec, batch_size, _dependencies);
+      } else if (arith_ratio >= 240) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 256, false, false,
+            true, 64, Tile<4, 4, 16, 8>, _t_a, _t_b, s_a, s_b,
+            static_cast<int>(gemm_memory_t::local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided)>::
+            template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                  _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                  _stridec, batch_size, _dependencies);
+      } else if (arith_ratio > 162) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 256, false, false,
+            true, 128, Tile<4, 4, 16, 8>, _t_a, _t_b, s_a, s_b,
+            static_cast<int>(gemm_memory_t::local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided)>::
+            template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                  _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                  _stridec, batch_size, _dependencies);
+      } else if (arith_ratio >= 100 && arith_ratio <= 162) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 256, false, true, true,
+            128, Tile<2, 2, 16, 8>, _t_a, _t_b, s_a, s_b,
+            static_cast<int>(gemm_memory_t::local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided)>::
+            template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                  _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                  _stridec, batch_size, _dependencies);
+      } else if (arith_ratio <= 100) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 256, false, false,
+            true, 128, Tile<1, 1, 16, 8>, _t_a, _t_b, s_a, s_b,
+            static_cast<int>(gemm_memory_t::local),
             static_cast<int>(gemm_algorithm_t::standard),
             static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
             static_cast<int>(gemm_batch_type_t::strided)>::
@@ -135,6 +215,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                   _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
                                   _stridec, batch_size, _dependencies);
       } else {
+        // this branch is a safe net just in case no other branch is taken
         return blas::Gemm_Launcher<
             container_0_t, container_1_t, container_2_t, 256, false, false,
             false, ClSize, Tile<4, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a,
@@ -162,8 +243,9 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
+  using element_in_t = typename ValueType<container_0_t>::type;
   static constexpr int ClSize = 64;
-  static constexpr int tileWgSize = ClSize / sizeof(element_t);
+  static constexpr int tileWgSize = ClSize / sizeof(element_in_t);
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
   if (batch_size == 1 && (_M / _N > 8 || _N / _M > 8)) {

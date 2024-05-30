@@ -77,7 +77,15 @@ function(sanitize_file_name output file_name)
 endfunction()
 
 #List of operators supporting Complex Data types
-set(COMPLEX_OPS "gemm" "gemm_launcher" "scal")
+set(COMPLEX_OPS "gemm"
+                "gemm_launcher"
+                "scal")
+
+#List of operators supporting Half Data types
+set(HALF_DATA_OPS "axpy" 
+                  "scal"
+                  "gemm"
+                  "gemm_launcher")
 
 function(set_target_compile_def in_target)
   #setting compiler flag for backend
@@ -90,11 +98,11 @@ function(set_target_compile_def in_target)
   elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     target_compile_definitions(${in_target} PUBLIC NVIDIA_GPU=1)
   else()
-    if(NOT ${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
-      message(STATUS "${TUNING_TARGET} not supported. Switching to DEFAULT_CPU instead.")
-      set(TUNING_TARGET "DEFAULT_CPU")
+    if(NOT ${TUNING_TARGET} STREQUAL "DEFAULT")
+      message(STATUS "${TUNING_TARGET} not supported. Switching to DEFAULT instead.")
+      set(TUNING_TARGET "DEFAULT")
     endif()
-    target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
+    target_compile_definitions(${in_target} PUBLIC DEFAULT=1)
   endif()
   message(STATUS "Adding ${TUNING_TARGET} backend to target ${in_target}")
   #setting tall skinny support
@@ -118,6 +126,12 @@ function(set_target_compile_def in_target)
       target_compile_definitions(${in_target} PUBLIC BLAS_ENABLE_COMPLEX=1)
     endif()
   endif()
+  if(${BLAS_ENABLE_HALF})
+    if("${in_target}" IN_LIST HALF_DATA_OPS)
+      message(STATUS "Half Data type support enabled for target ${in_target}")
+      target_compile_definitions(${in_target} PUBLIC BLAS_ENABLE_HALF=1)
+    endif()
+  endif()
 endfunction()
 
 # blas unary function for generating source code
@@ -131,32 +145,49 @@ function(generate_blas_objects blas_level func)
       set_complex_list(data_list_c "${data_list}" "true")
     endif()
   endif()
-  foreach(data ${data_list_c})
-    cpp_type(cpp_data ${data})
-    foreach(index ${index_list})
-      foreach(increment ${index_list})
-        sanitize_file_name(file_name
-                "${func}_${data}_${index}_${data}_${increment}.cpp")
-        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
-                ${PROJECT_SOURCE_DIR}/external/
-                ${PORTBLAS_SRC_GENERATOR}/gen
-                ${blas_level}
-                ${func}
-                ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${cpp_data}
-                ${index}
-                ${increment}
-                ${file_name}
-                MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
-                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                VERBATIM
-                )
-        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-      endforeach(increment)
-    endforeach(index)
-  endforeach(data)
+  # Extend data_list with 'half' if target function is 
+  # in HALF_DATA_OPS
+  if(BLAS_ENABLE_HALF)
+    if("${func}" IN_LIST HALF_DATA_OPS)
+      list(APPEND data_list_c "half")
+    endif()
+  endif()
+  foreach(data_in ${data_list_c})
+    set(data_list_out ${data_in})
+    # When using half with Gemm target, generate a mixed-precision
+    # Gemm kernel (half-float) alongside the fully half based kernel.
+    if((data_in STREQUAL "half") AND (${func} STREQUAL "gemm"))
+      list(APPEND data_list_out "float")
+    endif()
+    cpp_type(cpp_data_in ${data_in})
+    foreach(data_out ${data_list_out})
+      cpp_type(cpp_data_out ${data_out})
+      foreach(index ${index_list})
+        foreach(increment ${index_list})
+          sanitize_file_name(file_name
+                  "${func}_${data_in}_${index}_${data_out}_${increment}.cpp")
+          add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                  COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
+                  ${PROJECT_SOURCE_DIR}/external/
+                  ${PORTBLAS_SRC_GENERATOR}/gen
+                  ${blas_level}
+                  ${func}
+                  ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  ${cpp_data_in}
+                  ${cpp_data_out}
+                  ${index}
+                  ${increment}
+                  ${file_name}
+                  MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
+                  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                  VERBATIM
+                  )
+          list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+        endforeach(increment)
+      endforeach(index)
+    endforeach(data_out ${data_list_out})
+  endforeach(data_in)
   add_library(${func} OBJECT ${FUNC_SRC})
   set_target_compile_def(${func})
   target_include_directories(${func} PRIVATE ${PORTBLAS_SRC} ${PORTBLAS_INCLUDE}
@@ -276,6 +307,9 @@ function(add_gemm_configuration
   if(BLAS_ENABLE_COMPLEX)
     set_complex_list(data_list_c "${data_list}" "true")
   endif()
+  if(BLAS_ENABLE_HALF)
+    list(APPEND data_list_c "half")
+  endif()
   if(NOT ("${data}" IN_LIST data_list_c))
     # Data type not enabled, skip configuration
     return()
@@ -288,128 +322,127 @@ function(add_gemm_configuration
   if(const_pos)
     string(REPLACE "_const" "" actualfunc ${func})
   endif()
+  # When using half data type, generate a mixed-precision Gemm
+  # configuration (half-float) alongside the fully half based one.
+  set(data_list_out ${data})
+    if(data STREQUAL "half")
+      list(APPEND data_list_out "float")
+    endif()
   cpp_type(cpp_data ${data})
-  foreach(symm_a ${boolean_list})
-    foreach(symm_b ${boolean_list})
-      if ((${data} MATCHES "complex") AND (symm_a OR symm_b))
-        continue()
-      endif()
-      if (symm_a AND symm_b)
-        continue()
-      endif()
-      foreach(trans_a ${boolean_list})
-        foreach(trans_b ${boolean_list})
-          if ((symm_a AND trans_b) OR (symm_b AND trans_a))
-            continue()
-          endif()
-          foreach(is_beta_zero ${boolean_list})
-            foreach(index ${index_list})
-              set(file_name "${func}_${double_buffer}_${conflict_a}_"
-                      "${conflict_b}_${trans_a}_${trans_b}_"
-                      "${is_beta_zero}_${gemm_memory_type}_"
-                      "${gemm_shape_type}_${gemm_vectorize_type}_"
-                      "${vector_size}_${batch_type}_${use_joint_matrix}_"
-                      "${data}_${index}_${tir}_${tic}_${twr}_"
-                      "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
-                      "${item_batch}_${wg_batch}_${symm_a}_${symm_b}_"
-                      "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
-                      "${wg_size}_${cache_line_size}_${data}.cpp")
-              sanitize_file_name(file_name "${file_name}")
-              add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                      COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
-                      ${PROJECT_SOURCE_DIR}/external/
-                      ${PORTBLAS_SRC_GENERATOR}/gen
-                      ${blas_level}
-                      ${func}
-                      ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                      ${cpp_data}
-                      ${index}
-                      ${double_buffer}
-                      ${conflict_a}
-                      ${conflict_b}
-                      ${trans_a}
-                      ${trans_b}
-                      ${is_beta_zero}
-                      ${gemm_memory_type}
-                      ${gemm_shape_type}
-                      ${tir}
-                      ${tic}
-                      ${twr}
-                      ${twc}
-                      ${tsr}
-                      ${tsc}
-                      ${tlr}
-                      ${tlc}
-                      ${item_batch}
-                      ${wg_batch}
-                      ${jm_m}
-                      ${jm_n}
-                      ${jm_k}
-                      ${jm_in_type}
-                      ${jm_out_type}
-                      ${wg_size}
-                      ${cache_line_size}
-                      ${file_name}
-                      ${gemm_vectorize_type}
-                      ${vector_size}
-                      ${batch_type}
-                      ${use_joint_matrix}
-                      ${symm_a}
-                      ${symm_b}
-                      MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                      DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
-                      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                      VERBATIM
-                      )
-              list(APPEND gemm_sources "${LOCATION}/${file_name}")
-              set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
-            endforeach(index)
-          endforeach(is_beta_zero)
-        endforeach(trans_b)
-      endforeach(trans_a)
-    endforeach(symm_b)
-  endforeach(symm_a)
+  foreach(data_out ${data_list_out})
+    cpp_type(cpp_data_out ${data_out})
+    foreach(symm_a ${boolean_list})
+      foreach(symm_b ${boolean_list})
+        if ((${data} MATCHES "half") AND (symm_a OR symm_b))
+          continue()
+        endif()
+        if (symm_a AND symm_b)
+          continue()
+        endif()
+        foreach(trans_a ${boolean_list})
+          foreach(trans_b ${boolean_list})
+            if ((symm_a AND trans_b) OR (symm_b AND trans_a))
+              continue()
+            endif()
+            foreach(is_beta_zero ${boolean_list})
+              foreach(index ${index_list})
+                set(file_name "${func}_${double_buffer}_${conflict_a}_"
+                        "${conflict_b}_${trans_a}_${trans_b}_"
+                        "${is_beta_zero}_${gemm_memory_type}_"
+                        "${gemm_shape_type}_${gemm_vectorize_type}_"
+                        "${vector_size}_${batch_type}_${use_joint_matrix}_"
+                        "${index}_${tir}_${tic}_${twr}_"
+                        "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
+                        "${item_batch}_${wg_batch}_${symm_a}_${symm_b}_"
+                        "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
+                        "${wg_size}_${cache_line_size}_${data}_${data_out}.cpp")
+                sanitize_file_name(file_name "${file_name}")
+                add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                        COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
+                        ${PROJECT_SOURCE_DIR}/external/
+                        ${PORTBLAS_SRC_GENERATOR}/gen
+                        ${blas_level}
+                        ${func}
+                        ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        ${cpp_data}
+                        ${index}
+                        ${double_buffer}
+                        ${conflict_a}
+                        ${conflict_b}
+                        ${trans_a}
+                        ${trans_b}
+                        ${is_beta_zero}
+                        ${gemm_memory_type}
+                        ${gemm_shape_type}
+                        ${tir}
+                        ${tic}
+                        ${twr}
+                        ${twc}
+                        ${tsr}
+                        ${tsc}
+                        ${tlr}
+                        ${tlc}
+                        ${item_batch}
+                        ${wg_batch}
+                        ${jm_m}
+                        ${jm_n}
+                        ${jm_k}
+                        ${jm_in_type}
+                        ${jm_out_type}
+                        ${wg_size}
+                        ${cache_line_size}
+                        ${file_name}
+                        ${gemm_vectorize_type}
+                        ${vector_size}
+                        ${batch_type}
+                        ${use_joint_matrix}
+                        ${symm_a}
+                        ${symm_b}
+                        ${cpp_data_out}
+                        MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
+                        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                        VERBATIM
+                        )
+                list(APPEND gemm_sources "${LOCATION}/${file_name}")
+                set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
+              endforeach(index)
+            endforeach(is_beta_zero)
+          endforeach(trans_b)
+        endforeach(trans_a)
+      endforeach(symm_b)
+    endforeach(symm_a)
+  endforeach(data_out)
 endfunction()
 if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
     "double"
-    "half"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
-      "${data}" 64 "true" "false" "false"
-      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
-    add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+    
     add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-
-    if (${data} STREQUAL "half")
-      add_gemm_configuration(
-         "${data}" 16 "true" "false" "false"
-         64 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "true" "false" "false"
-         64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-    else()
-      add_gemm_configuration(
-         "${data}" 16 "true" "false" "false"
-         64 1 1 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "true" "false" "false"
-         64 2 2 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-    endif()
-
+      "${data}" 32 "true" "true" "true"
+      64 2 1 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 16 "true" "false" "false"
+      64 1 1 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 32 "true" "true" "true"
+      64 2 2 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 16 "true" "false" "false"
+      64 2 2 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "true" "true" "true"
       64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
-      "${data}" 64 "true" "true" "true"
-      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-
+      "${data}" 64 "true" "false" "false"
+      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+    
     if (${data} STREQUAL "double")
       add_gemm_configuration(
         "${data}" 256 "true" "true" "true"
@@ -421,16 +454,27 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     endif()
 
     add_gemm_configuration(
-      "${data}" 32 "true" "true" "true"
-      64 2 1 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 32 "true" "true" "true"
-      64 2 2 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-
+      "${data}" 64 "true" "true" "true"
+      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+      64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 64 "false" "false" "false"
+      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
   endforeach()
+  if(BLAS_ENABLE_HALF)
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+    add_gemm_configuration(
+      "half" 16 "true" "false" "false"
+      64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+  endif()
+
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
     # list for complex<data> specific gemm configurations
@@ -486,8 +530,10 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"
     "double"
-    "half"
   )
+  if(BLAS_ENABLE_HALF)
+    list(APPEND supported_types "half")
+  endif()
   set(workgroup_float 16)
   set(workgroup_double 8)
   set(workgroup_half 32)
@@ -495,13 +541,12 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
     set(twr "${workgroup_${data}}")
     set(twc "${workgroup_${data}}")
 
-    add_gemm_configuration(
-      "${data}" 256 "false" "false" "false"
-      64 1 1 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # General configuration
     add_gemm_configuration(
       "${data}" 256 "false" "false" "false"
       64 4 4 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false")
 
+    # configuration for tall_skinny
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
       64 1 1 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 2 "strided" "false")
@@ -518,9 +563,37 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
       "${data}" 256 "true" "true" "true"
       64 4 1 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 2 "strided" "false")
 
+    # configuration for batch
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+
+    # Configurations for gemm
+
+    # low arithmetic intensity
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      128 1 1 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      64 4 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # highest arithmetic intensity
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      32 8 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # high arithmetic intensity
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      64 4 4 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # mid high 162 < a < 240 
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      128 4 4 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # mid low 100 < a < 162
+    add_gemm_configuration(
+      "${data}" 256 "false" "true" "true"
+      128 2 2 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+
   endforeach()
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
@@ -592,6 +665,9 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     add_gemm_configuration(
         "${data}" 256 "false" "true" "true"
       128 8 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    add_gemm_configuration(
+        "${data}"  64 "false" "false" "true"
+          64 8 8 8 8 1 1 2 2 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
   endforeach()
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
@@ -604,6 +680,19 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
           64 2 2 16 16 1 1 2 2 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
+
+  if(BLAS_ENABLE_HALF)
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+    add_gemm_configuration(
+      "half" 256 "false" "true" "true"
+      128 4 4 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    add_gemm_configuration(
+      "half" 256 "false" "true" "true"
+      128 8 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+  endif() # BLAS_ENABLE_HALF
+
 else() # default cpu backend
   set(supported_types
     "float"
@@ -616,20 +705,33 @@ else() # default cpu backend
         64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "naive" "none" 1 "strided" "false" "false")
     else()
       add_gemm_configuration(
-        "${data}"  64 "false" "false" "false"
-        64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 2 "strided" "false" "false")
+        "${data}"  128 "false" "false" "false"
+        64 2 2 2 2 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 2 "strided" "false" "false")
       add_gemm_configuration(
-        "${data}"  64 "false" "false" "false"
-        64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
+        "${data}"  128 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 1 "strided" "false" "false")
+      add_gemm_configuration(
+        "${data}"  128 "false" "false" "false"
+        64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
         64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false" "false")
+
     endif()
 
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")
+    if(BLAS_ENABLE_HALF)
+      add_gemm_configuration(
+        "half"  128 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 1 "strided" "false" "false")
+      add_gemm_configuration(
+        "half" 64 "false" "false" "false"
+        64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")
+    endif()
   endforeach()
+
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
     # list for complex<data> specific gemm configurations
@@ -701,7 +803,8 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:matcopy_batch>
                 $<TARGET_OBJECTS:transpose>
                 $<TARGET_OBJECTS:omatadd>
-                $<TARGET_OBJECTS:omatadd_batch>)
+                $<TARGET_OBJECTS:omatadd_batch>
+                $<TARGET_OBJECTS:axpy_batch>)
 
    if (${ENABLE_EXTENSIONS})
      list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)

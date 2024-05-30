@@ -31,6 +31,8 @@
 #include "operations/blas3_trees.h"
 #include "operations/extension/reduction.h"
 #include "portblas_helper.h"
+#include "temp_memory_pool.h"
+
 namespace blas {
 
 /** SB_Handle.
@@ -47,10 +49,54 @@ class SB_Handle {
  public:
   using event_t = std::vector<cl::sycl::event>;
   inline SB_Handle(queue_t q)
-      : q_(q),
+      :
+#ifndef __ADAPTIVECPP__
+        tempMemPool_(nullptr),
+#endif
+        q_(q),
         workGroupSize_(helper::get_work_group_size(q)),
         localMemorySupport_(helper::has_local_memory(q)),
-        computeUnits_(helper::get_num_compute_units(q)) {}
+        computeUnits_(helper::get_num_compute_units(q)) {
+  }
+
+#ifndef __ADAPTIVECPP__
+  inline SB_Handle(Temp_Mem_Pool* tmp)
+      : tempMemPool_(tmp),
+        q_(tmp->get_queue()),
+        workGroupSize_(helper::get_work_group_size(q_)),
+        localMemorySupport_(helper::has_local_memory(q_)),
+        computeUnits_(helper::get_num_compute_units(q_)) {}
+#endif
+
+  template <helper::AllocType alloc, typename value_t>
+  typename std::enable_if<
+      alloc == helper::AllocType::buffer,
+      typename helper::AllocHelper<value_t, alloc>::type>::type
+  acquire_temp_mem(size_t size);
+
+  template <typename container_t>
+  typename std::enable_if<
+      std::is_same<container_t, typename helper::AllocHelper<
+                                    typename ValueType<container_t>::type,
+                                    helper::AllocType::buffer>::type>::value,
+      typename SB_Handle::event_t>::type
+  release_temp_mem(const typename SB_Handle::event_t&, const container_t&);
+
+#ifdef SB_ENABLE_USM
+  template <helper::AllocType alloc, typename value_t>
+  typename std::enable_if<
+      alloc == helper::AllocType::usm,
+      typename helper::AllocHelper<value_t, alloc>::type>::type
+  acquire_temp_mem(size_t size);
+
+  template <typename container_t>
+  typename std::enable_if<
+      std::is_same<container_t, typename helper::AllocHelper<
+                                    typename ValueType<container_t>::type,
+                                    helper::AllocType::usm>::type>::value,
+      typename SB_Handle::event_t>::type
+  release_temp_mem(const typename SB_Handle::event_t&, const container_t&);
+#endif
 
   template <typename expression_tree_t>
   event_t execute(expression_tree_t tree, const event_t& dependencies = {});
@@ -151,6 +197,9 @@ class SB_Handle {
   const size_t workGroupSize_;
   const bool localMemorySupport_;
   const size_t computeUnits_;
+#ifndef __ADAPTIVECPP__
+  Temp_Mem_Pool* tempMemPool_;
+#endif
 };
 
 }  // namespace blas

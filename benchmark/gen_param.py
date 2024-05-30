@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#/***************************************************************************
+# /***************************************************************************
 # *
 # *  @license
 # *  Copyright (C) Codeplay Software Limited
@@ -32,12 +32,14 @@
 import itertools
 import argparse
 
+
 def main(args):
     """Generate the csv file according to the given arguments
     """
     # Match DSL to Python names
     nd_range = itertools.product
     value_range = lambda *v: list(v)
+
     def size_range(low, high, mult):
         val = low
         while val <= high:

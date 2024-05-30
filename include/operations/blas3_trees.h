@@ -169,7 +169,7 @@ struct Tile {
  * @tparam TransB  iff true, matrix B will be transposed on the fly
  * @tparam SymmA   whether the matrix A is a symmetric triangular matrix
  * @tparam SymmB   whether the matrix B is a symmetric triangular matrix
- * @tparam element_t  type of matrix elements
+ * @tparam element_t  type of scalar alpha & beta
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  *                        joint_matrix or not
  * @param a_ the lhs_t matrix
@@ -195,7 +195,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           int VectorSize, int BatchType, bool UseJointMatrix = false>
 class Gemm {
  public:
-  using value_t = element_t;
+  using value_t = typename input_t::value_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   static constexpr int wg_size = tile_type::wg_rows * tile_type::wg_cols;
   static constexpr bool trans_a = TransA;

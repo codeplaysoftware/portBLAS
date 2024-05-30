@@ -91,6 +91,21 @@ init_extension_counters(benchmark::State& state, const char* t_a,
   }
   return;
 }
+
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::axpy_batch>::type
+init_extension_counters(benchmark::State& state, index_t n,
+                        index_t batch_size) {
+  // The way counters are computed are the same as axpy but multiplied
+  // by the batch_size
+  // Google-benchmark counters are double.
+  double size_d = static_cast<double>(n);
+  state.counters["size"] = size_d * batch_size;
+  state.counters["n_fl_ops"] = 2.0 * size_d * batch_size;
+  state.counters["bytes_processed"] =
+      3 * size_d * sizeof(scalar_t) * batch_size;
+  return;
+}
 }  // namespace utils
 }  // namespace blas_benchmark
 

@@ -172,7 +172,7 @@ This cmake variable causes a corresponding define for the selected platform to b
 #elif defined POWER_VR
 #include "interface/blas3/backend/power_vr.hpp"
 #else
-#include "interface/blas3/backend/default_cpu.hpp"
+#include "interface/blas3/backend/default.hpp"
 #endif
 ```
 
@@ -307,7 +307,7 @@ The relevant parameters are:
 - Vector size, the number of elements to use in vectorized loads/stores.
 - Batch type, whether to use strided (most `GEMM` kernels) or the interleaved `GEMM` for batched calls.
 
-For an example of a backend target header and some of the ways that configurations are selected let's look at `src/interface/blas3/backend/default_cpu.hpp` :
+For an example of a backend target header and some of the ways that configurations are selected let's look at `src/interface/blas3/backend/default.hpp` :
 
 ```c++
 template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t, 

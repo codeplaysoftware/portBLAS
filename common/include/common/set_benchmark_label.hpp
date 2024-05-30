@@ -174,13 +174,13 @@ inline void add_datatype_info<double>(
 }
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 template <>
 inline void add_datatype_info<cl::sycl::half>(
     std::map<std::string, std::string>& key_value_map) {
   key_value_map["@datatype"] = "half";
 }
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 #ifdef BLAS_ENABLE_COMPLEX
 template <>

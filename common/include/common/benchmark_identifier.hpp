@@ -82,7 +82,8 @@ enum class ExtensionOp : int {
   imatcopy_batch = 4,
   omatadd_batch = 5,
   omatcopy2 = 6,
-  reduction = 7
+  reduction = 7,
+  axpy_batch = 8
 };
 
 template <Level1Op op>
@@ -195,6 +196,8 @@ std::string get_operator_name() {
     return "Omatcopy2";
   else if constexpr (op == ExtensionOp::reduction)
     return "Reduction";
+  else if constexpr (op == ExtensionOp::axpy_batch)
+    return "Axpy_batch";
   else
     throw std::runtime_error("Unknown BLAS extension operator");
 }

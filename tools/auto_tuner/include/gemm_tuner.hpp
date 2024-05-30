@@ -67,11 +67,10 @@ inline std::vector<scalar_t> interleaved_to_strided(
 }
 
 template <typename T>
-static TestResultEntry tune_portblas(int r, char transA, char transB,
-                                     GemmArgs<T> a,
+static TestResultEntry tune_portblas(portblas_handle_t &sb_handle, int r,
+                                     char transA, char transB, GemmArgs<T> a,
                                      ::blas::gemm_batch_type_t batch_type) {
   TestResultEntry result("portBLAS gemm");
-  auto sb_handle = get_portblas_handle();
   {
     auto event = blas::helper::copy_to_device(
         sb_handle.get_queue(), a.init_c.data(), a.c, a.init_c.size());
@@ -98,7 +97,8 @@ static TestResultEntry tune_portblas(int r, char transA, char transB,
 }
 
 template <bool TransA, bool TransB, typename DataType>
-void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
+void run_tune_gemm(portblas_handle_t &sb_handle, int seed, int m, int k, int n,
+                   int batch_size, int rep,
                    ::blas::gemm_batch_type_t batch_type) {
   std::cout << std::scientific;
 
@@ -157,7 +157,8 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
                           device_c, result_c, ldc, batch_size, expected_c};
 
   {
-    auto result = tune_portblas(rep, *ta_str, *tb_str, args, batch_type);
+    auto result =
+        tune_portblas(sb_handle, rep, *ta_str, *tb_str, args, batch_type);
     results.push_back(result);
   }
 
@@ -165,7 +166,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
   do {                                                                      \
     auto result =                                                           \
         tune<__VA_ARGS__, GemmConfig<TransA, TransB, MEM, ALG, BATCH, VEC>, \
-             DataType>(rep, args);                                          \
+             DataType>(sb_handle, rep, args);                               \
     results.push_back(result);                                              \
   } while (0);
 
@@ -173,7 +174,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
 
 #undef BENCH_PARAMS
   std::cout << "SIZE : " << results.size() << std::endl;
-  get_portblas_handle().wait();
+  sb_handle.wait();
   std::sort(results.begin(), results.end());
   results.print_all();
 }

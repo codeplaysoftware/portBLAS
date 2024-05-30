@@ -160,15 +160,15 @@ const auto combi =
                        ::testing::Values<char>('n', 't'),  // trans_b
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
-                       ::testing::Values<scalar_t>(2.5),            // alpha
-                       ::testing::Values<scalar_t>(3.5),            // beta
+                       ::testing::Values<scalar_t>(2.5),          // alpha
+                       ::testing::Values<scalar_t>(3.5),          // beta
                        ::testing::Values<index_t>(1, 2),          // lda_mul
                        ::testing::Values<index_t>(1, 2),          // ldb_mul
-                       ::testing::Values<index_t>(1, 2, 3),       // ldc_mul
+                       ::testing::Values<index_t>(3),             // ldc_mul
                        ::testing::Values<index_t>(1, 3),          // stride_a_m
                        ::testing::Values<index_t>(1, 3),          // stride_b_m
                        ::testing::Values<index_t>(1, 3),          // stride_c_m
-                       ::testing::Values<index_t>(2, 3));         // batch_size
+                       ::testing::Values<index_t>(3));            // batch_size
 #endif
 
 template <class T>

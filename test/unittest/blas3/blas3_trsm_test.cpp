@@ -62,6 +62,14 @@ void run_test(const combination_t<scalar_t> combi) {
                    static_cast<scalar_t>(unusedValue));
   fill_random(B);
 
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (en_joint_matrix != NULL && std::is_same<scalar_t, float>::value &&
+      *en_joint_matrix == '1') {
+    set_to_zero_last_nbits(A);
+    set_to_zero_last_nbits(B);
+    set_to_zero_last_nbits(alpha);
+  }
+
   // Create a copy of B to calculate the reference outputs
   cpu_B = B;
   reference_blas::trsm(&side, &uplo, &trans, &diag, m, n,
@@ -84,7 +92,12 @@ void run_test(const combination_t<scalar_t> combi) {
       blas::helper::copy_to_host<scalar_t>(q, b_gpu, B.data(), B.size());
   sb_handle.wait(event);
 
-  bool isAlmostEqual = utils::compare_vectors(cpu_B, B);
+  bool isAlmostEqual = utils::compare_vectors(
+      cpu_B, B, std::cerr, "\n",
+      (en_joint_matrix != NULL) && (std::is_same<scalar_t, float>::value) &&
+              (*en_joint_matrix == '1')
+          ? 3
+          : 1);
 
   ASSERT_TRUE(isAlmostEqual);
 

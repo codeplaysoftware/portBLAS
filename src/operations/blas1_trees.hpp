@@ -32,6 +32,7 @@
 #if SYCL_LANGUAGE_VERSION >= 202000
 #include "blas1/WGAtomicReduction.hpp"
 #endif
+#include "blas1/IndexMaxMin.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
@@ -79,7 +80,6 @@ struct DetectScalar<double> {
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
-#ifdef BLAS_DATA_TYPE_HALF
 /*! DetectScalar.
  * @brief See Detect Scalar.
  */
@@ -88,7 +88,6 @@ struct DetectScalar<cl::sycl::half> {
   using element_t = cl::sycl::half;
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
-#endif  // BLAS_DATA_TYPE_HALF
 
 #ifdef BLAS_ENABLE_COMPLEX
 /*! DetectScalar (for sycl::complex<value_t>)
@@ -449,7 +448,7 @@ PORTBLAS_INLINE bool TupleOp<rhs_t>::valid_thread(
 template <typename rhs_t>
 PORTBLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
     typename TupleOp<rhs_t>::index_t i) {
-  return TupleOp<rhs_t>::value_t(i, rhs_.eval(i));
+  return TupleOp<rhs_t>::value_t(i, cl::sycl::fabs(rhs_.eval(i)));
 }
 
 template <typename rhs_t>

@@ -27,8 +27,8 @@
 #include "extension_reference.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<std::string, char, index_t, index_t, scalar_t, index_t,
-                                 index_t, index_t, index_t>;
+using combination_t = std::tuple<std::string, char, index_t, index_t, scalar_t,
+                                 index_t, index_t, index_t, index_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
@@ -37,7 +37,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t m, n, inc_in, ld_in_m, inc_out, ld_out_m;
   scalar_t alpha;
 
-  std::tie(alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) = combi;
+  std::tie(alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) =
+      combi;
 
   // Leading dimensions are computed as multiples of the minimum value specified
   // in the oneMKL documentation at :
@@ -77,8 +78,9 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_out =
       helper::copy_to_device<scalar_t>(q, B.data(), matrix_out, m_b_size);
 
-  auto omatcopy2_event = blas::_omatcopy2(sb_handle, trans, m, n, alpha, matrix_in, ld_in, inc_in,
-                   matrix_out, ld_out, inc_out, {copy_in, copy_out});
+  auto omatcopy2_event =
+      blas::_omatcopy2(sb_handle, trans, m, n, alpha, matrix_in, ld_in, inc_in,
+                       matrix_out, ld_out, inc_out, {copy_in, copy_out});
 
   sb_handle.wait(omatcopy2_event);
 
@@ -101,7 +103,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t m, n, inc_in, ld_in_m, inc_out, ld_out_m;
   scalar_t alpha;
 
-  std::tie(alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) = combi;
+  std::tie(alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) =
+      combi;
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
@@ -129,8 +132,8 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values("usm", "buf"),        // allocation type
-                       ::testing::Values<char>('n', 't'),         // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),    // allocation type
+                       ::testing::Values<char>('n', 't'),  // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 2),         // alpha
@@ -147,8 +150,8 @@ static std::string generate_name(
   char trans;
   index_t m, n, inc_in, ld_in_m, inc_out, ld_out_m;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out,
-                     ld_out_m);
+  BLAS_GENERATE_NAME(info.param, alloc, trans, m, n, alpha, inc_in, ld_in_m,
+                     inc_out, ld_out_m);
 }
 
 BLAS_REGISTER_TEST_ALL(OmatCopy2, combination_t, combi, generate_name);

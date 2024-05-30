@@ -120,7 +120,10 @@ template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
   static std::random_device rd;
   static std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+  using random_scalar_t =
+      std::conditional_t<std::is_same_v<scalar_t, cl::sycl::half>, float,
+                         scalar_t>;
+  std::uniform_real_distribution<random_scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
 }
 
@@ -221,6 +224,36 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
       }
     }
   }
+}
+
+/**
+ * @brief Set to zero the last n bits of a float.
+ * @tparam T value type.
+ * @param val input/output float value.
+ * @param nbits number of last bit set to zero. It is set by default to 13 since
+ * this is the difference of the number of bits of the mantissa between floats
+ * (23) and FP16 / NVIDIA TF32 (10). For bfloat16, this value needs to be set to
+ * 16 to get correct result.
+ */
+template <typename T>
+void set_to_zero_last_nbits(T &val, int32_t nbits = 13) {
+  static_assert(sizeof(T) <= 64);
+  using integer_t =
+      std::conditional_t<sizeof(T) == 64, int64_t,
+                          int32_t>;
+  integer_t *int_pntr = reinterpret_cast<integer_t *>(&val);
+  *int_pntr = (*int_pntr >> nbits) << nbits;
+}
+
+/**
+ * @brief Set to zero the last n bits of floats contained in a vector.
+ * @tparam T value type.
+ * @param val input/output float vector.
+ * @param nbits number of last bit set to zero.
+ */
+template <typename T>
+void set_to_zero_last_nbits(std::vector<T> &vec, int32_t nbits = 13) {
+  for (T &val : vec) set_to_zero_last_nbits(val, nbits);
 }
 
 /**

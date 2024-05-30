@@ -1,4 +1,4 @@
-#/***************************************************************************
+# /***************************************************************************
 # *
 # *  @license
 # *  Copyright (C) Codeplay Software Limited
@@ -41,10 +41,11 @@ if __name__ == '__main__':
     blas_level_name = sys.argv[3]
     blas_function_name = sys.argv[4]
     blas_template_impl = sys.argv[5]
-    data = sys.argv[6]
-    index = sys.argv[7]
-    increment = sys.argv[8]
-    file_name = sys.argv[9]
+    data_in = sys.argv[6]
+    data_out = sys.argv[7]
+    index = sys.argv[8]
+    increment = sys.argv[9]
+    file_name = sys.argv[10]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     try:
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     iterables = [
         Iterable(
             key='DATA_TYPE',
-            vals=[data],
+            vals=[data_in],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
@@ -72,6 +73,21 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]
+
+    # Gemm supports mixed-precision inputs/outputs/arithmetics
+    is_gemm: bool = blas_function_name == "gemm"
+    if is_gemm:
+        iterables.append(Iterable(
+            key='DATA_TYPE_IN',
+            vals=[data_in],
+            itermode=Itermode.combinations,
+            iter_modifier=1))
+        iterables.append(Iterable(
+            key='DATA_TYPE_OUT',
+            vals=[data_out],
+            itermode=Itermode.combinations,
+            iter_modifier=1))
+
     iter_groups = [IterGroup('@ip1@', template, iterables, combine_iters=True)]
     generate_file(
         input_template,

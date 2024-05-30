@@ -69,25 +69,55 @@ set(sources
   extension/omatcopy_batched.cpp
   extension/omatadd.cpp
   extension/omatadd_batched.cpp
+  extension/axpy_batch.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
   list(APPEND sources extension/reduction.cpp)
 endif()
 
+# Skip these benchmarks for AdaptiveCpp for SPIRV/OpenCL targets
+# that use SYCL 2020 features like group reduction or hang 
+# during execution (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
+set(ADAPTIVE_CPP_SKIP
+  blas1/asum.cpp
+  blas1/dot.cpp
+  blas1/sdsdot.cpp
+  blas1/nrm2.cpp
+  blas2/trsv.cpp
+  blas2/tbsv.cpp
+  blas2/tpsv.cpp
+  # Hang during execution (without failing)
+  blas3/trsm.cpp
+)
+
 # Operators supporting COMPLEX types benchmarking
-set(CPLX_OPS "gemm" "gemm_batched" "gemm_batched_strided")
+set(CPLX_OPS "gemm" 
+             "gemm_batched"
+             "gemm_batched_strided")
+
+# Operators supporting HALF type benchmarking
+set(HALF_DATA_OPS "axpy" 
+                  "scal"
+                  "gemm"
+                  "gemm_batched"
+                  "gemm_batched_strided"
+                  )
 
 # Add individual benchmarks for each method
 foreach(portblas_bench ${sources})
   get_filename_component(bench_exec ${portblas_bench} NAME_WE)
+  if(is_adaptivecpp AND ${portblas_bench} IN_LIST ADAPTIVE_CPP_SKIP)
+    continue()
+  endif()
   add_executable(bench_${bench_exec} ${portblas_bench} main.cpp)
   target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara portblas bench_info)
   target_compile_definitions(bench_${bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
-  if(${BLAS_ENABLE_COMPLEX})
-    if("${bench_exec}" IN_LIST CPLX_OPS)
-      target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
-    endif()
+  if((${BLAS_ENABLE_COMPLEX}) AND ("${bench_exec}" IN_LIST CPLX_OPS))
+    target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
+  endif()
+  if((${BLAS_ENABLE_HALF}) AND ("${bench_exec}" IN_LIST HALF_DATA_OPS))
+    target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_ENABLE_HALF=1)
   endif()
   add_sycl_to_target(
     TARGET bench_${bench_exec}
@@ -95,9 +125,19 @@ foreach(portblas_bench ${sources})
   )
   target_include_directories(bench_${bench_exec} PRIVATE ${PORTBLAS_INCLUDE} ${CBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
 
+  if(BLAS_MEMPOOL_BENCHMARK)
+    target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_MEMPOOL_BENCHMARK)
+  endif()
+
   if(BLAS_VERIFY_BENCHMARK)
     target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
     target_link_libraries(bench_${bench_exec} PRIVATE blas::blas)
+  endif()
+
+  # Cmake identifies compilers as IntelLLVM only those distributed with Intel oneAPI releases,
+  # so this flag doesn't apply to intel/llvm open source compiler.
+  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "IntelLLVM")
+    target_compile_options(bench_${bench_exec} PRIVATE "-fno-fast-math")
   endif()
 
   message(STATUS "Created benchmark: ${bench_exec}")

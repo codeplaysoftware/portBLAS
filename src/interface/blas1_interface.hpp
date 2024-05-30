@@ -151,6 +151,7 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   if (!_N) {
     using element_t = typename ValueType<container_2_t>::type;
     sb_handle.wait(_dependencies);
@@ -168,6 +169,11 @@ typename sb_handle_t::event_t _sdsdot(
     auto ret = sb_handle.execute(assignOp2, dotOp);
     return blas::concatenate_vectors(dotOp, ret);
   }
+#else
+  throw std::runtime_error(
+      "Sdsdot is not supported with AdaptiveCpp as it uses SYCL 2020 "
+      "reduction.");
+#endif
 }
 
 /**
@@ -184,7 +190,7 @@ typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
   // keep compatibility with older sycl versions
-#if SYCL_LANGUAGE_VERSION < 202000
+#if SYCL_LANGUAGE_VERSION < 202000 || defined(__ADAPTIVECPP__)
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -202,7 +208,7 @@ typename sb_handle_t::event_t _asum(
 #endif
 }
 
-#if SYCL_LANGUAGE_VERSION >= 202000
+#if SYCL_LANGUAGE_VERSION >= 202000 && !defined(__ADAPTIVECPP__)
 /*! _asum_impl.
  * @brief Internal implementation of the Absolute sum operator.
  *
@@ -213,16 +219,25 @@ typename sb_handle_t::event_t _asum(
  * the platform being compiled for and other parameters, provides different
  * template parameters to ensure the most optimal kernel is constructed.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. Automatically managed memory
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly by default.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -232,7 +247,8 @@ typename sb_handle_t::event_t _asum_impl(
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   typename sb_handle_t::event_t ret;
-  auto asumOp = make_wg_atomic_reduction<AbsoluteAddOperator>(rs, vx);
+  auto asumOp =
+      make_wg_atomic_reduction<AbsoluteAddOperator, usmManagedMem>(rs, vx);
   if constexpr (localMemSize != 0) {
     ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
                             static_cast<index_t>(number_WG * localSize),
@@ -247,6 +263,121 @@ typename sb_handle_t::event_t _asum_impl(
 #endif
 
 /**
+ * _iamax_iamin_impl.
+ * Internal implementation of backend specific iamax or iamin operator.
+ * This method launches up to 2 instances of IndexMaxMin class
+ * to compute the integer index of max or min value in the input. Based
+ * on the localMemSize template parameter, the implementation performs
+ * work group reduction using local memory or sub_group reduction
+ * using shuffle operation to compute the output.
+ *
+ * @tparam localSize value to indicate work group size
+ * @tparam localMemSize value to indicate size of local memory required
+ * @tparam is_max boolean variable to indicate if required operation is
+ * iamax or not
+ * @tparam single boolean variable to indicate whether to execute a single
+ * step reduction or a two step reduction
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ *
+ * @param sb_handle sb_handle
+ * @param _N size of the input vector
+ * @param _vx input vector
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _rs output variable
+ * @param _nWG no. of work groups required for the reduction
+ * @param _dependencies Vector of events
+ */
+
+template <int localSize, int localMemSize, bool is_max, bool single,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _iamax_iamin_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t _nWG,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view<index_t>(_rs, static_cast<increment_t>(1),
+                                      static_cast<index_t>(1));
+  auto tupOp = make_tuple_op(vx);
+  typename sb_handle_t::event_t ret;
+  if constexpr (single) {
+    auto op = make_index_max_min<is_max, false>(rs, tupOp);
+    if constexpr (localMemSize == 0) {
+      auto q = sb_handle.get_queue();
+      // get the minimum supported sub_group size
+      const index_t min_sg_size = static_cast<index_t>(
+          q.get_device()
+              .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
+      ret = sb_handle.execute(op, min_sg_size, min_sg_size, _dependencies);
+    } else {
+      ret = sb_handle.execute(
+          op, static_cast<index_t>(localSize), static_cast<index_t>(localSize),
+          static_cast<index_t>(localMemSize), _dependencies);
+    }
+  } else {
+    using scalar_t = typename ValueType<container_0_t>::type;
+    using tuple_t = IndexValueTuple<index_t, scalar_t>;
+    constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+    auto q = sb_handle.get_queue();
+    // get the minimum supported sub_group size
+    const index_t min_sg_size = static_cast<index_t>(
+        q.get_device()
+            .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
+    // if using no local memory, every sub_group writes one intermediate output,
+    // in case if sub_group size is not known at allocation time, than allocate
+    // extra memory using min supported sub_group size.
+    // for local memory case, every work group writes one intermediate output,
+    // so we allocate the exact amount of memory required.
+    const index_t memory_size =
+        localMemSize == 0
+            ? _nWG * (static_cast<index_t>(localSize) / min_sg_size)
+            : _nWG;
+    auto gpu_res = sb_handle.template acquire_temp_mem < is_usm
+                       ? helper::AllocType::usm
+                       : helper::AllocType::buffer,
+         tuple_t > (memory_size);
+    auto gpu_res_vec =
+        make_vector_view(gpu_res, static_cast<increment_t>(1), memory_size);
+    auto step0 = make_index_max_min<is_max, true>(gpu_res_vec, tupOp);
+    auto step1 = make_index_max_min<is_max, false>(rs, gpu_res_vec);
+    if constexpr (localMemSize == 0) {
+      const scalar_t val = is_max ? std::numeric_limits<scalar_t>::min()
+                                  : std::numeric_limits<scalar_t>::max();
+      const index_t idx = std::numeric_limits<index_t>::max();
+      tuple_t init{idx, val};
+      const std::vector<tuple_t> init_vec(memory_size, init);
+      // initialize the intermediate memory so that in case the
+      // min_sub_group size is not the same as the actual sub_group
+      // size used at runtime, the implementation does not use
+      // garbage values to effect the correctness of the output.
+      ret = typename sb_handle_t::event_t{helper::copy_to_device(
+          q, init_vec.data(), gpu_res, memory_size, _dependencies)};
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(step0, static_cast<index_t>(localSize),
+                                 _nWG * static_cast<index_t>(localSize), ret));
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(step1, min_sg_size, min_sg_size, ret));
+    } else {
+      ret =
+          sb_handle.execute(step0, static_cast<index_t>(localSize),
+                            _nWG * static_cast<index_t>(localSize),
+                            static_cast<index_t>(localMemSize), _dependencies);
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(step1, static_cast<index_t>(localSize),
+                                 static_cast<index_t>(localSize),
+                                 static_cast<index_t>(localMemSize), ret));
+    }
+    sb_handle.template release_temp_mem({*ret.rbegin()}, gpu_res);
+  }
+  return ret;
+}
+
+/**
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
@@ -258,17 +389,14 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  typename VectorViewType<container_t, index_t, increment_t>::type vx =
-      make_vector_view(_vx, _incx, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-  const auto localSize = sb_handle.get_work_group_size();
-  const auto nWG = 2 * localSize;
-  auto tupOp = make_tuple_op(vx);
-  auto assignOp = make_assign_reduction<IMaxOperator>(rs, tupOp, localSize,
-                                                      localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
-  return ret;
+  if (_incx < 0 || _N < 0) {
+    index_t out = 0;
+    return typename sb_handle_t::event_t{
+        helper::fill(sb_handle.get_queue(), _rs, out, 1, _dependencies)};
+  } else {
+    return blas::iamax::backend::_iamax(sb_handle, _N, _vx, _incx, _rs,
+                                        _dependencies);
+  }
 }
 
 /**
@@ -283,18 +411,14 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  typename VectorViewType<container_t, index_t, increment_t>::type vx =
-      make_vector_view(_vx, _incx, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-
-  const auto localSize = sb_handle.get_work_group_size();
-  const auto nWG = 2 * localSize;
-  auto tupOp = make_tuple_op(vx);
-  auto assignOp = make_assign_reduction<IMinOperator>(rs, tupOp, localSize,
-                                                      localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
-  return ret;
+  if (_incx < 0 || _N < 0) {
+    index_t out = 0;
+    return typename sb_handle_t::event_t{
+        helper::fill(sb_handle.get_queue(), _rs, out, 1, _dependencies)};
+  } else {
+    return blas::iamin::backend::_iamin(sb_handle, _N, _vx, _incx, _rs,
+                                        _dependencies);
+  }
 }
 
 /**
@@ -348,6 +472,58 @@ typename sb_handle_t::event_t _scal(
 }
 
 /**
+ * \brief SCALAR operation on a matrix
+ * @param sb_handle_t sb_handle
+ * @param _M number of matrix rows
+ * @param _N number of matrix columns
+ * @param alpha scaling scalar
+ * @param _A Input/Output BufferIterator or USM pointer matrix
+ * @param _incA Increment for the matrix A
+ * @param _lda Leading dimension for the matrix A
+ * @param _dependencies Vector of events
+ */
+template <typename sb_handle_t, typename element_t, typename container_0_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies) {
+  if (_incA == index_t(1)) {
+    return _scal_matrix_impl<false>(sb_handle, _M, _N, _alpha, _A, _lda, _incA,
+                                    _dependencies);
+  } else {
+    return _scal_matrix_impl<true>(sb_handle, _M, _N, _alpha, _A, _lda, _incA,
+                                   _dependencies);
+  }
+}
+
+/**
+ * \brief Internal implementation of Matrix scaling
+ * @tparam has_inc Whether matrix has an increment != 1
+ *
+ * Remaining parameters match internal::_scal_matrix parameters (see above)
+ */
+template <bool has_inc, typename sb_handle_t, typename element_t,
+          typename container_0_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix_impl(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename MatrixViewType<container_0_t, index_t, col_major, has_inc>::type
+      m_view = make_matrix_view<col_major, element_t, index_t, has_inc>(
+          _A, _M, _N, _lda, _incA);
+  if (_alpha == element_t{1}) {
+    return _dependencies;
+  } else {
+    auto scal_op = make_op<ScalarOp, ProductOperator>(_alpha, m_view);
+    auto copy_op = make_op<Assign>(m_view, scal_op);
+    typename sb_handle_t::event_t ret =
+        sb_handle.execute(copy_op, _dependencies);
+    return ret;
+  }
+}
+
+/**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
@@ -374,16 +550,25 @@ typename sb_handle_t::event_t _nrm2(
  * the platform being compiled for and other parameters, provides different
  * template parameters to ensure the most optimal kernel is constructed.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. Automatically managed memory
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly by default.
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t, typename index_t,
-          typename increment_t>
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t number_WG,
@@ -394,7 +579,8 @@ typename sb_handle_t::event_t _nrm2_impl(
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
 
-  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto assignOp =
+      make_wg_atomic_reduction<AddOperator, usmManagedMem>(rs, prdOp);
   typename sb_handle_t::event_t ret0;
   if constexpr (localMemSize != 0) {
     ret0 = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
@@ -422,15 +608,25 @@ typename sb_handle_t::event_t _nrm2_impl(
  * different template parameters / configuration to ensure the adequate kernel
  * is called.
  *
- * @tparam localSize  specifies the number of threads per work group used by
- *                    the kernel
- * @tparam localMemSize specifies the size of local shared memory to use, which
+ * @tparam localSize    Specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam localMemSize Specifies the size of local shared memory to use, which
  *                      is device and implementation dependent. If 0 the
  *                      implementation use a kernel implementation which doesn't
  *                      require local memory.
+ * @tparam usmManagedMem Specifies if usm memory allocation is automatically
+ *                       managed  or not. Automatically managed memory
+ *                       requires that atomic address space is set to generic.
+ *                       This is a strict requirement only for AMD GPUs, since
+ *                       AMD's implementation of atomics may depend on specific
+ *                       hardware configurations (PCIe atomics) that cannot be
+ *                       checked at runtime. Other targets do not have the same
+ *                       strong dependency and managed memory is handled
+ *                       correctly by default.
+
  */
-template <int localSize, int localMemSize, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
+template <int localSize, int localMemSize, bool usmManagedMem,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
@@ -440,24 +636,24 @@ typename sb_handle_t::event_t _dot_impl(
   typename sb_handle_t::event_t ret_event;
   // Skip if N==0, _rs is not overwritten
   if (!_N) return {_dependencies};
-
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
   auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
-  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto wgReductionOp =
+      make_wg_atomic_reduction<AddOperator, usmManagedMem>(rs, prdOp);
 
   if constexpr (localMemSize) {
     ret_event =
-        sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+        sb_handle.execute(wgReductionOp, static_cast<index_t>(localSize),
                           static_cast<index_t>(_number_wg * localSize),
                           static_cast<index_t>(localMemSize), _dependencies);
   } else {
-    ret_event = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
-                                  static_cast<index_t>(_number_wg * localSize),
-                                  _dependencies);
+    ret_event = sb_handle.execute(
+        wgReductionOp, static_cast<index_t>(localSize),
+        static_cast<index_t>(_number_wg * localSize), _dependencies);
   }
   return ret_event;
 }
@@ -759,6 +955,7 @@ typename ValueType<container_0_t>::type _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{0};
@@ -781,6 +978,10 @@ typename ValueType<container_0_t>::type _dot(
                             : helper::AllocType::buffer>(gpu_res,
                                                          sb_handle.get_queue());
   return res;
+#else
+  throw std::runtime_error(
+      "Dot is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 /**
@@ -846,21 +1047,20 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
-  using IndValTuple = IndexValueTuple<index_t, element_t>;
-  std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
+  index_t rsT{-1};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
-       IndValTuple > (static_cast<index_t>(1), sb_handle.get_queue());
+       index_t > (static_cast<index_t>(1), sb_handle.get_queue());
   auto iamax_event =
       blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(iamax_event);
-  auto event = blas::helper::copy_to_host<IndValTuple>(sb_handle.get_queue(),
-                                                       gpu_res, rsT.data(), 1);
+  auto event = blas::helper::copy_to_host<index_t>(sb_handle.get_queue(),
+                                                   gpu_res, &rsT, 1);
   sb_handle.wait(event);
   blas::helper::deallocate<is_usm ? helper::AllocType::usm
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
-  return rsT[0].get_index();
+  return rsT;
 }
 
 /**
@@ -876,21 +1076,20 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
-  using IndValTuple = IndexValueTuple<index_t, element_t>;
-  std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
+  index_t rsT{-1};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
-       IndValTuple > (static_cast<index_t>(1), sb_handle.get_queue());
+       index_t > (static_cast<index_t>(1), sb_handle.get_queue());
   auto iamin_event =
       blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(iamin_event);
   auto event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &rsT, 1);
   sb_handle.wait(event);
   blas::helper::deallocate<is_usm ? helper::AllocType::usm
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
-  return rsT[0].get_index();
+  return rsT;
 }
 
 /**
@@ -906,6 +1105,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _asum(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -926,6 +1126,10 @@ typename ValueType<container_t>::type _asum(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res[0];
+#else
+  throw std::runtime_error(
+      "Asum is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 /**
@@ -941,6 +1145,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -960,6 +1165,10 @@ typename ValueType<container_t>::type _nrm2(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res[0];
+#else
+  throw std::runtime_error(
+      "Nrm2 is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 }  // namespace internal
