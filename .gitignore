@@ -84,7 +84,6 @@ local.properties
 .springBeans
 
 # CMake generated files
-tools/computecpp_info/common_device_compiler_flags.h
 build/
 
 # Doxygen
