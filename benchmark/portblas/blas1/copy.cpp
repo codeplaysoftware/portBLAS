@@ -88,7 +88,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event =
         blas::_copy<blas::SB_Handle, index_t, decltype(x_gpu), decltype(y_gpu),
                     index_t>(sb_handle, size, x_gpu, incx, y_gpu, incy);

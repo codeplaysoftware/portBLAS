@@ -33,11 +33,11 @@
 #endif /* ifdef VERBOSE */
 
 #ifndef SYCL_DEVICE
-#define SYCL_DEVICE_SELECTOR cl::sycl::default_selector
+#define SYCL_DEVICE_SELECTOR sycl::default_selector
 #else
 #define PASTER(x, y) x##y
 #define EVALUATOR(x, y) PASTER(x, y)
-#define SYCL_DEVICE_SELECTOR cl::sycl::EVALUATOR(SYCL_DEVICE, _selector)
+#define SYCL_DEVICE_SELECTOR sycl::EVALUATOR(SYCL_DEVICE, _selector)
 #undef PASTER
 #undef EVALUATOR
 #endif /* ifndef SYCL_DEVICE */
@@ -73,33 +73,33 @@
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
 #ifdef BLAS_ENABLE_HALF
-/** Registers test for the cl::sycl::half type
+/** Registers test for the sycl::half type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
 #define BLAS_REGISTER_TEST_HALF_CUSTOM_NAME(test_suite, class_name,        \
                                             test_function, combination_t,  \
                                             combination, name_generator)   \
   class class_name##Half                                                   \
-      : public ::testing::TestWithParam<combination_t<cl::sycl::half>> {}; \
+      : public ::testing::TestWithParam<combination_t<sycl::half>> {}; \
   TEST_P(class_name##Half, test) {                                         \
-    test_function<cl::sycl::half>(GetParam());                             \
+    test_function<sycl::half>(GetParam());                             \
   };                                                                       \
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Half,                   \
-                           combination<cl::sycl::half>,                    \
-                           name_generator<cl::sycl::half>);
+                           combination<sycl::half>,                    \
+                           name_generator<sycl::half>);
 
-/** Registers test for the cl::sycl::half input type & float output type
+/** Registers test for the sycl::half input type & float output type
  * @see BLAS_REGISTER_GEMM_TEST_CUSTOM_NAME
  */
 #define BLAS_REGISTER_TEST_HALF_FLOAT_CUSTOM_NAME(                            \
     test_suite, class_name, test_function, combination_t, combination,        \
     name_generator)                                                           \
   class class_name##Half                                                      \
-      : public ::testing::TestWithParam<combination_t<cl::sycl::half>> {};    \
+      : public ::testing::TestWithParam<combination_t<sycl::half>> {};    \
   TEST_P(class_name##Half, test) { test_function(GetParam()); };              \
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Half,                      \
-                           combination<cl::sycl::half>,                       \
-                           name_generator<cl::sycl::half>);                   \
+                           combination<sycl::half>,                       \
+                           name_generator<sycl::half>);                   \
                                                                               \
   class class_name##Float                                                     \
       : public ::testing::TestWithParam<combination_t<float>> {};             \
@@ -189,7 +189,7 @@
                                         test_function, combination_t,     \
                                         combination, name_generator);     \
   BLAS_REGISTER_TEST_HALF_FLOAT_CUSTOM_NAME(                              \
-      test_suite, class_name##Half, test_function<cl::sycl::half>,        \
+      test_suite, class_name##Half, test_function<sycl::half>,        \
       combination_t, combination, name_generator);
 
 #ifdef BLAS_ENABLE_COMPLEX

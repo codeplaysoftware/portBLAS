@@ -98,7 +98,7 @@ PORTBLAS_INLINE typename Txsv<vector_t, matrix_t, sync_t, matrix_format,
                                is_transposed, is_unitdiag>::value_t
 Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
      is_upper, is_transposed, is_unitdiag>::eval(local_memory_t local_mem,
-                                                 cl::sycl::nd_item<1> ndItem) {
+                                                 sycl::nd_item<1> ndItem) {
   value_t ret = 0;
 #if (SYCL_LANGUAGE_VERSION >= 202000) && !(defined __ADAPTIVECPP__)
 
@@ -137,9 +137,9 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
   value_t *const par_x = loc_x + loc_x_dim + loc_x_dim * l_idy;
   value_t *const loc_recip = loc_x + loc_x_dim;
 
-  auto a = cl::sycl::atomic_ref<int32_t, cl::sycl::memory_order::relaxed,
-                                cl::sycl::memory_scope::device,
-                                cl::sycl::access::address_space::global_space>(
+  auto a = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed,
+                                sycl::memory_scope::device,
+                                sycl::access::address_space::global_space>(
       sync_.eval(0));
 
   // Get the wg_id of actual workgroup
@@ -185,7 +185,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
   volatile int32_t *p = &sync_.eval(1);
   int32_t ready_block =
       (l_idy == 0)
-          ? cl::sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p)
+          ? sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p)
           : 0;
 
   const index_t steps =
@@ -210,7 +210,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
       while (!((is_forward && (curr_block < ready_block)) ||
                (!is_forward && (curr_block > ready_block))))
         ready_block =
-            cl::sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p);
+            sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p);
 
       loc_x[l_idx] = (curr_offset < _N) ? lhs_.eval(curr_offset) : value_t(0);
     }
@@ -220,7 +220,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
     curr_col = next_col;
     curr_row = next_row;
 
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    ndItem.barrier(sycl::access::fence_space::local_space);
 
     // Multiply current block
     {
@@ -233,7 +233,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
       }
     }
 
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    ndItem.barrier(sycl::access::fence_space::local_space);
 
     // Copy next block to local memory
     {
@@ -254,7 +254,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
       (l_idx < priv_y_dim * (l_idy + 1)))
     loc_recip[l_idx] = value_t(1) / (loc_A[l_lda * l_idx + l_idx]);
 
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   if (l_idy == 0) {
 // Accumulate partial values
@@ -272,7 +272,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
     for (index_t _it = 0; _it < loc_x_dim; ++_it) {
       const index_t l_diag = is_forward ? _it : (loc_x_dim - 1 - _it);
 
-      r_diag = cl::sycl::group_broadcast(ndItem.get_sub_group(),
+      r_diag = sycl::group_broadcast(ndItem.get_sub_group(),
                                          is_unitdiag ? r_x : r_x * A_diag_recip,
                                          l_diag);
       _A = (is_transposed) ? loc_A[l_lda * l_idx + l_diag]
@@ -286,14 +286,14 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
     if (g_idx < _N) *lhs_p = ret = loc_x[l_idx];
   }
 
-  cl::sycl::atomic_fence(cl::sycl::memory_order::seq_cst,
-                         cl::sycl::memory_scope::device);
+  sycl::atomic_fence(sycl::memory_order::seq_cst,
+                         sycl::memory_scope::device);
 
   volatile int32_t *sync = sync_.get_pointer() + 1;
   if (!not_wi0) *sync = wg_id + (is_forward ? 1 : -1);
 
-  cl::sycl::atomic_fence(cl::sycl::memory_order::seq_cst,
-                         cl::sycl::memory_scope::device);
+  sycl::atomic_fence(sycl::memory_order::seq_cst,
+                         sycl::memory_scope::device);
 
 #endif
   return ret;
@@ -305,7 +305,7 @@ template <typename vector_t, typename matrix_t, typename sync_t,
           bool is_unitdiag>
 PORTBLAS_INLINE void
 Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
-     is_upper, is_transposed, is_unitdiag>::bind(cl::sycl::handler &h) {
+     is_upper, is_transposed, is_unitdiag>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   sync_.bind(h);

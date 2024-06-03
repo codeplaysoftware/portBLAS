@@ -69,7 +69,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_transposed>
 PORTBLAS_INLINE bool
 Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   // Valid threads are established by ::eval.
   return true;
 }
@@ -79,7 +79,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
 PORTBLAS_INLINE typename Gbmv<lhs_t, matrix_t, vector_t, local_range,
                                is_transposed>::value_t
 Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   const index_t lhs_idx = ndItem.get_global_id(0);
   value_t val = 0;
 
@@ -87,9 +87,9 @@ Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::eval(
     const index_t k_lower = is_transposed ? ku_ : kl_;
     const index_t k_upper = is_transposed ? kl_ : ku_;
 
-    const index_t k_beg = cl::sycl::max(index_t(0), lhs_idx - k_lower);
+    const index_t k_beg = sycl::max(index_t(0), lhs_idx - k_lower);
     const index_t k_end =
-        cl::sycl::min(vector_.get_size(), lhs_idx + k_upper + 1);
+        sycl::min(vector_.get_size(), lhs_idx + k_upper + 1);
     const index_t k_off = ku_ + (is_transposed ? -lhs_idx : lhs_idx);
 
     for (index_t s_idx = k_beg; s_idx < k_end; ++s_idx) {
@@ -110,7 +110,7 @@ Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::eval(
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_transposed>
 PORTBLAS_INLINE void Gbmv<lhs_t, matrix_t, vector_t, local_range,
-                           is_transposed>::bind(cl::sycl::handler &h) {
+                           is_transposed>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);

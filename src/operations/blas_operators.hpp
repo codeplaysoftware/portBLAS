@@ -32,7 +32,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "operations/blas_constants.hpp"
 #include "operations/blas_operators.h"
@@ -52,10 +52,9 @@ struct Operators {};
 struct AbsoluteValue {
 #ifdef BLAS_ENABLE_HALF
   template <typename value_t>
-  using is_floating_point =
-      std::integral_constant<bool,
-                             std::is_floating_point<value_t>::value ||
-                                 std::is_same<value_t, cl::sycl::half>::value>;
+  using is_floating_point = std::integral_constant<
+      bool, std::is_floating_point<value_t>::value ||
+                std::is_same<value_t, sycl::half>::value>;
 #else
   template <typename value_t>
   using is_floating_point = std::is_floating_point<value_t>;
@@ -65,14 +64,14 @@ struct AbsoluteValue {
   static PORTBLAS_INLINE value_t eval(
       const value_t &val,
       typename std::enable_if<!is_floating_point<value_t>::value>::type * = 0) {
-    return cl::sycl::abs(val);
+    return sycl::abs(val);
   }
 
   template <typename value_t>
   static PORTBLAS_INLINE value_t
   eval(const value_t &val,
        typename std::enable_if<is_floating_point<value_t>::value>::type * = 0) {
-    return cl::sycl::fabs(val);
+    return sycl::fabs(val);
   }
 };
 
@@ -103,7 +102,7 @@ struct IdentityOperator : public Operators {
 struct SignOperator : public Operators {
   template <typename rhs_t>
   static PORTBLAS_INLINE rhs_t eval(const rhs_t r) {
-    return cl::sycl::sign(r);
+    return sycl::sign(r);
   }
 };
 
@@ -117,14 +116,14 @@ struct NegationOperator : public Operators {
 struct SqrtOperator : public Operators {
   template <typename rhs_t>
   static PORTBLAS_INLINE rhs_t eval(const rhs_t r) {
-    return (cl::sycl::sqrt(r));
+    return (sycl::sqrt(r));
   }
 };
 
 struct HypotenuseOperator : public Operators {
   template <typename lhs_t, typename rhs_t>
   static PORTBLAS_INLINE rhs_t eval(const lhs_t l, const rhs_t r) {
-    return (cl::sycl::hypot(l, r));
+    return (sycl::hypot(l, r));
   }
 };
 

@@ -113,7 +113,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = extension::_reduction<AddOperator, scalar_t>(
         sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim);
     sb_handle.wait(event);

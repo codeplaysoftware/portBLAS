@@ -27,7 +27,7 @@
 #define PORTBLAS_BLAS1_TREES_H
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.h"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <stdexcept>
 #include <vector>
 
@@ -44,10 +44,10 @@ struct Join {
 
   Join(lhs_t &_l, rhs_t _r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -61,10 +61,10 @@ struct Assign {
   rhs_t rhs_;
   Assign(lhs_t &_l, rhs_t _r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -81,10 +81,10 @@ struct DoubleAssign {
   rhs_2_t rhs_2_;
   DoubleAssign(lhs_1_t &_l1, lhs_2_t &_l2, rhs_1_t _r1, rhs_2_t _r2);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -100,10 +100,10 @@ struct ScalarOp {
   rhs_t rhs_;
   ScalarOp(scalar_t _scl, rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -117,10 +117,10 @@ struct UnaryOp {
   rhs_t rhs_;
   UnaryOp(rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -135,10 +135,10 @@ struct BinaryOp {
   rhs_t rhs_;
   BinaryOp(lhs_t &_l, rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -153,10 +153,10 @@ struct BinaryOpConst {
   rhs_t rhs_;
   BinaryOpConst(lhs_t &_l, rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i) const;
-  value_t eval(cl::sycl::nd_item<1> ndItem) const;
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem) const;
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -170,10 +170,10 @@ struct TupleOp {
   rhs_t rhs_;
   TupleOp(rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -191,12 +191,12 @@ struct AssignReduction {
   index_t global_num_thread_;  // grid  size
   AssignReduction(lhs_t &_l, rhs_t &_r, index_t _blqS, index_t _grdS);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT scratch, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT scratch, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -217,11 +217,11 @@ struct WGAtomicReduction {
   rhs_t rhs_;
   WGAtomicReduction(lhs_t &_l, rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT scratch, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT scratch, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -247,11 +247,11 @@ struct IndexMaxMin {
   rhs_t rhs_;
   IndexMaxMin(lhs_t &_l, rhs_t &_r);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  void eval(cl::sycl::nd_item<1> ndItem);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  void eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  void eval(sharedT scratch, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  void eval(sharedT scratch, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -269,9 +269,9 @@ struct Rotg {
   Rotg(operand_t &a, operand_t &b, operand_t &c, operand_t &s);
   index_t get_size() const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -291,9 +291,9 @@ struct Rotmg {
         operand_t &param);
   index_t get_size() const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 

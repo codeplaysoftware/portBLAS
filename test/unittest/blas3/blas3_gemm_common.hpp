@@ -118,8 +118,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_out_t> arguments) {
 
   auto q = make_queue();
 
-  if (std::is_same_v<scalar_in_t, cl::sycl::half> &&
-      !q.get_device().has(cl::sycl::aspect::fp16)) {
+  if (std::is_same_v<scalar_in_t, sycl::half> &&
+      !q.get_device().has(sycl::aspect::fp16)) {
     GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
   }
   blas::SB_Handle sb_handle(q);
@@ -314,8 +314,8 @@ inline void verify_gemm(
 
   auto q = make_queue();
 
-  if (std::is_same_v<scalar_in_t, cl::sycl::half> &&
-      !q.get_device().has(cl::sycl::aspect::fp16)) {
+  if (std::is_same_v<scalar_in_t, sycl::half> &&
+      !q.get_device().has(sycl::aspect::fp16)) {
     GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
   }
 

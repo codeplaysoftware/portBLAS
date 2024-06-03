@@ -46,7 +46,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
 
-  // Make sure cl::sycl::half can hold the result of the dot product
+  // Make sure sycl::half can hold the result of the dot product
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [=](scalar_t x) { return x / v1.size(); });
 
@@ -85,7 +85,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _dot(sb_handle, size, inx, static_cast<index_t>(1), iny,
                       static_cast<index_t>(1), inr);
     sb_handle.wait(event);

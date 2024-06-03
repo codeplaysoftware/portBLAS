@@ -67,9 +67,9 @@ struct Axpy_batch {
              index_t _inc_l, index_t _lhs_stride, index_t _inc_r,
              index_t _rhs_stride, index_t _batch_size);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 

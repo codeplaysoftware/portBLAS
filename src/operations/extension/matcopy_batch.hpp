@@ -199,7 +199,7 @@ template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
 typename lhs_t::value_t
 Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   const index_t m{m_};
   const index_t n{n_};
 
@@ -239,7 +239,7 @@ Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>::eval(
 template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
 PORTBLAS_INLINE void Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
-                                   rhs_2_t>::bind(cl::sycl::handler& h) {
+                                   rhs_2_t>::bind(sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
@@ -265,7 +265,7 @@ template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
 PORTBLAS_INLINE bool
 Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 }  // namespace blas

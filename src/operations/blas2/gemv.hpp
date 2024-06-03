@@ -25,6 +25,7 @@
 
 #ifndef GEMV_HPP
 #define GEMV_HPP
+
 #include "operations/blas2_trees.h"
 #include "operations/blas_operators.hpp"
 #include "views/view_sycl.hpp"
@@ -47,7 +48,7 @@ SumMatrixColumns<rhs_t>::get_size() const {
 
 template <typename rhs_t>
 PORTBLAS_INLINE bool SumMatrixColumns<rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
 
@@ -68,12 +69,12 @@ SumMatrixColumns<rhs_t>::eval(typename SumMatrixColumns<rhs_t>::index_t i) {
 
 template <typename rhs_t>
 PORTBLAS_INLINE typename SumMatrixColumns<rhs_t>::value_t
-SumMatrixColumns<rhs_t>::eval(cl::sycl::nd_item<1> ndItem) const {
+SumMatrixColumns<rhs_t>::eval(sycl::nd_item<1> ndItem) const {
   return eval(ndItem.get_global_id(0));
 }
 
 template <typename rhs_t>
-PORTBLAS_INLINE void SumMatrixColumns<rhs_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void SumMatrixColumns<rhs_t>::bind(sycl::handler &h) {
   rhs_.bind(h);
 }
 
@@ -111,7 +112,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           int work_per_thread>
 PORTBLAS_INLINE bool
 Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
-     work_per_thread>::valid_thread(cl::sycl::nd_item<1>) const {
+     work_per_thread>::valid_thread(sycl::nd_item<1>) const {
   return true;
 }
 
@@ -129,7 +130,7 @@ PORTBLAS_INLINE
     typename Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed,
                   cache_line_size, work_per_thread>::value_t
     Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
-         work_per_thread>::eval(cl::sycl::nd_item<1> ndItem) {
+         work_per_thread>::eval(sycl::nd_item<1> ndItem) {
   const index_t local_id = ndItem.get_local_id(0);
   const index_t group_id = ndItem.get_group(0);
   const index_t group_range = ndItem.get_group_range(0);
@@ -157,7 +158,7 @@ PORTBLAS_INLINE
 
     sum = 0;
     for (index_t col_id = 0; col_id < contract_dim; ++col_id) {
-      sum = cl::sycl::mad(matrix_a_.template eval<true>(non_contract_dim_index),
+      sum = sycl::mad(matrix_a_.template eval<true>(non_contract_dim_index),
                           vector_x_.eval(col_id), sum);
       non_contract_dim_index += contract_stride;
     }
@@ -182,7 +183,7 @@ PORTBLAS_INLINE
                   cache_line_size, work_per_thread>::value_t
     Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
          work_per_thread>::eval(local_memory_t local_mem,
-                                cl::sycl::nd_item<1> ndItem) {
+                                sycl::nd_item<1> ndItem) {
   const index_t local_id = ndItem.get_local_id(0);
   const index_t group_id = ndItem.get_group(0);
 
@@ -206,7 +207,7 @@ PORTBLAS_INLINE
                                  : value_t{0};
 
   // Barrier to ensure whole portion of vector X is in local memory
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   // Non-contracting dimension index
   const index_t nc_dim_index = local_id + nc_group_id * local_range;
@@ -225,12 +226,12 @@ PORTBLAS_INLINE
     // Calculate the matrix index
     index_t mat_index = nc_dim_index + c_group_id * local_range * lda;
 
-    const index_t last_c_dim_id = cl::sycl::min(
+    const index_t last_c_dim_id = sycl::min(
         index_t(c_dim - c_group_id * local_range), index_t(local_range));
 
     // Computes the partial dot product for a row
     for (index_t c_dim_id = 0; c_dim_id < last_c_dim_id; ++c_dim_id) {
-      sum = cl::sycl::mad(matrix_a_.template eval<true>(mat_index),
+      sum = sycl::mad(matrix_a_.template eval<true>(mat_index),
                           vector_scratch[c_dim_id], sum);
       mat_index += lda;
     }
@@ -252,19 +253,19 @@ PORTBLAS_INLINE
       extract_input_block(matrix_scratch, local_id, group_id, lda, c_tile_id);
 
       // Ensure memory synchronization within work group
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       index_t mat_index = local_id;
 
 #pragma unroll
       for (index_t c_dim_id = 0; c_dim_id < cl_elems; ++c_dim_id) {
-        sum = cl::sycl::mad(matrix_scratch[mat_index], *vector_scratch++, sum);
+        sum = sycl::mad(matrix_scratch[mat_index], *vector_scratch++, sum);
 
         mat_index += local_range + 1;  // Adding one as bank offset
       }
 
       // Ensure memory synchronization within work group
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
     }
 
     const index_t out_index = nc_dim_index + (c_group_id * nc_dim);
@@ -352,7 +353,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           int work_per_thread>
 PORTBLAS_INLINE void
 Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
-     work_per_thread>::bind(cl::sycl::handler &h) {
+     work_per_thread>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_a_.bind(h);
   vector_x_.bind(h);
@@ -405,7 +406,7 @@ template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
 PORTBLAS_INLINE bool
 GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-        vector_t>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+        vector_t>::valid_thread(sycl::nd_item<1> ndItem) const {
   return true;
 }
 
@@ -435,7 +436,7 @@ template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
 PORTBLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
                                   matrix_t, vector_t>::value_t
 GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   using index_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
                                    matrix_t, vector_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -456,10 +457,10 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       ((dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_)) * localSz;
 
   index_t frs_row = idWFR * rowSz;
-  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + rowSz));
+  index_t lst_row = sycl::min(index_t(dimR), index_t(frs_row + rowSz));
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
-  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + dimWFC));
+  index_t lst_col = sycl::min(index_t(dimC), index_t(frs_col + dimWFC));
 
   index_t id_col_thr = idWFC * localSz + localid;
 
@@ -519,15 +520,15 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
           // If the row length isn't a multiple of localSz * interLoop
           // we need to go for fewer columns. Pick the min.
           auto lst_k_int =
-              cl::sycl::min(index_t(id_col + interLoop), index_t(lst_col));
+              sycl::min(index_t(id_col + interLoop), index_t(lst_col));
           // Handle lower diagonal etc
           for (index_t k_int =
                    ((Lower) ? id_col
-                            : cl::sycl::max(
+                            : sycl::max(
                                   index_t(row + ((!Diag || Unit) ? 1 : 0)),
                                   index_t(id_col)));
                k_int < ((Upper) ? lst_k_int
-                                : cl::sycl::min(
+                                : sycl::min(
                                       index_t(row + ((!Diag || Unit) ? 0 : 1)),
                                       index_t(lst_k_int)));
                k_int++) {
@@ -557,7 +558,7 @@ template <typename local_memory_t>
 PORTBLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
                                   matrix_t, vector_t>::value_t
 GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
-    local_memory_t shrMem, cl::sycl::nd_item<1> ndItem) {
+    local_memory_t shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
                                    matrix_t, vector_t>::index_t;
   using value_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
@@ -580,10 +581,10 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       ((dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_)) * localSz;
 
   index_t frs_row = idWFR * rowSz;
-  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + rowSz));
+  index_t lst_row = sycl::min(index_t(dimR), index_t(frs_row + rowSz));
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
-  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + dimWFC));
+  index_t lst_col = sycl::min(index_t(dimC), index_t(frs_col + dimWFC));
   // TODO(Peter): This should be constexpr once half supports it
   static const value_t init_val = AddOperator::template init<vector_t>();
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
@@ -600,7 +601,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
   } else {
     for (index_t rowid = frs_row; rowid < lst_row; rowid += shrSz) {
       value_t val = init_val;
-      auto blqSz = cl::sycl::min(index_t(shrSz), index_t(lst_row - rowid));
+      auto blqSz = sycl::min(index_t(shrSz), index_t(lst_row - rowid));
       if (interLoop == 1) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
           val = (Diag && Unit &&
@@ -631,7 +632,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                id_col += localSz * interLoop) {
             for (index_t k_int = id_col;
                  k_int <
-                 cl::sycl::min(index_t(id_col + interLoop), index_t(lst_col));
+                 sycl::min(index_t(id_col + interLoop), index_t(lst_col));
                  k_int++) {
               if (Lower && Upper && Diag && !Unit) {
                 auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
@@ -657,7 +658,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
       // Reduction inside the block
       for (index_t offset = localSz >> 1; offset > 0; offset >>= 1) {
         if (localid < offset) {
@@ -669,7 +670,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         }
         // This barrier is mandatory to be sure the data are on the shared
         // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        ndItem.barrier(sycl::access::fence_space::local_space);
       }
       if (localid == 0) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
@@ -684,7 +685,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
 PORTBLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
-                              matrix_t, vector_t>::bind(cl::sycl::handler &h) {
+                              matrix_t, vector_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);
@@ -734,7 +735,7 @@ template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
           typename matrix_t, typename vector_t>
 PORTBLAS_INLINE bool
 GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 
@@ -758,7 +759,7 @@ template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
 PORTBLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
                                   vector_t>::value_t
 GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   using index_t = typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
                                    vector_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -775,10 +776,10 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
-  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + dimWFR));
+  index_t lst_row = sycl::min(index_t(dimR), index_t(frs_row + dimWFR));
 
   index_t frs_col = idWFC * colSz;
-  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + colSz));
+  index_t lst_col = sycl::min(index_t(dimC), index_t(frs_col + colSz));
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
   if ((!Upper &&
@@ -798,11 +799,11 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       for (index_t id_col =
                ((Lower)
                     ? frs_col
-                    : cl::sycl::max(index_t(rowid + ((!Diag || Unit) ? 1 : 0)),
+                    : sycl::max(index_t(rowid + ((!Diag || Unit) ? 1 : 0)),
                                     index_t(frs_col)));
            id_col <
            ((Upper) ? lst_col
-                    : cl::sycl::min(index_t(rowid + ((!Diag || Unit) ? 0 : 1)),
+                    : sycl::min(index_t(rowid + ((!Diag || Unit) ? 0 : 1)),
                                     index_t(lst_col)));
            id_col++) {
         auto prod = ProductOperator::eval(matrix_.eval(rowid, id_col),
@@ -823,7 +824,7 @@ template <typename local_memory_t>
 PORTBLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
                                   vector_t>::value_t
 GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
-    local_memory_t shrMem, cl::sycl::nd_item<1> ndItem) {
+    local_memory_t shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
                                    vector_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -840,10 +841,10 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
-  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + dimWFR));
+  index_t lst_row = sycl::min(index_t(dimR), index_t(frs_row + dimWFR));
 
   index_t frs_col = idWFC * colSz;
-  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + colSz));
+  index_t lst_col = sycl::min(index_t(dimC), index_t(frs_col + colSz));
 
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
@@ -861,17 +862,17 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       if (colid > frs_col) {
         // This barrier is mandatory to be sure the data is on the shared
         // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        ndItem.barrier(sycl::access::fence_space::local_space);
       }
       auto blqSz =
-          cl::sycl::min(index_t(local_memory_size_), index_t(lst_col - colid));
+          sycl::min(index_t(local_memory_size_), index_t(lst_col - colid));
       // Copy a block of elements of vector_ vector_ to the shared memory,
       // executing the expresion tree if it is needed
       for (index_t col = localid; (col < blqSz); col += localSz) {
         shrMem[col] = vector_.eval(colid + col);
       }
       // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       // The product is computed
       for (index_t rowid = frs_row; rowid < lst_row; rowid += localSz) {
@@ -906,7 +907,7 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
           typename matrix_t, typename vector_t>
 PORTBLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-                              vector_t>::bind(cl::sycl::handler &h) {
+                              vector_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);

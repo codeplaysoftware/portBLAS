@@ -27,7 +27,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 namespace blas {
 namespace helper {
@@ -54,31 +54,31 @@ struct AllocHelper<value_t, AllocType::buffer> {
 template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::usm,
                         typename AllocHelper<value_t, alloc>::type>::type
-allocate(int size, cl::sycl::queue q) {
-  return cl::sycl::malloc_device<value_t>(size, q);
+allocate(int size, sycl::queue q) {
+  return sycl::malloc_device<value_t>(size, q);
 }
 #endif
 
 template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::buffer,
                         typename AllocHelper<value_t, alloc>::type>::type
-allocate(int size, cl::sycl::queue q) {
+allocate(int size, sycl::queue q) {
   return make_sycl_iterator_buffer<value_t>(size);
 }
 
 #ifdef SB_ENABLE_USM
 template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::usm>::type deallocate(
-    container_t mem, cl::sycl::queue q) {
+    container_t mem, sycl::queue q) {
   if (mem != NULL) {
-    cl::sycl::free(reinterpret_cast<void *>(mem), q);
+    sycl::free(reinterpret_cast<void *>(mem), q);
   }
 }
 #endif
 
 template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
-    container_t mem, cl::sycl::queue q) {}
+    container_t mem, sycl::queue q) {}
 
 template <typename container_t,
           AllocType alloc = std::is_pointer<container_t>::value
@@ -94,12 +94,12 @@ template <typename container_t>
 typename std::enable_if<std::is_same<
     container_t, typename AllocHelper<typename ValueType<container_t>::type,
                                       AllocType::usm>::type>::value>::type
-enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
-                   cl::sycl::queue q) {
+enqueue_deallocate(std::vector<sycl::event> dependencies, container_t mem,
+                   sycl::queue q) {
 #ifdef SB_ENABLE_USM
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
+  auto event = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(dependencies);
-    cgh.host_task([=]() { cl::sycl::free(mem, q); });
+    cgh.host_task([=]() { sycl::free(mem, q); });
   });
 #endif
   return;
@@ -109,26 +109,26 @@ template <typename container_t>
 typename std::enable_if<std::is_same<
     container_t, typename AllocHelper<typename ValueType<container_t>::type,
                                       AllocType::buffer>::type>::value>::type
-enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
-                   cl::sycl::queue q) {}
+enqueue_deallocate(std::vector<sycl::event>, container_t mem,
+                   sycl::queue q) {}
 
-inline bool has_local_memory(cl::sycl::queue &q) {
+inline bool has_local_memory(sycl::queue &q) {
   return (q.get_device()
-              .template get_info<cl::sycl::info::device::local_mem_type>() ==
-          cl::sycl::info::local_mem_type::local);
+              .template get_info<sycl::info::device::local_mem_type>() ==
+          sycl::info::local_mem_type::local);
 }
 // Force the system not to set this to bigger than 256. Using work group size
 // bigger than 256 may cause out of resource error on different platforms.
-inline size_t get_work_group_size(cl::sycl::queue &q) {
+inline size_t get_work_group_size(sycl::queue &q) {
   return std::min(
       size_t(256),
       q.get_device()
-          .template get_info<cl::sycl::info::device::max_work_group_size>());
+          .template get_info<sycl::info::device::max_work_group_size>());
 }
 
-inline size_t get_num_compute_units(cl::sycl::queue &q) {
+inline size_t get_num_compute_units(sycl::queue &q) {
   return q.get_device()
-      .template get_info<cl::sycl::info::device::max_compute_units>();
+      .template get_info<sycl::info::device::max_compute_units>();
 }
 
 /* @brief Copying the data back to device
@@ -138,11 +138,11 @@ inline size_t get_num_compute_units(cl::sycl::queue &q) {
   @param size is the number of elements to be copied
 */
 template <typename element_t>
-inline cl::sycl::event copy_to_device(
-    cl::sycl::queue q, const element_t *src, BufferIterator<element_t> dst,
-    size_t size, const std::vector<cl::sycl::event> &_dependencies = {}) {
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
-    auto acc = dst.template get_range_accessor<cl::sycl::access::mode::write>(
+inline sycl::event copy_to_device(
+    sycl::queue q, const element_t *src, BufferIterator<element_t> dst,
+    size_t size, const std::vector<sycl::event> &_dependencies = {}) {
+  auto event = q.submit([&](sycl::handler &cgh) {
+    auto acc = dst.template get_range_accessor<sycl::access::mode::write>(
         cgh, size);
     cgh.depends_on(_dependencies);
     cgh.copy(src, acc);
@@ -152,9 +152,9 @@ inline cl::sycl::event copy_to_device(
 
 #ifdef SB_ENABLE_USM
 template <typename element_t>
-inline cl::sycl::event copy_to_device(
-    cl::sycl::queue q, const element_t *src, element_t *dst, size_t size,
-    const std::vector<cl::sycl::event> &_dependencies = {}) {
+inline sycl::event copy_to_device(
+    sycl::queue q, const element_t *src, element_t *dst, size_t size,
+    const std::vector<sycl::event> &_dependencies = {}) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t), _dependencies);
   return event;
 }
@@ -167,11 +167,11 @@ inline cl::sycl::event copy_to_device(
   @param size is the number of elements to be copied
 */
 template <typename element_t>
-inline cl::sycl::event copy_to_host(cl::sycl::queue q,
+inline sycl::event copy_to_host(sycl::queue q,
                                     BufferIterator<element_t> src,
                                     element_t *dst, size_t size) {
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
-    auto acc = src.template get_range_accessor<cl::sycl::access::mode::read>(
+  auto event = q.submit([&](sycl::handler &cgh) {
+    auto acc = src.template get_range_accessor<sycl::access::mode::read>(
         cgh, size);
     cgh.copy(acc, dst);
   });
@@ -180,13 +180,13 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q,
 
 #ifdef SB_ENABLE_USM
 template <typename element_t>
-inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
+inline sycl::event copy_to_host(sycl::queue q, element_t *src,
                                     element_t *dst, size_t size) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
 template <typename element_t>
-inline cl::sycl::event copy_to_host(cl::sycl::queue q, const element_t *src,
+inline sycl::event copy_to_host(sycl::queue q, const element_t *src,
                                     element_t *dst, size_t size) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
@@ -195,12 +195,12 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q, const element_t *src,
 #endif
 
 template <typename element_t>
-inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
+inline sycl::event fill(sycl::queue q, BufferIterator<element_t> buff,
                             element_t value, size_t size,
-                            const std::vector<cl::sycl::event> &_dependencies) {
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
+                            const std::vector<sycl::event> &_dependencies) {
+  auto event = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(_dependencies);
-    auto acc = buff.template get_range_accessor<cl::sycl::access::mode::write>(
+    auto acc = buff.template get_range_accessor<sycl::access::mode::write>(
         cgh, size);
     cgh.fill(acc, value);
   });
@@ -209,10 +209,10 @@ inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
 
 #ifdef SB_ENABLE_USM
 template <typename element_t>
-inline cl::sycl::event fill(cl::sycl::queue q, element_t *buff, element_t value,
+inline sycl::event fill(sycl::queue q, element_t *buff, element_t value,
                             size_t size,
-                            const std::vector<cl::sycl::event> &dependencies) {
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
+                            const std::vector<sycl::event> &dependencies) {
+  auto event = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(dependencies);
     cgh.fill(buff, value, size);
   });
@@ -223,8 +223,8 @@ inline cl::sycl::event fill(cl::sycl::queue q, element_t *buff, element_t value,
 template <typename sb_handle_t, typename containerT>
 inline bool is_malloc_shared(sb_handle_t &sb_handle, const containerT _rs) {
   if constexpr (std::is_pointer_v<containerT>) {
-    return cl::sycl::usm::alloc::shared ==
-           cl::sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
+    return sycl::usm::alloc::shared ==
+           sycl::get_pointer_type(_rs, sb_handle.get_queue().get_context());
   } else {
     return false;
   }

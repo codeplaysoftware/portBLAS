@@ -281,12 +281,12 @@ struct DiagonalBlocksInverter {
   index_t N_;
 
   DiagonalBlocksInverter(matrix_t& A, matrix_t& invA);
-  bool valid_thread(cl::sycl::nd_item<1> id) const;
-  void bind(cl::sycl::handler& cgh);
+  bool valid_thread(sycl::nd_item<1> id) const;
+  void bind(sycl::handler& cgh);
   void adjust_access_displacement();
 
   template <typename local_memory_t>
-  void eval(local_memory_t localMem, cl::sycl::nd_item<1> id) noexcept;
+  void eval(local_memory_t localMem, sycl::nd_item<1> id) noexcept;
 };
 
 template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>

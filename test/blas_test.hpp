@@ -63,12 +63,12 @@ using index_t = BLAS_INDEX_T;
  * Construct a SYCL queue using the device specified in the command line, or
  * using the default device if not specified.
  */
-inline cl::sycl::queue make_queue_impl() {
-  auto async_handler = [=](cl::sycl::exception_list eL) {
+inline sycl::queue make_queue_impl() {
+  auto async_handler = [=](sycl::exception_list eL) {
     for (auto &e : eL) {
       try {
         std::rethrow_exception(e);
-      } catch (cl::sycl::exception &e) {
+      } catch (sycl::exception &e) {
         std::cout << "Sycl Exception " << e.what() << std::endl;
       } catch (std::exception &e) {
         std::cout << "Standard Exception " << e.what() << std::endl;
@@ -78,25 +78,13 @@ inline cl::sycl::queue make_queue_impl() {
     }
   };
 
-#if SYCL_LANGUAGE_VERSION >= 202002
-  std::function<int(const cl::sycl::device &)> selector;
+  std::function<int(const sycl::device &)> selector;
   if (args.device.empty()) {
-    selector = cl::sycl::default_selector_v;
+    selector = sycl::default_selector_v;
   } else {
     selector = utils::cli_device_selector(args.device);
   }
-  auto q = cl::sycl::queue(selector, async_handler);
-#else
-  std::unique_ptr<cl::sycl::device_selector> selector;
-  if (args.device.empty()) {
-    selector = std::unique_ptr<cl::sycl::device_selector>(
-        new cl::sycl::default_selector());
-  } else {
-    selector = std::unique_ptr<cl::sycl::device_selector>(
-        new utils::cli_device_selector(args.device));
-  }
-  auto q = cl::sycl::queue(*selector, async_handler);
-#endif  // HAS_SYCL2020_SELECTORS
+  auto q = sycl::queue(selector, async_handler);
 
   utils::print_queue_information(q);
   return q;
@@ -105,9 +93,9 @@ inline cl::sycl::queue make_queue_impl() {
 /**
  * Get a SYCL queue to use in tests.
  */
-inline cl::sycl::queue make_queue() {
+inline sycl::queue make_queue() {
   // Provide cached SYCL queue, to avoid recompiling kernels for each test case.
-  static cl::sycl::queue queue = make_queue_impl();
+  static sycl::queue queue = make_queue_impl();
   return queue;
 }
 
@@ -121,7 +109,7 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
   static std::random_device rd;
   static std::default_random_engine gen(rd());
   using random_scalar_t =
-      std::conditional_t<std::is_same_v<scalar_t, cl::sycl::half>, float,
+      std::conditional_t<std::is_same_v<scalar_t, sycl::half>, float,
                          scalar_t>;
   std::uniform_real_distribution<random_scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
@@ -274,7 +262,7 @@ struct dump_arg_helper {
 };
 
 /** Specialization of dump_arg_helper for float and double. NB this is not a
- *  specialization for half. std::is_floating_point<cl::sycl::half>::value will
+ *  specialization for half. std::is_floating_point<sycl::half>::value will
  *  return false.
  *
  *  @tparam StdFloat A standard floating point type.
@@ -293,7 +281,7 @@ struct dump_arg_helper<
    * @param f Floating point number to format
    */
   inline void operator()(std::ostream &ss, StdFloat f) {
-    static_assert(!std::is_same<StdFloat, cl::sycl::half>::value,
+    static_assert(!std::is_same<StdFloat, sycl::half>::value,
                   "std library functions will not work with half.");
     if (std::isnan(f)) {
       ss << "nan";
@@ -313,12 +301,12 @@ struct dump_arg_helper<
   }
 };
 
-/** Specialization of dump_arg_helper for cl::sycl::half.
+/** Specialization of dump_arg_helper for sycl::half.
  *  This is required since half will not work with standard library functions.
  **/
 template <>
-struct dump_arg_helper<cl::sycl::half> {
-  inline void operator()(std::ostream &ss, cl::sycl::half f) {
+struct dump_arg_helper<sycl::half> {
+  inline void operator()(std::ostream &ss, sycl::half f) {
     dump_arg_helper<float>{}(ss, f);
   }
 };

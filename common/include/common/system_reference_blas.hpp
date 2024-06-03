@@ -151,7 +151,7 @@ scalar_t asum(const int n, scalar_t x[], const int incX) {
 template <typename scalar_t>
 void axpy(const int n, scalar_t alpha, const scalar_t x[], const int incX,
           scalar_t y[], const int incY) {
-  if constexpr (!std::is_same_v<scalar_t, cl::sycl::half>) {
+  if constexpr (!std::is_same_v<scalar_t, sycl::half>) {
     auto func = blas_system_function<scalar_t>(&cblas_saxpy, &cblas_daxpy);
     func(n, alpha, x, incX, y, incY);
   } else {
@@ -165,7 +165,7 @@ void axpy(const int n, scalar_t alpha, const scalar_t x[], const int incX,
     for (int i = 0; i < y_size; ++i) y_f[i] = static_cast<float>(y[i]);
 
     cblas_saxpy(n, alpha_f, x_f.data(), incX, y_f.data(), incY);
-    for (int i = 0; i < y_size; ++i) y[i] = static_cast<cl::sycl::half>(y_f[i]);
+    for (int i = 0; i < y_size; ++i) y[i] = static_cast<sycl::half>(y_f[i]);
   }
 }
 
@@ -238,7 +238,7 @@ void rotmg(scalar_t *d1, scalar_t *d2, scalar_t *x1, scalar_t *y1,
 
 template <typename scalar_t>
 void scal(const int n, const scalar_t alpha, scalar_t x[], const int incX) {
-  if constexpr (!std::is_same_v<scalar_t, cl::sycl::half>) {
+  if constexpr (!std::is_same_v<scalar_t, sycl::half>) {
     auto func = blas_system_function<scalar_t>(&cblas_sscal, &cblas_dscal);
     func(n, alpha, x, incX);
   } else {
@@ -248,7 +248,7 @@ void scal(const int n, const scalar_t alpha, scalar_t x[], const int incX) {
     std::vector<float> x_f(size);
     for (int i = 0; i < size; ++i) x_f[i] = static_cast<float>(x[i]);
     cblas_sscal(n, alpha_f, x_f.data(), incX);
-    for (int i = 0; i < size; ++i) x[i] = static_cast<cl::sycl::half>(x_f[i]);
+    for (int i = 0; i < size; ++i) x[i] = static_cast<sycl::half>(x_f[i]);
   }
 }
 
@@ -403,7 +403,7 @@ template <typename scalar_t>
 void gemm(const char *transA, const char *transB, int m, int n, int k,
           scalar_t alpha, const scalar_t a[], int lda, const scalar_t b[],
           int ldb, scalar_t beta, scalar_t c[], int ldc) {
-  if constexpr (!std::is_same_v<scalar_t, cl::sycl::half>) {
+  if constexpr (!std::is_same_v<scalar_t, sycl::half>) {
     auto func = blas_system_function<scalar_t>(&cblas_sgemm, &cblas_dgemm);
     func(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k, alpha, a,
          lda, b, ldb, beta, c, ldc);
@@ -426,7 +426,7 @@ void gemm(const char *transA, const char *transB, int m, int n, int k,
     cblas_sgemm(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k,
                 alpha_f, a_f.data(), lda, b_f.data(), ldb, beta_f, c_f.data(),
                 ldc);
-    for (int i = 0; i < c_size; ++i) c[i] = static_cast<cl::sycl::half>(c_f[i]);
+    for (int i = 0; i < c_size; ++i) c[i] = static_cast<sycl::half>(c_f[i]);
   }
 }
 

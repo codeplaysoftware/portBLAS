@@ -43,7 +43,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> x_v(vector_size);
   fill_random<scalar_t>(x_v);
 
-  // We need to guarantee that cl::sycl::half can hold the sum
+  // We need to guarantee that sycl::half can hold the sum
   // of x_v without overflow by making sum(x_v) to be 1.0
   std::transform(std::begin(x_v), std::end(x_v), std::begin(x_v),
                  [=](scalar_t x) { return x / x_v.size(); });

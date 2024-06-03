@@ -33,15 +33,15 @@
 #endif
 
 #if SYCL_LANGUAGE_VERSION < 202000
-#include <CL/sycl.hpp>
-inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
+#include <sycl/sycl.hpp>
+inline std::ostream& operator<<(std::ostream& os, const sycl::half& value) {
   os << static_cast<float>(value);
   return os;
 }
 
 namespace std {
 template <>
-class numeric_limits<cl::sycl::half> {
+class numeric_limits<sycl::half> {
  public:
   static constexpr float min() { return -65504.0f; }
   static constexpr float max() { return 65504.0f; }
@@ -84,17 +84,17 @@ scalar_t abs(std::complex<scalar_t> value) noexcept {
 #endif
 
 template <>
-inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
+inline bool isnan<sycl::half>(sycl::half value) noexcept {
   return std::isnan(static_cast<float>(value));
 }
 
 template <>
-inline bool isinf<cl::sycl::half>(cl::sycl::half value) noexcept {
+inline bool isinf<sycl::half>(sycl::half value) noexcept {
   return std::isinf(static_cast<float>(value));
 }
 
 template <>
-inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
+inline sycl::half abs<sycl::half>(sycl::half value) noexcept {
   return std::abs(static_cast<float>(value));
 }
 
@@ -138,7 +138,7 @@ inline double getRelativeErrorMargin<double>(const int32_t) {
 }
 
 template <>
-inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>(const int32_t) {
+inline sycl::half getRelativeErrorMargin<sycl::half>(const int32_t) {
   // Measured empirically with gemm
   return 0.05f;
 }
@@ -169,7 +169,7 @@ inline double getAbsoluteErrorMargin<double>(const int32_t) {
 }
 
 template <>
-inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>(const int32_t) {
+inline sycl::half getAbsoluteErrorMargin<sycl::half>(const int32_t) {
   // Measured empirically with gemm.
   return 1.0f;
 }
@@ -209,7 +209,7 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2,
  * The second vector is considered the reference.
  * @tparam scalar_t the type of data present in the input vectors
  * @tparam epsilon_t the type used as tolerance. Lower precision types
- * (cl::sycl::half) will have a higher tolerance for errors
+ * (sycl::half) will have a higher tolerance for errors
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<scalar_t> const& vec,
@@ -270,7 +270,7 @@ inline bool compare_vectors(std::vector<std::complex<scalar_t>> const& vec,
  * the reference.
  * @tparam scalar_t the type of data present in the input vectors
  * @tparam epsilon_t the type used as tolerance. Lower precision types
- * (cl::sycl::half) will have a higher tolerance for errors
+ * (sycl::half) will have a higher tolerance for errors
  * @param stride is the stride between two consecutive 'windows'
  * @param window is the size of a comparison window
  */

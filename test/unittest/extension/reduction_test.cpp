@@ -223,7 +223,7 @@ void run_test(const combination_t<scalar_t> combi) {
             {copy_m, copy_v});
         break;
     }
-  } catch (cl::sycl::exception& e) {
+  } catch (sycl::exception& e) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }

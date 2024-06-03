@@ -34,7 +34,7 @@ static inline void cublas_routine(args_t&&... args) {
     CUBLAS_CHECK(cublasSgemmStridedBatched(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CUBLAS_CHECK(cublasDgemmStridedBatched(std::forward<args_t>(args)...));
-  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  } else if constexpr (std::is_same_v<scalar_t, sycl::half>) {
     CUBLAS_CHECK(cublasHgemmStridedBatched(std::forward<args_t>(args)...));
   }
   return;

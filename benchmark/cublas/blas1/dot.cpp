@@ -54,7 +54,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
 
-  // Make sure cl::sycl::half can hold the result of the dot product
+  // Make sure sycl::half can hold the result of the dot product
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [=](scalar_t x) { return x / v1.size(); });
 

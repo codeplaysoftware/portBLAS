@@ -34,20 +34,20 @@
 #include <numeric>
 #include <random>
 
-inline cl::sycl::queue make_sycl_queue() {
-  cl::sycl::queue q(
-      [=](cl::sycl::exception_list ex_list) {
+inline sycl::queue make_sycl_queue() {
+  sycl::queue q(
+      [=](sycl::exception_list ex_list) {
         try {
           for (auto &e_ptr : ex_list) {
             std::rethrow_exception(e_ptr);
           }
-        } catch (cl::sycl::exception &e) {
+        } catch (sycl::exception &e) {
           throw std::runtime_error(e.what());
         }
       },
-      {cl::sycl::property::queue::in_order()});
+      {sycl::property::queue::in_order()});
   std::cout << "\nDevice: "
-            << q.get_device().get_info<cl::sycl::info::device::name>()
+            << q.get_device().get_info<sycl::info::device::name>()
             << std::endl;
 
   return q;

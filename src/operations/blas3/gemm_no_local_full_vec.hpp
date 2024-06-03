@@ -70,7 +70,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
  public:
   using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using address_t = cl::sycl::access::address_space;
+  using address_t = sycl::access::address_space;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
   static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
@@ -172,24 +172,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             1);
   }
 
-  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+  PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
-    const cl::sycl::range<1> nwg(get_workgroup_cluster() *
+    const sycl::range<1> nwg(get_workgroup_cluster() *
                                  get_num_workgroup_cluster(compute_units));
-    const cl::sycl::range<1> wgs(wg_rows * wg_cols);
+    const sycl::range<1> wgs(wg_rows * wg_cols);
 
-    return cl::sycl::nd_range<1>(nwg * wgs, wgs);
+    return sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
   PORTBLAS_INLINE index_t get_size() const {
     return a_.get_size_row() * b_.get_size_col();
   }
 
-  PORTBLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &) const {
+  PORTBLAS_INLINE bool valid_thread(const sycl::nd_item<1> &) const {
     return true;
   }
 
-  PORTBLAS_INLINE void eval(cl::sycl::nd_item<1> id) noexcept {
+  PORTBLAS_INLINE void eval(sycl::nd_item<1> id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     const index_t original_m = m;
@@ -332,12 +332,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           l_vector_t out_vec{};
 
           out_vec.template load<address_t::global_space>(
-              0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
+              0, sycl::multi_ptr<const element_t, address_t::global_space>(
                      C + j * wg_rows * packet_size));
           out_vec *= beta_;
 
           out_vec.template store<address_t::private_space>(
-              0, cl::sycl::multi_ptr<element_t, address_t::private_space>(
+              0, sycl::multi_ptr<element_t, address_t::private_space>(
                      reg_res + i * item_rows + j * packet_size));
         }
       }
@@ -420,7 +420,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @brief binding the placeholder accessors to the SYCL command group
    * handler
    * @param h: SYCL command group handler. */
-  void bind(cl::sycl::handler &h) {
+  void bind(sycl::handler &h) {
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
@@ -569,7 +569,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
-              0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(
+              0, sycl::multi_ptr<const value_t, address_t::global_space>(
                      ptr + i * ld + j * ptr_next));
         } else {
           // if not in range perform element-wise load checking boundaries at
@@ -586,7 +586,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         }
         auto out_reg = &reg[(i * row_iters + j) * work_per_load];
         in_vec.template store<address_t::private_space>(
-            0, cl::sycl::multi_ptr<value_t, address_t::private_space>(out_reg));
+            0, sycl::multi_ptr<value_t, address_t::private_space>(out_reg));
       }
     }
   }
@@ -648,7 +648,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
-              0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(
+              0, sycl::multi_ptr<const value_t, address_t::global_space>(
                      ptr + (i * next_element + j) * ld));
 
         } else {
@@ -725,7 +725,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
-          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
+          0, sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
     } else {
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
@@ -737,7 +737,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       }
     }
     in_vec.template store<address_t::private_space>(
-        0, cl::sycl::multi_ptr<value_t, address_t::private_space>(reg));
+        0, sycl::multi_ptr<value_t, address_t::private_space>(reg));
   }
 
   /*!
@@ -789,7 +789,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
-          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
+          0, sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
     } else {
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
@@ -801,7 +801,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       }
     }
     in_vec.template store<address_t::private_space>(
-        0, cl::sycl::multi_ptr<value_t, address_t::private_space>(reg));
+        0, sycl::multi_ptr<value_t, address_t::private_space>(reg));
   }
   /*!
    * @brief The following function computes the partial GEMM for the input
@@ -922,12 +922,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           l_vector_t out_vec{};
 
           out_vec.template load<address_t::private_space>(
-              0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(
+              0, sycl::multi_ptr<const element_t, address_t::private_space>(
                      reg_res + i * item_rows + j * packet_size));
           out_vec *= alpha_;
 
           out_vec.template store<address_t::global_space>(
-              0, cl::sycl::multi_ptr<element_t, address_t::global_space>(
+              0, sycl::multi_ptr<element_t, address_t::global_space>(
                      C + j * wg_rows * packet_size));
         }
       }

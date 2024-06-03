@@ -45,7 +45,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
 
-  // We need to guarantee that cl::sycl::half can hold the norm of the vector
+  // We need to guarantee that sycl::half can hold the norm of the vector
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [=](scalar_t x) { return x / v1.size(); });
 
@@ -81,7 +81,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _nrm2(sb_handle, size, inx, static_cast<index_t>(1), inr);
     sb_handle.wait(event);
     return event;

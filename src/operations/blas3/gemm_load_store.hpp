@@ -39,7 +39,7 @@ supported).
 template <int vector_size, typename value_t, typename index_t>
 struct Packetize {
 #ifdef GEMM_VECTORIZATION_SUPPORT
-  using PacketType = cl::sycl::vec<value_t, vector_size>;
+  using PacketType = sycl::vec<value_t, vector_size>;
   static constexpr int packet_size = vector_size;
   template <index_t dimension>
   PORTBLAS_INLINE static constexpr bool check_size() {
@@ -47,7 +47,7 @@ struct Packetize {
   }
 #else
   // In the case where vectorization is not enabled, always set to 1
-  using PacketType = cl::sycl::vec<value_t, 1>;
+  using PacketType = sycl::vec<value_t, 1>;
   static constexpr int packet_size = 1;
   template <index_t dimension>
   PORTBLAS_INLINE static constexpr bool check_size() {
@@ -86,9 +86,9 @@ struct Packetize {
     PacketType packet{};
 
     if (in_range) {
-      using address_t = cl::sycl::access::address_space;
+      using address_t = sycl::access::address_space;
       packet.template load<address_t::global_space>(
-          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(src));
+          0, sycl::multi_ptr<const value_t, address_t::global_space>(src));
     } else {
 #pragma unroll
       for (index_t i = 0; i < packet_size; i++) {
@@ -119,9 +119,9 @@ struct Packetize {
   template <bool trans, int ld, typename DestPointerType>
   static PORTBLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
-    using address_t = cl::sycl::access::address_space;
+    using address_t = sycl::access::address_space;
     packet.template store<address_t::local_space>(
-        0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
+        0, sycl::multi_ptr<value_t, address_t::local_space>(dest));
   }
 };
 

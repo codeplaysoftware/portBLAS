@@ -77,11 +77,11 @@ struct Gemv {
 
   Gemv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, index_t &_wgs_per_nc,
        index_t &_wgs_per_c);
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename local_memory_t>
-  value_t eval(local_memory_t local_mem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(local_memory_t local_mem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 
  private:
@@ -119,12 +119,12 @@ struct SumMatrixColumns {
 
   index_t get_size() const;
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
 
   value_t eval(index_t i);
 
-  value_t eval(cl::sycl::nd_item<1> ndItem) const;
-  void bind(cl::sycl::handler &h);
+  value_t eval(sycl::nd_item<1> ndItem) const;
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -157,12 +157,12 @@ struct GemvCol {
   GemvCol(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, index_t &_nWG_row,
           index_t &_nWG_col, index_t &_shrMemSize);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -199,12 +199,12 @@ struct GemvRow {
   GemvRow(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, index_t &_nWG_row,
           index_t &_nWG_col, index_t &_shrMemSize);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 /*!
@@ -252,12 +252,12 @@ struct Gbmv {
   Gbmv(lhs_t &_l, matrix_t &_matrix, index_t &_kl, index_t &_ku,
        vector_t &_vector, value_t _alpha, value_t _beta);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 /*!
@@ -293,12 +293,12 @@ struct Sbmv {
   Sbmv(lhs_t &_l, matrix_t &_matrix, index_t &_k, vector_t &_vector,
        value_t _alpha, value_t _beta);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 /*!
@@ -355,10 +355,10 @@ struct Xpmv {
   Xpmv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, value_t _alpha,
        value_t _beta);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 /*!
@@ -394,12 +394,12 @@ struct Tbmv {
 
   Tbmv(lhs_t &_l, matrix_t &_matrix, index_t &_k, vector_t &_vector);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 /*!
@@ -453,8 +453,8 @@ struct Txsv {
 
   Txsv(vector_t &_l, matrix_t &_matrix, index_t &_k, sync_t &_sync);
   template <typename local_memory_t>
-  value_t eval(local_memory_t local_mem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(local_memory_t local_mem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
   value_t read_matrix(const index_t &row, const index_t &col) const;
 };
@@ -537,12 +537,12 @@ struct Ger {
       index_t &_nColsWG, index_t &_nWG_row, index_t &_nWG_col);
 
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -578,12 +578,12 @@ struct GerRow {
   GerRow(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nWG_row,
          index_t &_nWG_col, index_t &_shrMemSize);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -617,12 +617,12 @@ struct GerCol {
   GerCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nWG_row,
          index_t &_nWG_col, index_t &_shrMemSize);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shrMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
 };
 
@@ -669,9 +669,9 @@ struct Spr {
 
   Spr(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, rhs_2_t &_r2);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
+  value_t eval(sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
   index_t int_sqrt(int64_t s);
   void compute_row_col(const int64_t id, const index_t size, index_t &row,

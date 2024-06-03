@@ -14,13 +14,13 @@ Temp_Mem_Pool::acquire_buff_mem(size_t size) {
   temp_buffer_map_mutex_.lock();  // lock
   auto found = temp_buffer_map_.lower_bound(byteSize);
   if (found != temp_buffer_map_.end()) {
-    cl::sycl::buffer<temp_buffer_map_t::mapped_type::value_type, 1> buff =
+    sycl::buffer<temp_buffer_map_t::mapped_type::value_type, 1> buff =
         found->second;
     temp_buffer_map_tot_byte_size_ -= found->first;
     temp_buffer_map_.erase(found);
     temp_buffer_map_mutex_.unlock();  // unlock
     return blas::BufferIterator<value_t>{buff.reinterpret<value_t>(
-        cl::sycl::range<1>(buff.byte_size() / sizeof(value_t)))};
+        sycl::range<1>(buff.byte_size() / sizeof(value_t)))};
   } else {
     temp_buffer_map_mutex_.unlock();  // unlock
 #ifdef VERBOSE
@@ -37,7 +37,7 @@ void Temp_Mem_Pool::release_buff_mem_(const container_t& mem) {
   auto rebuff =
       mem.get_buffer()
           .template reinterpret<temp_buffer_map_t::mapped_type::value_type>(
-              cl::sycl::range<1>(
+              sycl::range<1>(
                   byteSize /
                   sizeof(temp_buffer_map_t::mapped_type::value_type)));
   temp_buffer_map_mutex_.lock();  // lock
@@ -52,7 +52,7 @@ template <typename container_t>
 typename Temp_Mem_Pool::event_t Temp_Mem_Pool::release_buff_mem(
     const typename Temp_Mem_Pool::event_t& dependencies,
     const container_t& mem) {
-  return {q_.submit([&](cl::sycl::handler& cgh) {
+  return {q_.submit([&](sycl::handler& cgh) {
     cgh.depends_on(dependencies);
     cgh.host_task([&, mem]() { release_buff_mem_(mem); });
   })};
@@ -77,7 +77,7 @@ Temp_Mem_Pool::acquire_usm_mem(size_t size) {
     std::cout << "Create a temporary USM allocation of " << byteSize
               << " bytes." << std::endl;
 #endif
-    value_t* tmp = cl::sycl::malloc_device<value_t>(size, q_);
+    value_t* tmp = sycl::malloc_device<value_t>(size, q_);
     temp_usm_map_mutex_.lock();  // lock
     temp_usm_size_map_.emplace(
         reinterpret_cast<temp_usm_size_map_t::key_type>(tmp), byteSize);
@@ -95,7 +95,7 @@ void Temp_Mem_Pool::release_usm_mem_(const container_t& mem) {
   if (temp_usm_map_tot_byte_size_ + byteSize > max_size_temp_mem_) {
     temp_usm_size_map_.erase(found);
     temp_usm_map_mutex_.unlock();  // unlock
-    cl::sycl::free(mem, q_);
+    sycl::free(mem, q_);
   } else {
     temp_usm_map_tot_byte_size_ += byteSize;
     temp_usm_map_.emplace(byteSize,
@@ -108,7 +108,7 @@ template <typename container_t>
 typename Temp_Mem_Pool::event_t Temp_Mem_Pool::release_usm_mem(
     const typename Temp_Mem_Pool::event_t& dependencies,
     const container_t& mem) {
-  return {q_.submit([&](cl::sycl::handler& cgh) {
+  return {q_.submit([&](sycl::handler& cgh) {
     cgh.depends_on(dependencies);
     cgh.host_task([&, mem]() { release_usm_mem_(mem); });
   })};

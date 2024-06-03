@@ -52,7 +52,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  // We need to guarantee that cl::sycl::half can hold the sum
+  // We need to guarantee that sycl::half can hold the sum
   // of x_v without overflow by making sum(x_v) to be 1.0
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [=](scalar_t x) { return x / v1.size(); });

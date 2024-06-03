@@ -25,7 +25,7 @@
 #ifndef PORTBLAS_EXTENSION_TRANSPOSE_H
 #define PORTBLAS_EXTENSION_TRANSPOSE_H
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "container/sycl_iterator.h"
 
@@ -114,17 +114,17 @@ class Transpose {
 
   index_t get_size() const;
 
-  bool valid_thread(cl::sycl::nd_item<1> item) const;
-  void bind(cl::sycl::handler &cgh);
+  bool valid_thread(sycl::nd_item<1> item) const;
+  void bind(sycl::handler &cgh);
   void adjust_access_displacement();
-  void eval(cl::sycl::nd_item<1> item);
+  void eval(sycl::nd_item<1> item);
   template <typename local_memory_t>
-  void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
-  void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
+  void eval(local_memory_t local_mem, sycl::nd_item<1> id);
+  void get_indices(sycl::nd_item<1> id, index_t &in_idx,
                    index_t &in_local_idx, index_t &out_idx,
                    index_t &out_local_idx, index_t &i_block_start,
                    index_t &j_block_start, index_t &il, index_t &jl);
-  void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx, index_t &out_idx,
+  void get_indices(sycl::nd_item<1> id, index_t &in_idx, index_t &out_idx,
                    index_t &i, index_t &j);
 };
 
@@ -237,17 +237,17 @@ class TransposeAdd {
 
   index_t get_size() const;
 
-  bool valid_thread(cl::sycl::nd_item<1> item) const;
-  void bind(cl::sycl::handler &cgh);
+  bool valid_thread(sycl::nd_item<1> item) const;
+  void bind(sycl::handler &cgh);
   void adjust_access_displacement();
-  void eval(cl::sycl::nd_item<1> item);
+  void eval(sycl::nd_item<1> item);
   template <typename local_memory_t>
-  void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
-  void get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
+  void eval(local_memory_t local_mem, sycl::nd_item<1> id);
+  void get_indices(sycl::nd_item<1> id, index_t &in_a_idx,
                    index_t &in_b_idx, index_t &in_local_idx, index_t &out_idx,
                    index_t &out_local_idx, index_t &i_block_start,
                    index_t &j_block_start, index_t &il, index_t &jl);
-  void get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
+  void get_indices(sycl::nd_item<1> id, index_t &in_a_idx,
                    index_t &in_b_idx, index_t &out_idx, index_t &i, index_t &j);
 };
 

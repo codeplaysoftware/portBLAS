@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
-  cl::sycl::queue q;
+  sycl::queue q;
 
   if (!args.device.empty()) {
     // Initialise the command line device selector in a unique pointer so that
@@ -57,11 +57,11 @@ int main(int argc, char** argv) {
     // Create a queue from the device selector - do this after initialising
     // googlebench, as otherwise we may not be able to delete the queue before
     // we exit (if Initialise calls exit(0)), and dump some information about it
-    q = cl::sycl::queue(*cdsp.get(),
-                        {cl::sycl::property::queue::enable_profiling()});
+    q = sycl::queue(*cdsp.get(),
+                        {sycl::property::queue::enable_profiling()});
   } else {
-    q = cl::sycl::queue(cl::sycl::default_selector(),
-                        {cl::sycl::property::queue::enable_profiling()});
+    q = sycl::queue(sycl::default_selector(),
+                        {sycl::property::queue::enable_profiling()});
   }
 
   utils::print_queue_information(q);

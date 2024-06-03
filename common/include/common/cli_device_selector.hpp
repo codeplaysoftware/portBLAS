@@ -29,7 +29,7 @@
 #ifndef CLI_DEVICE_SELECTOR_HPP
 #define CLI_DEVICE_SELECTOR_HPP
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -43,26 +43,26 @@ namespace utils {
  * the available devices according to whether they match the vendor/device type,
  * and picks the one with highest score.
  */
-class cli_device_selector : public cl::sycl::device_selector {
+class cli_device_selector : public sycl::device_selector {
   std::string device_vendor;
   std::string device_type;
 
-  static cl::sycl::info::device_type match_device_type(std::string requested) {
-    if (requested.empty()) return cl::sycl::info::device_type::automatic;
+  static sycl::info::device_type match_device_type(std::string requested) {
+    if (requested.empty()) return sycl::info::device_type::automatic;
     std::transform(requested.begin(), requested.end(), requested.begin(),
                    ::tolower);
-    if (requested == "gpu") return cl::sycl::info::device_type::gpu;
-    if (requested == "cpu") return cl::sycl::info::device_type::cpu;
-    if (requested == "accel") return cl::sycl::info::device_type::accelerator;
+    if (requested == "gpu") return sycl::info::device_type::gpu;
+    if (requested == "cpu") return sycl::info::device_type::cpu;
+    if (requested == "accel") return sycl::info::device_type::accelerator;
     if (requested == "*" || requested == "any")
-      return cl::sycl::info::device_type::all;
+      return sycl::info::device_type::all;
 
-    return cl::sycl::info::device_type::automatic;
+    return sycl::info::device_type::automatic;
   }
 
  public:
   cli_device_selector(const std::string& device_spec)
-      : cl::sycl::device_selector() {
+      : sycl::device_selector() {
     if (!device_spec.empty()) {
       bool result;
       std::tie(result, device_vendor, device_type) =
@@ -70,24 +70,24 @@ class cli_device_selector : public cl::sycl::device_selector {
     }
   }
 
-  int operator()(const cl::sycl::device& device) const {
+  int operator()(const sycl::device& device) const {
     int score = 0;
 
     // Score the device type...
-    cl::sycl::info::device_type dtype =
-        device.get_info<cl::sycl::info::device::device_type>();
-    cl::sycl::info::device_type rtype = match_device_type(device_type);
-    if (rtype == dtype || rtype == cl::sycl::info::device_type::all) {
+    sycl::info::device_type dtype =
+        device.get_info<sycl::info::device::device_type>();
+    sycl::info::device_type rtype = match_device_type(device_type);
+    if (rtype == dtype || rtype == sycl::info::device_type::all) {
       score += 2;
-    } else if (rtype == cl::sycl::info::device_type::automatic) {
+    } else if (rtype == sycl::info::device_type::automatic) {
       score += 1;
     } else {
       score -= 2;
     }
 
     // score the vendor name
-    cl::sycl::platform plat = device.get_platform();
-    std::string name = plat.template get_info<cl::sycl::info::platform::name>();
+    sycl::platform plat = device.get_platform();
+    std::string name = plat.template get_info<sycl::info::platform::name>();
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
     if (name.find(device_vendor) != std::string::npos &&
         !device_vendor.empty()) {

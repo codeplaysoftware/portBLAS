@@ -103,7 +103,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = blas::_omatcopy2(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
                                   inc_a, m_b_gpu, ldb, inc_b);
     sb_handle.wait(event);

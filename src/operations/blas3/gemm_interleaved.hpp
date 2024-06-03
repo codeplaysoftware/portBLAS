@@ -33,7 +33,7 @@ namespace internal {
 
 template <class T, int Dim>
 struct packet {
-  using type = cl::sycl::vec<T, Dim>;
+  using type = sycl::vec<T, Dim>;
 };
 
 template <class T>
@@ -41,7 +41,7 @@ struct packet<T, 1> {
   using type = T;
 };
 
-using address_t = cl::sycl::access::address_space;
+using address_t = sycl::access::address_space;
 
 /*!
  * @brief Load a packet of size 1.
@@ -64,8 +64,8 @@ PORTBLAS_INLINE void store(T packet, PtrT ptr) {
  */
 template <address_t Address = address_t::global_space, class T, int Dim,
           class PtrT>
-PORTBLAS_INLINE void load(cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
-  packet.template load<Address>(0, cl::sycl::multi_ptr<const T, Address>(ptr));
+PORTBLAS_INLINE void load(sycl::vec<T, Dim> &packet, PtrT ptr) {
+  packet.template load<Address>(0, sycl::multi_ptr<const T, Address>(ptr));
 }
 
 /*!
@@ -73,8 +73,8 @@ PORTBLAS_INLINE void load(cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  */
 template <address_t Address = address_t::global_space, class T, int Dim,
           class PtrT>
-PORTBLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
-  packet.template store<Address>(0, cl::sycl::multi_ptr<T, Address>(ptr));
+PORTBLAS_INLINE void store(const sycl::vec<T, Dim> &packet, PtrT ptr) {
+  packet.template store<Address>(0, sycl::multi_ptr<T, Address>(ptr));
 }
 
 }  // namespace internal
@@ -113,7 +113,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
  public:
   using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using address_t = cl::sycl::access::address_space;
+  using address_t = sycl::access::address_space;
   static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
   static constexpr index_t item_rows = tile_type::item_rows;
@@ -197,26 +197,26 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
     return str.str();
   }
 
-  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(index_t) const noexcept {
+  PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(index_t) const noexcept {
     const index_t number_of_block_per_row = ((m_ - 1) / block_rows) + 1;
     const index_t number_of_block_per_cols = ((n_ - 1) / block_cols) + 1;
 
     const index_t number_of_block_per_batch =
         ((batch_size_ - 1) / (block_batchs * item_batchs)) + 1;
 
-    const cl::sycl::range<1> nwg(number_of_block_per_row *
+    const sycl::range<1> nwg(number_of_block_per_row *
                                  number_of_block_per_cols *
                                  number_of_block_per_batch);
-    const cl::sycl::range<1> wgs(wg_rows * wg_cols * wg_batchs);
+    const sycl::range<1> wgs(wg_rows * wg_cols * wg_batchs);
 
-    return cl::sycl::nd_range<1>(nwg * wgs, wgs);
+    return sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
-  PORTBLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &) const {
+  PORTBLAS_INLINE bool valid_thread(const sycl::nd_item<1> &) const {
     return true;
   }
 
-  PORTBLAS_INLINE void eval(cl::sycl::nd_item<1> id) noexcept {
+  PORTBLAS_INLINE void eval(sycl::nd_item<1> id) noexcept {
     auto A = a_.get_pointer();
     auto B = b_.get_pointer();
     auto C = c_.get_pointer();
@@ -501,7 +501,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
                         && !is_half<value_t>::value
 #endif  // __ADAPTIVECPP__
           ) {
-            *reg_res = cl::sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
+            *reg_res = sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
                                      reg_b[i * (item_batchs / VectorSize) + b],
                                      *reg_res);
           } else {
@@ -523,7 +523,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
    * handler.
    * @param h: SYCL command group handler.
    */
-  void bind(cl::sycl::handler &h) {
+  void bind(sycl::handler &h) {
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);

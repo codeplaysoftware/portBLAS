@@ -34,13 +34,13 @@ set(data_list "${BLAS_DATA_TYPES}")
 # Converts a user specified type name into a C++ type
 function(cpp_type output data)
   if (${data} STREQUAL "half")
-    set(${output} "cl::sycl::half" PARENT_SCOPE)
+    set(${output} "sycl::half" PARENT_SCOPE)
     return()
   elseif(${data} STREQUAL "complex<float>")
-    set(${output} "cl::sycl::ext::oneapi::experimental::complex<float>" PARENT_SCOPE)
+    set(${output} "sycl::ext::oneapi::experimental::complex<float>" PARENT_SCOPE)
     return()
   elseif(${data} STREQUAL "complex<double>")
-    set(${output} "cl::sycl::ext::oneapi::experimental::complex<double>" PARENT_SCOPE)
+    set(${output} "sycl::ext::oneapi::experimental::complex<double>" PARENT_SCOPE)
     return()
   endif()
   set(${output} "${data}" PARENT_SCOPE)
@@ -613,13 +613,13 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
   if(${start_idx} AND ${sm_val} GREATER_EQUAL "80")
     add_gemm_configuration(
         "float" 128 "false" "true" "true"
-        128 2 4 16 8 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "none" 1 "strided" "true")
+        128 2 4 16 8 16 2 1 1 1 1 16 16 16 sycl::half float "local" "standard" "none" 1 "strided" "true")
     add_gemm_configuration(
         "float" 128 "false" "true" "true"
-        128 4 8 16 8 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "none" 1 "strided" "true")
+        128 4 8 16 8 16 2 1 1 1 1 16 16 16 sycl::half float "local" "standard" "none" 1 "strided" "true")
     add_gemm_configuration(
         "float" 256 "false" "true" "true"
-        128 8 8 16 16 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "none" 1 "strided" "true")
+        128 8 8 16 16 16 2 1 1 1 1 16 16 16 sycl::half float "local" "standard" "none" 1 "strided" "true")
   endif()
   foreach(data ${supported_types})
     # Non-Joint Matrix specific GEMM Configurations

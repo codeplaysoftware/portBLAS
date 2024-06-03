@@ -25,7 +25,7 @@
 #ifndef PORTBLAS_EXTENSION_REDUCTION_H
 #define PORTBLAS_EXTENSION_REDUCTION_H
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "container/sycl_iterator.h"
 
@@ -171,14 +171,14 @@ class Reduction {
   const index_t num_elems_to_preserve_;
   const index_t num_elems_to_reduce_;
   Reduction(input_t in, output_t out);
-  bool valid_thread(cl::sycl::nd_item<1> id) const;
-  void bind(cl::sycl::handler& h);
+  bool valid_thread(sycl::nd_item<1> id) const;
+  void bind(sycl::handler& h);
   void adjust_access_displacement();
-  cl::sycl::nd_range<1> get_nd_range(index_t compute_units) noexcept;
+  sycl::nd_range<1> get_nd_range(index_t compute_units) noexcept;
   void reduce(index_t global_reduce_id, index_t global_preserve_id,
               element_t& accumulator) noexcept;
   template <typename local_memory_t>
-  void eval(local_memory_t scratch, cl::sycl::nd_item<1> id) noexcept;
+  void eval(local_memory_t scratch, sycl::nd_item<1> id) noexcept;
 };
 
 /*!

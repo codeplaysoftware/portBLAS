@@ -104,7 +104,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu,
                        incX, beta, v_y_gpu, incY);
     sb_handle.wait(event);

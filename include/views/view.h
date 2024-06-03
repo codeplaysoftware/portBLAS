@@ -94,7 +94,7 @@ struct VectorView {
   */
   PORTBLAS_INLINE increment_t get_stride();
 
-  PORTBLAS_INLINE void bind(cl::sycl::handler &h) const {}
+  PORTBLAS_INLINE void bind(sycl::handler &h) const {}
 
   /**** EVALUATING ****/
   template <bool use_as_ptr = false>
@@ -109,11 +109,11 @@ struct VectorView {
     return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
-  PORTBLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
+  PORTBLAS_INLINE value_t &eval(sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
-  PORTBLAS_INLINE value_t eval(cl::sycl::nd_item<1> ndItem) const {
+  PORTBLAS_INLINE value_t eval(sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -204,7 +204,7 @@ struct MatrixView {
    */
   PORTBLAS_INLINE void adjust_access_displacement() const;
 
-  PORTBLAS_INLINE void bind(cl::sycl::handler &h) const {}
+  PORTBLAS_INLINE void bind(sycl::handler &h) const {}
 
   /*! eval.
    * @brief Evaluation for the pair of row/col.
@@ -257,11 +257,11 @@ struct MatrixView {
     return eval(i, j);
   }
 
-  PORTBLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
+  PORTBLAS_INLINE value_t &eval(sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
-  PORTBLAS_INLINE value_t eval(cl::sycl::nd_item<1> ndItem) const noexcept {
+  PORTBLAS_INLINE value_t eval(sycl::nd_item<1> ndItem) const noexcept {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -283,10 +283,10 @@ struct VectorViewType;
 
 template <typename value_t, typename index_t, typename increment_t>
 struct VectorViewType<BufferIterator<value_t>, index_t, increment_t> {
-  static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
-             cl::sycl::access::mode::read,
-             cl::sycl::access::mode::read_write>::type;
+  static constexpr sycl::access::mode access_mode_t =
+      Choose<std::is_const<value_t>::value, sycl::access::mode,
+             sycl::access::mode::read,
+             sycl::access::mode::read_write>::type;
   using type =
       VectorView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
@@ -308,10 +308,10 @@ struct MatrixViewType;
 
 template <typename value_t, typename index_t, typename access_layout_t, bool has_inc>
 struct MatrixViewType<BufferIterator<value_t>, index_t, access_layout_t, has_inc> {
-  static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
-             cl::sycl::access::mode::read,
-             cl::sycl::access::mode::read_write>::type;
+  static constexpr sycl::access::mode access_mode_t =
+      Choose<std::is_const<value_t>::value, sycl::access::mode,
+             sycl::access::mode::read,
+             sycl::access::mode::read_write>::type;
   using type =
       MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
@@ -331,10 +331,10 @@ struct MatrixViewType<const value_t *, index_t, access_layout_t, has_inc> {
 template <typename value_t, typename increment_t, typename index_t>
 static PORTBLAS_INLINE auto make_vector_view(BufferIterator<value_t> buff,
                                               increment_t inc, index_t sz) {
-  static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
-             cl::sycl::access::mode::read,
-             cl::sycl::access::mode::read_write>::type;
+  static constexpr sycl::access::mode access_mode_t =
+      Choose<std::is_const<value_t>::value, sycl::access::mode,
+             sycl::access::mode::read,
+             sycl::access::mode::read_write>::type;
   using leaf_node_t =
       VectorView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
@@ -348,10 +348,10 @@ template <typename access_layout_t, typename value_t, typename index_t,
 static PORTBLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
                                               index_t m, index_t n,
                                               index_t lda, index_t inc = 1) {
-  static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
-             cl::sycl::access::mode::read,
-             cl::sycl::access::mode::read_write>::type;
+  static constexpr sycl::access::mode access_mode_t =
+      Choose<std::is_const<value_t>::value, sycl::access::mode,
+             sycl::access::mode::read,
+             sycl::access::mode::read_write>::type;
   using leaf_node_t =
       MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,

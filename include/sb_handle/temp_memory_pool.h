@@ -31,11 +31,11 @@
 
 namespace blas {
 class Temp_Mem_Pool {
-  using queue_t = cl::sycl::queue;
-  using event_t = std::vector<cl::sycl::event>;
+  using queue_t = sycl::queue;
+  using event_t = std::vector<sycl::event>;
   using temp_usm_map_t = std::multimap<size_t, void*>;
   using temp_usm_size_map_t = std::map<void*, size_t>;
-  using temp_buffer_map_t = std::multimap<size_t, cl::sycl::buffer<int8_t, 1>>;
+  using temp_buffer_map_t = std::multimap<size_t, sycl::buffer<int8_t, 1>>;
 
  public:
   Temp_Mem_Pool(queue_t q)
@@ -65,7 +65,7 @@ class Temp_Mem_Pool {
               << " bytes)" << std::endl;
 #endif
     for (const temp_usm_map_t::value_type& p : temp_usm_map_)
-      cl::sycl::free(p.second, q_);
+      sycl::free(p.second, q_);
 #endif
   }
 

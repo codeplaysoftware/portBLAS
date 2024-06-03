@@ -53,7 +53,7 @@ namespace device_info {
  * \param [in] device    SYCL device to query for info to add to the label.
  * \param [out] key_value_map The benchmark key value pair to hold the info.
  */
-inline void add_device_info(cl::sycl::device const& device,
+inline void add_device_info(sycl::device const& device,
                             std::map<std::string, std::string>& key_value_map) {
   // OpenCL is unclear whether strings returned from clGet*Info() should be
   // null terminated.
@@ -63,11 +63,11 @@ inline void add_device_info(cl::sycl::device const& device,
     s.resize(strlen(s.c_str()));
     return s;
   };
-  auto device_name = device.get_info<cl::sycl::info::device::name>();
-  auto device_version = device.get_info<cl::sycl::info::device::version>();
-  auto vendor_name = device.get_info<cl::sycl::info::device::vendor>();
+  auto device_name = device.get_info<sycl::info::device::name>();
+  auto device_version = device.get_info<sycl::info::device::version>();
+  auto vendor_name = device.get_info<sycl::info::device::vendor>();
   auto driver_version =
-      device.get_info<cl::sycl::info::device::driver_version>();
+      device.get_info<sycl::info::device::driver_version>();
 
   key_value_map["device_name"] = trim(device_name);
   key_value_map["device_version"] = trim(device_version);
@@ -149,7 +149,7 @@ inline void add_datatype_info<double>(
 
 #ifdef BLAS_ENABLE_HALF
 template <>
-inline void add_datatype_info<cl::sycl::half>(
+inline void add_datatype_info<sycl::half>(
     std::map<std::string, std::string>& key_value_map) {
   key_value_map["@datatype"] = "half";
 }
@@ -198,7 +198,7 @@ inline void add_common_labels(
 
 template <typename scalar_t>
 inline void set_benchmark_label(benchmark::State& state,
-                                const cl::sycl::queue& q) {
+                                const sycl::queue& q) {
   std::map<std::string, std::string> key_value_map;
   auto dev = q.get_device();
   device_info::add_device_info(dev, key_value_map);

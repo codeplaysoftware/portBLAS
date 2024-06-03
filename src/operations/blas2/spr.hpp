@@ -92,7 +92,7 @@ Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col(
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   const index_t id = ndItem.get_local_linear_id();
   const index_t group_id = ndItem.get_group(0);
   const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
@@ -109,8 +109,8 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 #ifndef __ADAPTIVECPP__
   }
 
-  row = cl::sycl::group_broadcast(ndItem.get_group(), row);
-  col = cl::sycl::group_broadcast(ndItem.get_group(), col);
+  row = sycl::group_broadcast(ndItem.get_group(), row);
+  col = sycl::group_broadcast(ndItem.get_group(), col);
 #endif
 
   if (global_idx < lhs_size) {
@@ -151,7 +151,7 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 PORTBLAS_INLINE void Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
-    cl::sycl::handler& h) {
+    sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
@@ -176,7 +176,7 @@ template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 PORTBLAS_INLINE bool
 Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 

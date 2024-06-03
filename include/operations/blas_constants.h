@@ -28,7 +28,7 @@
 
 #include "blas_meta.h"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <complex>
 #include <limits>
@@ -199,43 +199,43 @@ struct constant<complex_sycl<value_t>, Indicator> {
 #endif
 
 template <>
-struct constant<cl::sycl::half, const_val::zero>
+struct constant<sycl::half, const_val::zero>
     : constant<float, const_val::zero> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::one>
+struct constant<sycl::half, const_val::one>
     : constant<float, const_val::one> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::m_one>
+struct constant<sycl::half, const_val::m_one>
     : constant<float, const_val::m_one> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::two>
+struct constant<sycl::half, const_val::two>
     : constant<float, const_val::two> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::m_two>
+struct constant<sycl::half, const_val::m_two>
     : constant<float, const_val::m_two> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::max>
+struct constant<sycl::half, const_val::max>
     : constant<float, const_val::max> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::min>
+struct constant<sycl::half, const_val::min>
     : constant<float, const_val::min> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::abs_max>
+struct constant<sycl::half, const_val::abs_max>
     : constant<float, const_val::abs_max> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::abs_min>
+struct constant<sycl::half, const_val::abs_min>
     : constant<float, const_val::abs_min> {};
 
 template <>
-struct constant<cl::sycl::half, const_val::collapse>
+struct constant<sycl::half, const_val::collapse>
     : constant<float, const_val::collapse> {};
 
 template <typename iv_type, const_val IndexIndicator, const_val ValueIndicator>

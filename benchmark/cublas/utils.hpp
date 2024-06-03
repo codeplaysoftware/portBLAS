@@ -287,7 +287,7 @@ struct CudaType {
 
 // When T is sycl::half, use cuda's __cuda as type.
 template <typename T>
-struct CudaType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+struct CudaType<T, std::enable_if_t<std::is_same_v<T, sycl::half>>> {
   using type = __half;
 };
 
