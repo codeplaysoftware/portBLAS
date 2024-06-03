@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     q = sycl::queue(*cdsp.get(),
                         {sycl::property::queue::enable_profiling()});
   } else {
-    q = sycl::queue(sycl::default_selector(),
+    q = sycl::queue(sycl::default_selector_v,
                         {sycl::property::queue::enable_profiling()});
   }
 

@@ -43,7 +43,7 @@ namespace utils {
  * the available devices according to whether they match the vendor/device type,
  * and picks the one with highest score.
  */
-class cli_device_selector : public sycl::device_selector {
+class cli_device_selector {
   std::string device_vendor;
   std::string device_type;
 
@@ -61,8 +61,7 @@ class cli_device_selector : public sycl::device_selector {
   }
 
  public:
-  cli_device_selector(const std::string& device_spec)
-      : sycl::device_selector() {
+  cli_device_selector(const std::string& device_spec) {
     if (!device_spec.empty()) {
       bool result;
       std::tie(result, device_vendor, device_type) =

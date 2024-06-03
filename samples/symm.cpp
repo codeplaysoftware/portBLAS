@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv) {
   /* Create a SYCL queue with the default device selector */
-  sycl::queue q = sycl::queue(sycl::default_selector());
+  sycl::queue q = sycl::queue(sycl::default_selector_v);
 
   /* Create a portBLAS sb_handle and get the policy handler */
   blas::SB_Handle sb_handle(q);
