@@ -120,10 +120,10 @@ class Transpose {
   void eval(sycl::nd_item<1> item);
   template <typename local_memory_t>
   void eval(local_memory_t local_mem, sycl::nd_item<1> id);
-  void get_indices(sycl::nd_item<1> id, index_t &in_idx,
-                   index_t &in_local_idx, index_t &out_idx,
-                   index_t &out_local_idx, index_t &i_block_start,
-                   index_t &j_block_start, index_t &il, index_t &jl);
+  void get_indices(sycl::nd_item<1> id, index_t &in_idx, index_t &in_local_idx,
+                   index_t &out_idx, index_t &out_local_idx,
+                   index_t &i_block_start, index_t &j_block_start, index_t &il,
+                   index_t &jl);
   void get_indices(sycl::nd_item<1> id, index_t &in_idx, index_t &out_idx,
                    index_t &i, index_t &j);
 };
@@ -243,12 +243,12 @@ class TransposeAdd {
   void eval(sycl::nd_item<1> item);
   template <typename local_memory_t>
   void eval(local_memory_t local_mem, sycl::nd_item<1> id);
-  void get_indices(sycl::nd_item<1> id, index_t &in_a_idx,
-                   index_t &in_b_idx, index_t &in_local_idx, index_t &out_idx,
+  void get_indices(sycl::nd_item<1> id, index_t &in_a_idx, index_t &in_b_idx,
+                   index_t &in_local_idx, index_t &out_idx,
                    index_t &out_local_idx, index_t &i_block_start,
                    index_t &j_block_start, index_t &il, index_t &jl);
-  void get_indices(sycl::nd_item<1> id, index_t &in_a_idx,
-                   index_t &in_b_idx, index_t &out_idx, index_t &i, index_t &j);
+  void get_indices(sycl::nd_item<1> id, index_t &in_a_idx, index_t &in_b_idx,
+                   index_t &out_idx, index_t &i, index_t &j);
 };
 
 /*!

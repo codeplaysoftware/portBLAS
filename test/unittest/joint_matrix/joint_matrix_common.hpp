@@ -142,23 +142,20 @@ inline void verify_gemm(const joint_matrix_arguments_t<scalar_t> arguments) {
     }
   } else if (jm_inType == "half" && jm_outType == "half") {
     if (jm_m == 16 && jm_n == 16) {
-      gemm_event =
-          launch_gemm_with_beta<16, 16, 16, sycl::half, sycl::half>(
-              sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-              size_a, m_b_gpu + offset, ldb, size_b, beta, m_c_gpu + offset,
-              ldc, size_c, batch, batch_type, {copy_a, copy_b, copy_c});
+      gemm_event = launch_gemm_with_beta<16, 16, 16, sycl::half, sycl::half>(
+          sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+          size_a, m_b_gpu + offset, ldb, size_b, beta, m_c_gpu + offset, ldc,
+          size_c, batch, batch_type, {copy_a, copy_b, copy_c});
     } else if (jm_m == 32 && jm_n == 8) {
-      gemm_event =
-          launch_gemm_with_beta<32, 8, 16, sycl::half, sycl::half>(
-              sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-              size_a, m_b_gpu + offset, ldb, size_b, beta, m_c_gpu + offset,
-              ldc, size_c, batch, batch_type, {copy_a, copy_b, copy_c});
+      gemm_event = launch_gemm_with_beta<32, 8, 16, sycl::half, sycl::half>(
+          sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+          size_a, m_b_gpu + offset, ldb, size_b, beta, m_c_gpu + offset, ldc,
+          size_c, batch, batch_type, {copy_a, copy_b, copy_c});
     } else if (jm_n == 32 && jm_m == 8) {
-      gemm_event =
-          launch_gemm_with_beta<8, 32, 16, sycl::half, sycl::half>(
-              sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-              size_a, m_b_gpu + offset, ldb, size_b, beta, m_c_gpu + offset,
-              ldc, size_c, batch, batch_type, {copy_a, copy_b, copy_c});
+      gemm_event = launch_gemm_with_beta<8, 32, 16, sycl::half, sycl::half>(
+          sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+          size_a, m_b_gpu + offset, ldb, size_b, beta, m_c_gpu + offset, ldc,
+          size_c, batch, batch_type, {copy_a, copy_b, copy_c});
     }
   } else if (jm_inType == "bfloat16" && jm_outType == "float") {
     if (jm_m == 16 && jm_n == 16) {

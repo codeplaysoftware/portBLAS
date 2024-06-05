@@ -66,8 +66,7 @@ inline void add_device_info(sycl::device const& device,
   auto device_name = device.get_info<sycl::info::device::name>();
   auto device_version = device.get_info<sycl::info::device::version>();
   auto vendor_name = device.get_info<sycl::info::device::vendor>();
-  auto driver_version =
-      device.get_info<sycl::info::device::driver_version>();
+  auto driver_version = device.get_info<sycl::info::device::driver_version>();
 
   key_value_map["device_name"] = trim(device_name);
   key_value_map["device_version"] = trim(device_version);
@@ -197,8 +196,7 @@ inline void add_common_labels(
 }  // namespace internal
 
 template <typename scalar_t>
-inline void set_benchmark_label(benchmark::State& state,
-                                const sycl::queue& q) {
+inline void set_benchmark_label(benchmark::State& state, const sycl::queue& q) {
   std::map<std::string, std::string> key_value_map;
   auto dev = q.get_device();
   device_info::add_device_info(dev, key_value_map);

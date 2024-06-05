@@ -174,9 +174,8 @@ Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-PORTBLAS_INLINE bool
-Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
-    sycl::nd_item<1> ndItem) const {
+PORTBLAS_INLINE bool Spr<Single, isUpper, lhs_t, rhs_1_t,
+                         rhs_2_t>::valid_thread(sycl::nd_item<1> ndItem) const {
   return true;
 }
 

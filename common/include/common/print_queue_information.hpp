@@ -29,24 +29,22 @@
 #ifndef PRINT_QUEUE_INFORMATION_HPP
 #define PRINT_QUEUE_INFORMATION_HPP
 
-#include <sycl/sycl.hpp>
 #include <iostream>
 #include <regex>
 #include <string>
+#include <sycl/sycl.hpp>
 
 namespace utils {
 
 inline void print_queue_information(sycl::queue q) {
-  std::cerr
-      << "Device vendor: "
-      << q.get_device().template get_info<sycl::info::device::vendor>()
-      << std::endl;
+  std::cerr << "Device vendor: "
+            << q.get_device().template get_info<sycl::info::device::vendor>()
+            << std::endl;
   std::cerr << "Device name: "
             << q.get_device().template get_info<sycl::info::device::name>()
             << std::endl;
   std::cerr << "Device type: ";
-  switch (
-      q.get_device().template get_info<sycl::info::device::device_type>()) {
+  switch (q.get_device().template get_info<sycl::info::device::device_type>()) {
     case sycl::info::device_type::cpu:
       std::cerr << "cpu";
       break;

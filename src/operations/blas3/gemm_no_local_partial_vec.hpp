@@ -172,7 +172,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
     const sycl::range<1> nwg(get_workgroup_cluster() *
-                                 get_num_workgroup_cluster(compute_units));
+                             get_num_workgroup_cluster(compute_units));
     const sycl::range<1> wgs(wg_rows * wg_cols);
 
     return sycl::nd_range<1>(nwg * wgs, wgs);
@@ -473,8 +473,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       l_vector_t in_vec{0};
       if (in_range) {
         in_vec.template load<address_t::global_space>(
-            0,
-            sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
+            0, sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
       }
       in_vec.template store<address_t::private_space>(
           0, sycl::multi_ptr<value_t, address_t::private_space>(reg));

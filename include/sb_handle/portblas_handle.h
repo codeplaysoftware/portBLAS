@@ -174,9 +174,7 @@ class SB_Handle {
 
   inline void wait() { q_.wait(); }
 
-  inline void wait(std::vector<sycl::event> evs) {
-    sycl::event::wait(evs);
-  }
+  inline void wait(std::vector<sycl::event> evs) { sycl::event::wait(evs); }
 
   inline void wait(sycl::event ev) { sycl::event::wait({ev}); }
 
@@ -188,8 +186,7 @@ class SB_Handle {
   template <typename first_event_t, typename... next_event_t>
   void inline wait(first_event_t first_event,
                    next_event_t... next_dependencies) {
-    sycl::event::wait(
-        concatenate_vectors(first_event, next_dependencies...));
+    sycl::event::wait(concatenate_vectors(first_event, next_dependencies...));
   }
 
  private:

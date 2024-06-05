@@ -27,8 +27,8 @@
 
 #include "operations/blas3_trees.h"
 #include "views/view.h"
-#include <sycl/sycl.hpp>
 #include <string>
+#include <sycl/sycl.hpp>
 #include <type_traits>
 
 namespace blas {

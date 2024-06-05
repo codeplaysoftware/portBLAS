@@ -237,7 +237,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
     const sycl::range<1> nwg(get_workgroup_cluster() *
-                                 get_num_workgroup_cluster(compute_units));
+                             get_num_workgroup_cluster(compute_units));
     const sycl::range<1> wgs(wg_size);
 #ifdef VERBOSE
     std::cout << " M: " << a_.get_size_row() << " , N " << b_.get_size_col()
@@ -425,17 +425,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename InputPointerType, typename OutputPointerType,
             typename ScratchPointerType>
   PORTBLAS_INLINE void compute_panel_gemm(
-      const sycl::nd_item<1> &id, const index_t &item_id,
-      const index_t &row_a, const index_t &col_a, const index_t &row_b,
-      const index_t &col_b, const index_t &m, const index_t &n,
-      const index_t &orig_k, const index_t &mc, const index_t &nc,
-      const index_t &a_size, const index_t &b_size, const index_t &c_size,
-      InputPointerType orig_A, const index_t &lda, InputPointerType orig_B,
-      const index_t &ldb, OutputPointerType orig_C, const index_t &ldc,
-      ScratchPointerType s1, ScratchPointerType s2, ScratchPointerType s3,
-      ScratchPointerType s4, value_t *reg_a, value_t &reg_b,
-      const bool out_of_range, index_t batch_stride, index_t wg_batch_id,
-      index_t batch_size) noexcept {
+      const sycl::nd_item<1> &id, const index_t &item_id, const index_t &row_a,
+      const index_t &col_a, const index_t &row_b, const index_t &col_b,
+      const index_t &m, const index_t &n, const index_t &orig_k,
+      const index_t &mc, const index_t &nc, const index_t &a_size,
+      const index_t &b_size, const index_t &c_size, InputPointerType orig_A,
+      const index_t &lda, InputPointerType orig_B, const index_t &ldb,
+      OutputPointerType orig_C, const index_t &ldc, ScratchPointerType s1,
+      ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
+      value_t *reg_a, value_t &reg_b, const bool out_of_range,
+      index_t batch_stride, index_t wg_batch_id, index_t batch_size) noexcept {
     index_t ofs = 1;
     do {
       auto A = orig_A;
@@ -791,8 +790,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &...ss) noexcept {
+      const sycl::nd_item<1> &id, index_t &ofs_sign, P &s, Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }

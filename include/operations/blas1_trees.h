@@ -27,8 +27,8 @@
 #define PORTBLAS_BLAS1_TREES_H
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.h"
-#include <sycl/sycl.hpp>
 #include <stdexcept>
+#include <sycl/sycl.hpp>
 #include <vector>
 
 namespace blas {

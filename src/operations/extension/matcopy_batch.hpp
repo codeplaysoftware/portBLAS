@@ -197,9 +197,8 @@ Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
 
 template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
-typename lhs_t::value_t
-Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>::eval(
-    sycl::nd_item<1> ndItem) {
+typename lhs_t::value_t Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
+                                      rhs_2_t>::eval(sycl::nd_item<1> ndItem) {
   const index_t m{m_};
   const index_t n{n_};
 

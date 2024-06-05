@@ -257,7 +257,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               << std::endl;
 #endif
     return sycl::nd_range<1>{x_groups * batch_size_ * y_groups * wg_size,
-                                 wg_size};
+                             wg_size};
   }
 
   PORTBLAS_INLINE index_t get_size() const {
@@ -437,10 +437,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t batch_size) noexcept {
     index_t ofs = 1;
     using namespace sycl::ext::oneapi::experimental::matrix;
-    using CType =
-        joint_matrix<sycl::sub_group, typename tile_type::jmOutType,
-                     use::accumulator, tile_type::joint_matrix_M,
-                     tile_type::joint_matrix_N>;
+    using CType = joint_matrix<sycl::sub_group, typename tile_type::jmOutType,
+                               use::accumulator, tile_type::joint_matrix_M,
+                               tile_type::joint_matrix_N>;
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -792,14 +791,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         trans_a ? layout::row_major : layout::col_major;
     constexpr layout pattern_b =
         trans_b ? layout::row_major : layout::col_major;
-    using AType =
-        joint_matrix<sycl::sub_group, typename tile_type::jmInpType, use::a,
-                     tile_type::joint_matrix_M, tile_type::joint_matrix_K,
-                     pattern_a>;
-    using BType =
-        joint_matrix<sycl::sub_group, typename tile_type::jmInpType, use::b,
-                     tile_type::joint_matrix_K, tile_type::joint_matrix_N,
-                     pattern_b>;
+    using AType = joint_matrix<sycl::sub_group, typename tile_type::jmInpType,
+                               use::a, tile_type::joint_matrix_M,
+                               tile_type::joint_matrix_K, pattern_a>;
+    using BType = joint_matrix<sycl::sub_group, typename tile_type::jmInpType,
+                               use::b, tile_type::joint_matrix_K,
+                               tile_type::joint_matrix_N, pattern_b>;
 
     const index_t strideA = ldsa;
     const index_t strideB = ldsb;
@@ -850,8 +847,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &...ss) noexcept {
+      const sycl::nd_item<1> &id, index_t &ofs_sign, P &s, Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }

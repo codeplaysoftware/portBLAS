@@ -64,11 +64,10 @@ PORTBLAS_INLINE
     typename WGAtomicReduction<operator_t, usmManagedMem, lhs_t, rhs_t>::value_t
     WGAtomicReduction<operator_t, usmManagedMem, lhs_t, rhs_t>::eval(
         sycl::nd_item<1> ndItem) {
-  auto atomic_res =
-      sycl::atomic_ref<value_t, sycl::memory_order::relaxed,
-                           sycl::memory_scope::device,
-                           sycl::access::address_space::global_space>(
-          lhs_.get_data()[0]);
+  auto atomic_res = sycl::atomic_ref<value_t, sycl::memory_order::relaxed,
+                                     sycl::memory_scope::device,
+                                     sycl::access::address_space::global_space>(
+      lhs_.get_data()[0]);
   const auto size = get_size();
   int lid = ndItem.get_global_linear_id();
   value_t val = operator_t::template init<rhs_t>();
@@ -81,7 +80,7 @@ PORTBLAS_INLINE
   }
 
   val = sycl::reduce_over_group(ndItem.get_sub_group(), val,
-                                    sycl::plus<value_t>());
+                                sycl::plus<value_t>());
 
   if ((ndItem.get_local_id()[0] &
        (ndItem.get_sub_group().get_local_range()[0] - 1)) == 0) {
@@ -109,7 +108,7 @@ PORTBLAS_INLINE
   }
 
   val = sycl::reduce_over_group(ndItem.get_sub_group(), val,
-                                    sycl::plus<value_t>());
+                                sycl::plus<value_t>());
 
   if (ndItem.get_sub_group().get_local_id()[0] == 0) {
     scratch[ndItem.get_sub_group().get_group_linear_id()] = val;
@@ -123,16 +122,15 @@ PORTBLAS_INLINE
           : 0;
   if (ndItem.get_sub_group().get_group_id()[0] == 0) {
     val = sycl::reduce_over_group(ndItem.get_sub_group(), val,
-                                      sycl::plus<value_t>());
+                                  sycl::plus<value_t>());
   }
   if (ndItem.get_local_id()[0] == 0) {
     constexpr sycl::access::address_space addr_sp =
         usmManagedMem ? sycl::access::address_space::generic_space
                       : sycl::access::address_space::global_space;
-    auto atomic_res =
-        sycl::atomic_ref<value_t, sycl::memory_order::relaxed,
-                             sycl::memory_scope::device, addr_sp>(
-            lhs_.get_data()[0]);
+    auto atomic_res = sycl::atomic_ref<value_t, sycl::memory_order::relaxed,
+                                       sycl::memory_scope::device, addr_sp>(
+        lhs_.get_data()[0]);
     atomic_res += val;
   }
 

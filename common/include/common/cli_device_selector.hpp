@@ -29,10 +29,10 @@
 #ifndef CLI_DEVICE_SELECTOR_HPP
 #define CLI_DEVICE_SELECTOR_HPP
 
-#include <sycl/sycl.hpp>
 #include <iostream>
 #include <regex>
 #include <string>
+#include <sycl/sycl.hpp>
 
 #include "extract_vendor_type.hpp"
 

@@ -47,8 +47,7 @@ inline sycl::queue make_sycl_queue() {
       },
       {sycl::property::queue::in_order()});
   std::cout << "\nDevice: "
-            << q.get_device().get_info<sycl::info::device::name>()
-            << std::endl;
+            << q.get_device().get_info<sycl::info::device::name>() << std::endl;
 
   return q;
 }

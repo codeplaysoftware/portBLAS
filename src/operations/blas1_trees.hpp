@@ -410,8 +410,7 @@ BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename BinaryOpConst<operator_t, lhs_t, rhs_t>::value_t
-BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(
-    sycl::nd_item<1> ndItem) const {
+BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(sycl::nd_item<1> ndItem) const {
   return BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>

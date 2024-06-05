@@ -159,7 +159,7 @@ PORTBLAS_INLINE
     sum = 0;
     for (index_t col_id = 0; col_id < contract_dim; ++col_id) {
       sum = sycl::mad(matrix_a_.template eval<true>(non_contract_dim_index),
-                          vector_x_.eval(col_id), sum);
+                      vector_x_.eval(col_id), sum);
       non_contract_dim_index += contract_stride;
     }
 
@@ -232,7 +232,7 @@ PORTBLAS_INLINE
     // Computes the partial dot product for a row
     for (index_t c_dim_id = 0; c_dim_id < last_c_dim_id; ++c_dim_id) {
       sum = sycl::mad(matrix_a_.template eval<true>(mat_index),
-                          vector_scratch[c_dim_id], sum);
+                      vector_scratch[c_dim_id], sum);
       mat_index += lda;
     }
 
@@ -434,7 +434,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
 PORTBLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
-                                  matrix_t, vector_t>::value_t
+                                 matrix_t, vector_t>::value_t
 GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     sycl::nd_item<1> ndItem) {
   using index_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
@@ -523,14 +523,14 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
               sycl::min(index_t(id_col + interLoop), index_t(lst_col));
           // Handle lower diagonal etc
           for (index_t k_int =
-                   ((Lower) ? id_col
-                            : sycl::max(
-                                  index_t(row + ((!Diag || Unit) ? 1 : 0)),
-                                  index_t(id_col)));
-               k_int < ((Upper) ? lst_k_int
-                                : sycl::min(
-                                      index_t(row + ((!Diag || Unit) ? 0 : 1)),
-                                      index_t(lst_k_int)));
+                   ((Lower)
+                        ? id_col
+                        : sycl::max(index_t(row + ((!Diag || Unit) ? 1 : 0)),
+                                    index_t(id_col)));
+               k_int <
+               ((Upper) ? lst_k_int
+                        : sycl::min(index_t(row + ((!Diag || Unit) ? 0 : 1)),
+                                    index_t(lst_k_int)));
                k_int++) {
             // calculate the product between the row and the vector_.
             auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
@@ -556,7 +556,7 @@ template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
 template <typename local_memory_t>
 PORTBLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
-                                  matrix_t, vector_t>::value_t
+                                 matrix_t, vector_t>::value_t
 GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     local_memory_t shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
@@ -685,7 +685,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
 PORTBLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
-                              matrix_t, vector_t>::bind(sycl::handler &h) {
+                             matrix_t, vector_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);
@@ -757,7 +757,7 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(index_t i) {
 template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
           typename matrix_t, typename vector_t>
 PORTBLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-                                  vector_t>::value_t
+                                 vector_t>::value_t
 GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     sycl::nd_item<1> ndItem) {
   using index_t = typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
@@ -797,14 +797,13 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                      ? matrix_.eval(rowid, rowid)
                      : AdditionIdentity::eval(vector_.eval(0));
       for (index_t id_col =
-               ((Lower)
-                    ? frs_col
-                    : sycl::max(index_t(rowid + ((!Diag || Unit) ? 1 : 0)),
+               ((Lower) ? frs_col
+                        : sycl::max(index_t(rowid + ((!Diag || Unit) ? 1 : 0)),
                                     index_t(frs_col)));
-           id_col <
-           ((Upper) ? lst_col
-                    : sycl::min(index_t(rowid + ((!Diag || Unit) ? 0 : 1)),
-                                    index_t(lst_col)));
+           id_col < ((Upper)
+                         ? lst_col
+                         : sycl::min(index_t(rowid + ((!Diag || Unit) ? 0 : 1)),
+                                     index_t(lst_col)));
            id_col++) {
         auto prod = ProductOperator::eval(matrix_.eval(rowid, id_col),
                                           vector_.eval(id_col));
@@ -822,7 +821,7 @@ template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
           typename matrix_t, typename vector_t>
 template <typename local_memory_t>
 PORTBLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-                                  vector_t>::value_t
+                                 vector_t>::value_t
 GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     local_memory_t shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
@@ -907,7 +906,7 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
           typename matrix_t, typename vector_t>
 PORTBLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-                              vector_t>::bind(sycl::handler &h) {
+                             vector_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);

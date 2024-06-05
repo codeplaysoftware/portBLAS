@@ -285,8 +285,7 @@ template <typename value_t, typename index_t, typename increment_t>
 struct VectorViewType<BufferIterator<value_t>, index_t, increment_t> {
   static constexpr sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, sycl::access::mode,
-             sycl::access::mode::read,
-             sycl::access::mode::read_write>::type;
+             sycl::access::mode::read, sycl::access::mode::read_write>::type;
   using type =
       VectorView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
@@ -310,8 +309,7 @@ template <typename value_t, typename index_t, typename access_layout_t, bool has
 struct MatrixViewType<BufferIterator<value_t>, index_t, access_layout_t, has_inc> {
   static constexpr sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, sycl::access::mode,
-             sycl::access::mode::read,
-             sycl::access::mode::read_write>::type;
+             sycl::access::mode::read, sycl::access::mode::read_write>::type;
   using type =
       MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
@@ -333,8 +331,7 @@ static PORTBLAS_INLINE auto make_vector_view(BufferIterator<value_t> buff,
                                               increment_t inc, index_t sz) {
   static constexpr sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, sycl::access::mode,
-             sycl::access::mode::read,
-             sycl::access::mode::read_write>::type;
+             sycl::access::mode::read, sycl::access::mode::read_write>::type;
   using leaf_node_t =
       VectorView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
@@ -350,8 +347,7 @@ static PORTBLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
                                               index_t lda, index_t inc = 1) {
   static constexpr sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, sycl::access::mode,
-             sycl::access::mode::read,
-             sycl::access::mode::read_write>::type;
+             sycl::access::mode::read, sycl::access::mode::read_write>::type;
   using leaf_node_t =
       MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,

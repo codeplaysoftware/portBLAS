@@ -125,8 +125,7 @@ Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sycl::nd_item<1> ndItem) {
 template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename Ger<lhs_t, rhs_1_t, rhs_2_t>::value_t
-Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem,
-                                   sycl::nd_item<1> ndItem) {
+Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename Ger<lhs_t, rhs_1_t, rhs_2_t>::index_t;
 
   const index_t group_id = ndItem.get_group(0);
@@ -253,7 +252,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     sycl::nd_item<1> ndItem) {
   using index_t = typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
@@ -326,7 +325,7 @@ template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     sharedT shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
@@ -427,7 +426,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                             rhs_2_t>::bind(sycl::handler &h) {
+                            rhs_2_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
@@ -492,7 +491,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     sycl::nd_item<1> ndItem) {
   using index_t = typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
@@ -554,7 +553,7 @@ template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     sharedT shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
@@ -658,7 +657,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                             rhs_2_t>::bind(sycl::handler &h) {
+                            rhs_2_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);

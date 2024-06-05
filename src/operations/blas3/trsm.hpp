@@ -47,9 +47,8 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::valid_thread(
 
 template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
           typename rhs_t>
-PORTBLAS_INLINE void
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::bind(
-    sycl::handler& cgh) {
+PORTBLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t,
+                                            rhs_t>::bind(sycl::handler& cgh) {
   A_.bind(cgh);
   invA_.bind(cgh);
 }
@@ -118,7 +117,7 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
       if (i < j) {
         for (index_t k = 0; k < j; ++k) {
           sum = sycl::mad(local[k + i * internalBlockSize],
-                              local[j + k * internalBlockSize], sum);
+                          local[j + k * internalBlockSize], sum);
         }
       }
       item.barrier(sycl::access::fence_space::local_space);
@@ -135,7 +134,7 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
       if (i > j) {
         for (index_t k = j + 1; k < internalBlockSize; ++k) {
           sum = sycl::mad(local[k + i * internalBlockSize],
-                              local[j + k * internalBlockSize], sum);
+                          local[j + k * internalBlockSize], sum);
         }
       }
       item.barrier(sycl::access::fence_space::local_space);

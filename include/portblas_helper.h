@@ -109,13 +109,12 @@ template <typename container_t>
 typename std::enable_if<std::is_same<
     container_t, typename AllocHelper<typename ValueType<container_t>::type,
                                       AllocType::buffer>::type>::value>::type
-enqueue_deallocate(std::vector<sycl::event>, container_t mem,
-                   sycl::queue q) {}
+enqueue_deallocate(std::vector<sycl::event>, container_t mem, sycl::queue q) {}
 
 inline bool has_local_memory(sycl::queue &q) {
-  return (q.get_device()
-              .template get_info<sycl::info::device::local_mem_type>() ==
-          sycl::info::local_mem_type::local);
+  return (
+      q.get_device().template get_info<sycl::info::device::local_mem_type>() ==
+      sycl::info::local_mem_type::local);
 }
 // Force the system not to set this to bigger than 256. Using work group size
 // bigger than 256 may cause out of resource error on different platforms.
@@ -142,8 +141,8 @@ inline sycl::event copy_to_device(
     sycl::queue q, const element_t *src, BufferIterator<element_t> dst,
     size_t size, const std::vector<sycl::event> &_dependencies = {}) {
   auto event = q.submit([&](sycl::handler &cgh) {
-    auto acc = dst.template get_range_accessor<sycl::access::mode::write>(
-        cgh, size);
+    auto acc =
+        dst.template get_range_accessor<sycl::access::mode::write>(cgh, size);
     cgh.depends_on(_dependencies);
     cgh.copy(src, acc);
   });
@@ -167,12 +166,11 @@ inline sycl::event copy_to_device(
   @param size is the number of elements to be copied
 */
 template <typename element_t>
-inline sycl::event copy_to_host(sycl::queue q,
-                                    BufferIterator<element_t> src,
-                                    element_t *dst, size_t size) {
+inline sycl::event copy_to_host(sycl::queue q, BufferIterator<element_t> src,
+                                element_t *dst, size_t size) {
   auto event = q.submit([&](sycl::handler &cgh) {
-    auto acc = src.template get_range_accessor<sycl::access::mode::read>(
-        cgh, size);
+    auto acc =
+        src.template get_range_accessor<sycl::access::mode::read>(cgh, size);
     cgh.copy(acc, dst);
   });
   return event;
@@ -180,14 +178,14 @@ inline sycl::event copy_to_host(sycl::queue q,
 
 #ifdef SB_ENABLE_USM
 template <typename element_t>
-inline sycl::event copy_to_host(sycl::queue q, element_t *src,
-                                    element_t *dst, size_t size) {
+inline sycl::event copy_to_host(sycl::queue q, element_t *src, element_t *dst,
+                                size_t size) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
 template <typename element_t>
 inline sycl::event copy_to_host(sycl::queue q, const element_t *src,
-                                    element_t *dst, size_t size) {
+                                element_t *dst, size_t size) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
@@ -196,12 +194,12 @@ inline sycl::event copy_to_host(sycl::queue q, const element_t *src,
 
 template <typename element_t>
 inline sycl::event fill(sycl::queue q, BufferIterator<element_t> buff,
-                            element_t value, size_t size,
-                            const std::vector<sycl::event> &_dependencies) {
+                        element_t value, size_t size,
+                        const std::vector<sycl::event> &_dependencies) {
   auto event = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(_dependencies);
-    auto acc = buff.template get_range_accessor<sycl::access::mode::write>(
-        cgh, size);
+    auto acc =
+        buff.template get_range_accessor<sycl::access::mode::write>(cgh, size);
     cgh.fill(acc, value);
   });
   return event;
@@ -210,8 +208,8 @@ inline sycl::event fill(sycl::queue q, BufferIterator<element_t> buff,
 #ifdef SB_ENABLE_USM
 template <typename element_t>
 inline sycl::event fill(sycl::queue q, element_t *buff, element_t value,
-                            size_t size,
-                            const std::vector<sycl::event> &dependencies) {
+                        size_t size,
+                        const std::vector<sycl::event> &dependencies) {
   auto event = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(dependencies);
     cgh.fill(buff, value, size);

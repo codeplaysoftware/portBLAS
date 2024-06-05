@@ -205,8 +205,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
         ((batch_size_ - 1) / (block_batchs * item_batchs)) + 1;
 
     const sycl::range<1> nwg(number_of_block_per_row *
-                                 number_of_block_per_cols *
-                                 number_of_block_per_batch);
+                             number_of_block_per_cols *
+                             number_of_block_per_batch);
     const sycl::range<1> wgs(wg_rows * wg_cols * wg_batchs);
 
     return sycl::nd_range<1>(nwg * wgs, wgs);
@@ -501,9 +501,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
                         && !is_half<value_t>::value
 #endif  // __ADAPTIVECPP__
           ) {
-            *reg_res = sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
-                                     reg_b[i * (item_batchs / VectorSize) + b],
-                                     *reg_res);
+            *reg_res =
+                sycl::mad(reg_a[j * (item_batchs / VectorSize) + b],
+                          reg_b[i * (item_batchs / VectorSize) + b], *reg_res);
           } else {
 #pragma unroll
             for (int v = 0; v < VectorSize; ++v) {

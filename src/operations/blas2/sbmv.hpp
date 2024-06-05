@@ -108,8 +108,8 @@ PORTBLAS_INLINE
 
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-PORTBLAS_INLINE void Sbmv<lhs_t, matrix_t, vector_t, local_range,
-                           is_upper>::bind(sycl::handler &h) {
+PORTBLAS_INLINE void
+Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);

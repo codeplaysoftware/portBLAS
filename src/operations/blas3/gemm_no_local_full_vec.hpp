@@ -175,7 +175,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
     const sycl::range<1> nwg(get_workgroup_cluster() *
-                                 get_num_workgroup_cluster(compute_units));
+                             get_num_workgroup_cluster(compute_units));
     const sycl::range<1> wgs(wg_rows * wg_cols);
 
     return sycl::nd_range<1>(nwg * wgs, wgs);

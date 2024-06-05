@@ -68,15 +68,15 @@ struct PacketizeJointMatrix {
       EdgePredicate) {
     value_t val = in_range ? *src : value_t{0};
     using address_t = sycl::access::address_space;
-    if constexpr (std::is_same<sycl::multi_ptr<sycl::half,
-                                                   address_t::local_space>,
-                               DestPointerType>::value) {
+    if constexpr (std::is_same<
+                      sycl::multi_ptr<sycl::half, address_t::local_space>,
+                      DestPointerType>::value) {
       using dtype = sycl::half;
       *dest = static_cast<dtype>(val);
-    } else if constexpr (std::is_same<sycl::multi_ptr<
-                                          sycl::ext::oneapi::bfloat16,
-                                          address_t::local_space>,
-                                      DestPointerType>::value) {
+    } else if constexpr (std::is_same<
+                             sycl::multi_ptr<sycl::ext::oneapi::bfloat16,
+                                             address_t::local_space>,
+                             DestPointerType>::value) {
       using namespace sycl::ext::oneapi;
       *dest = bfloat16(val);
     } else {
@@ -110,15 +110,15 @@ struct PacketizeJointMatrix {
       // with release compiler.
 #pragma unroll
       for (index_t i = 0; i < packet_size; i++, dest++, src++) {
-        if constexpr (std::is_same<sycl::multi_ptr<sycl::half,
-                                                       address_t::local_space>,
-                                   DestPointerType>::value) {
+        if constexpr (std::is_same<
+                          sycl::multi_ptr<sycl::half, address_t::local_space>,
+                          DestPointerType>::value) {
           using dtype = sycl::half;
           *dest = static_cast<dtype>(edge_in_range(i) ? *src : 0);
-        } else if constexpr (std::is_same<sycl::multi_ptr<
-                                              sycl::ext::oneapi::bfloat16,
-                                              address_t::local_space>,
-                                          DestPointerType>::value) {
+        } else if constexpr (std::is_same<
+                                 sycl::multi_ptr<sycl::ext::oneapi::bfloat16,
+                                                 address_t::local_space>,
+                                 DestPointerType>::value) {
           using namespace sycl::ext::oneapi;
           *dest = bfloat16(edge_in_range(i) ? *src : 0.f);
         } else {
@@ -135,9 +135,9 @@ struct PacketizeJointMatrix {
   template <typename DestPointerType>
   static PORTBLAS_INLINE void store(PacketType &packet, DestPointerType dest) {
     using address_t = sycl::access::address_space;
-    if constexpr (std::is_same<sycl::multi_ptr<sycl::half,
-                                                   address_t::local_space>,
-                               DestPointerType>::value) {
+    if constexpr (std::is_same<
+                      sycl::multi_ptr<sycl::half, address_t::local_space>,
+                      DestPointerType>::value) {
       using dtype = sycl::half;
       sycl::vec<dtype, vector_size> new_vec{};
       for (index_t i = 0; i < packet_size; i++) {
@@ -146,10 +146,10 @@ struct PacketizeJointMatrix {
       }
       new_vec.template store<address_t::local_space>(
           0, sycl::multi_ptr<dtype, address_t::local_space>(dest));
-    } else if constexpr (std::is_same<sycl::multi_ptr<
-                                          sycl::ext::oneapi::bfloat16,
-                                          address_t::local_space>,
-                                      DestPointerType>::value) {
+    } else if constexpr (std::is_same<
+                             sycl::multi_ptr<sycl::ext::oneapi::bfloat16,
+                                             address_t::local_space>,
+                             DestPointerType>::value) {
       // sycl::vec doesn't accept bfloat16 as a valid input type
       // so we need to write the packet elements individually to
       // the shared memory.

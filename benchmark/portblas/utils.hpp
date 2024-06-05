@@ -26,8 +26,8 @@
 #ifndef SYCL_UTILS_HPP
 #define SYCL_UTILS_HPP
 
-#include <sycl/sycl.hpp>
 #include <chrono>
+#include <sycl/sycl.hpp>
 #include <tuple>
 
 #include "portblas.h"
@@ -55,8 +55,8 @@ inline double time_event<sycl::event>(sycl::event& e) {
   auto start_time = e.template get_profiling_info<
       sycl::info::event_profiling::command_start>();
 
-  auto end_time = e.template get_profiling_info<
-      sycl::info::event_profiling::command_end>();
+  auto end_time =
+      e.template get_profiling_info<sycl::info::event_profiling::command_end>();
 
   // return the delta
   return static_cast<double>(end_time - start_time);

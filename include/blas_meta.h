@@ -191,7 +191,7 @@ struct is_sycl_scalar
                        std::false_type>::type {};
 
 template <>
-struct is_sycl_scalar<sycl::half> : std::true_type {};
+struct is_sycl_scalar<sycl::half> : std::true_type{};
 
 template <>
 struct is_sycl_scalar<float *> : std::false_type {};

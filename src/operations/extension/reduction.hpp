@@ -28,8 +28,8 @@
 #include "blas_meta.h"
 #include "operations/extension/reduction.h"
 #include "views/view.h"
-#include <sycl/sycl.hpp>
 #include <string>
+#include <sycl/sycl.hpp>
 namespace blas {
 
 template <typename operator_t, typename params_t, typename input_t,
@@ -107,7 +107,7 @@ Reduction<operator_t, params_t, input_t, output_t>::get_nd_range(
       preserve_num_groups * reduced_group_count_ * local_range;
 
   return sycl::nd_range<1>(sycl::range<1>(global_range),
-                               sycl::range<1>(local_range));
+                           sycl::range<1>(local_range));
 }
 
 /*!

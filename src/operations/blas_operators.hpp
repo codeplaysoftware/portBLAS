@@ -52,9 +52,10 @@ struct Operators {};
 struct AbsoluteValue {
 #ifdef BLAS_ENABLE_HALF
   template <typename value_t>
-  using is_floating_point = std::integral_constant<
-      bool, std::is_floating_point<value_t>::value ||
-                std::is_same<value_t, sycl::half>::value>;
+  using is_floating_point =
+      std::integral_constant<bool,
+                             std::is_floating_point<value_t>::value ||
+                                 std::is_same<value_t, sycl::half>::value>;
 #else
   template <typename value_t>
   using is_floating_point = std::is_floating_point<value_t>;

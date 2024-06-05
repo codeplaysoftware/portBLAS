@@ -56,9 +56,9 @@ PORTBLAS_INLINE Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
-PORTBLAS_INLINE bool Xpmv<lhs_t, matrix_t, vector_t, local_range_x,
-                           local_range_y, is_symmetric, is_upper, is_transposed,
-                           is_unit>::valid_thread(sycl::nd_item<1> ndItem)
+PORTBLAS_INLINE bool
+Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
+     is_upper, is_transposed, is_unit>::valid_thread(sycl::nd_item<1> ndItem)
     const {
   // Valid threads are established by ::eval.
   return true;

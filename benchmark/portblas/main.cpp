@@ -57,11 +57,10 @@ int main(int argc, char** argv) {
     // Create a queue from the device selector - do this after initialising
     // googlebench, as otherwise we may not be able to delete the queue before
     // we exit (if Initialise calls exit(0)), and dump some information about it
-    q = sycl::queue(*cdsp.get(),
-                        {sycl::property::queue::enable_profiling()});
+    q = sycl::queue(*cdsp.get(), {sycl::property::queue::enable_profiling()});
   } else {
     q = sycl::queue(sycl::default_selector_v,
-                        {sycl::property::queue::enable_profiling()});
+                    {sycl::property::queue::enable_profiling()});
   }
 
   utils::print_queue_information(q);

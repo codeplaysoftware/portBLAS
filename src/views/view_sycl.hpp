@@ -52,8 +52,8 @@ struct VectorView<
   using index_t = view_index_t;
   using increment_t = view_increment_t;
   static constexpr sycl::access::mode access_mode_t = acc_mode_t;
-  using container_t = sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
-                                         place_holder_t>;
+  using container_t =
+      sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>;
   using self_t = VectorView<container_t, index_t, increment_t>;
 
   // Accessor to the data containing the vector values.
@@ -204,8 +204,8 @@ struct MatrixView<
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
   static constexpr sycl::access::mode access_mode_t = acc_mode_t;
-  using container_t = sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
-                                         place_holder_t>;
+  using container_t =
+      sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>;
   using self_t = MatrixView<container_t, index_t, layout>;
 
   using value_t = scalar_t;
@@ -217,8 +217,7 @@ struct MatrixView<
   const index_t sizeL_;  // size of the leading dimension
   const index_t inc_;    // internal increment between same row/column elements
   const index_t disp_;   // displacementt od the first element
-  sycl::global_ptr<scalar_t>
-      ptr_;  // global pointer access inside the kernel
+  sycl::global_ptr<scalar_t> ptr_;  // global pointer access inside the kernel
 
   /**** CONSTRUCTORS ****/
   PORTBLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,

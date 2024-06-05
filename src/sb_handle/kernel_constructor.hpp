@@ -26,8 +26,8 @@
 #define PORTBLAS_KERNEL_CONSTRUCTOR_HPP
 
 #include "sb_handle/kernel_constructor.h"
-#include <sycl/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 namespace blas {
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
@@ -54,9 +54,7 @@ struct LocalMemory {
   @param id SYCL id.
   @return Reference to an element of the local accessor.
   */
-  PORTBLAS_INLINE value_t &operator[](sycl::id<1> id) {
-    return localAcc[id];
-  }
+  PORTBLAS_INLINE value_t &operator[](sycl::id<1> id) { return localAcc[id]; }
 
   /*!
   @brief Local accessor.
