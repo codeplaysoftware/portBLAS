@@ -348,13 +348,8 @@ typename sb_handle_t::event_t launch_type_based_reduction(
     sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols,
     const typename SB_Handle::event_t& dependencies) {
-#ifdef POWER_VR
-  constexpr int ClSize = 32;
-  constexpr int WgSize = 64;
-#else
   constexpr int ClSize = 64;
   constexpr int WgSize = 256;
-#endif
   constexpr index_t reductions_per_thread = 64;
 
   using params_t = blas::ReductionParams<index_t, element_t, ClSize, WgSize,

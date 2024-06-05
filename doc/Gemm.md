@@ -169,8 +169,6 @@ This cmake variable causes a corresponding define for the selected platform to b
 #include "interface/blas3/backend/intel_gpu.hpp"
 #elif defined AMD_GPU
 #include "interface/blas3/backend/amd_gpu.hpp"
-#elif defined POWER_VR
-#include "interface/blas3/backend/power_vr.hpp"
 #else
 #include "interface/blas3/backend/default.hpp"
 #endif

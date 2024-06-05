@@ -22,5 +22,4 @@
  *  @filename bench_info.cc
  *
  **************************************************************************/
-#include "computecpp_version_config.h"
 #include "git_config.h"

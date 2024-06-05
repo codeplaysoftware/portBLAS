@@ -445,10 +445,11 @@ PORTBLAS_INLINE bool TupleOp<rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
+
 template <typename rhs_t>
 PORTBLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
     typename TupleOp<rhs_t>::index_t i) {
-  return TupleOp<rhs_t>::value_t(i, cl::sycl::fabs(rhs_.eval(i)));
+  return TupleOp<rhs_t>::value_t(i, rhs_.eval(i));
 }
 
 template <typename rhs_t>

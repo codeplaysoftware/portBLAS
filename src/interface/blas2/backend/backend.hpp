@@ -26,8 +26,6 @@
 #include "interface/blas2/backend/intel_gpu.hpp"
 #elif AMD_GPU
 #include "interface/blas2/backend/amd_gpu.hpp"
-#elif POWER_VR
-#include "interface/blas2/backend/power_vr.hpp"
 #elif NVIDIA_GPU
 #include "interface/blas2/backend/nvidia_gpu.hpp"
 #else
