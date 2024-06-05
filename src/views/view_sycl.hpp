@@ -67,9 +67,9 @@ struct VectorView<
 
   // Stride between data elements in memory.
   // If negative the data is read backwards, from
-  //     data_.get_multi_ptr() + (-size_ + 1) * stride_ + 1
+  //     data_.get_pointer() + (-size_ + 1) * stride_ + 1
   // up to
-  //     data_.get_multi_ptr()
+  //     data_.get_pointer()
   const increment_t stride_;
 
   // global pointer access inside the kernel
