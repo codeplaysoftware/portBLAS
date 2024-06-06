@@ -41,7 +41,7 @@ namespace blas {
  */
 
 template <typename ViewScalarT, int dim, sycl::access_mode acc_mode_t,
-          sycl::access::target access_t,
+          sycl::target access_t,
           sycl::access::placeholder place_holder_t, typename view_index_t,
           typename view_increment_t>
 struct VectorView<
@@ -184,7 +184,7 @@ struct VectorView<
 };
 
 template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
-          sycl::access::target access_t,
+          sycl::target access_t,
           sycl::access::placeholder place_holder_t, typename view_index_t,
           typename layout, bool has_inc>
 struct MatrixView<
@@ -194,7 +194,7 @@ struct MatrixView<
  * @brief Specialization of an MatrixView with an accessor.
  */
 template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
-          sycl::access::target access_t,
+          sycl::target access_t,
           sycl::access::placeholder place_holder_t, typename view_index_t,
           typename layout, bool has_inc>
 struct MatrixView<
