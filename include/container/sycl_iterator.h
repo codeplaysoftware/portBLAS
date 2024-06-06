@@ -36,20 +36,20 @@ class BufferIterator {
   using scalar_t = element_t;
   template <int dim = 1>
   using buffer_t = sycl::buffer<scalar_t, dim>;
-  using access_mode_t = sycl::access::mode;
-  template <sycl::access::mode acc_md_t = sycl::access::mode::read_write,
+  using access_mode_t = sycl::access_mode;
+  template <sycl::access_mode acc_md_t = sycl::access_mode::read_write,
             sycl::access::target access_t = sycl::access::target::global_buffer,
             sycl::access::placeholder place_holder_t =
                 sycl::access::placeholder::false_t>
   using accessor_t =
       sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
-  template <sycl::access::mode acc_md_t = sycl::access::mode::read_write,
+  template <sycl::access_mode acc_md_t = sycl::access_mode::read_write,
             sycl::access::target access_t = sycl::access::target::global_buffer,
             sycl::access::placeholder place_holder_t =
                 sycl::access::placeholder::true_t>
   using placeholder_accessor_t =
       sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
-  template <access_mode_t acc_md_t = sycl::access::mode::read_write>
+  template <access_mode_t acc_md_t = sycl::access_mode::read_write>
   using default_accessor_t = placeholder_accessor_t<acc_md_t>;
   using self_t = BufferIterator<scalar_t>;
   using buff_t = buffer_t<1>;
@@ -62,7 +62,7 @@ class BufferIterator {
    * @param cgh sycl::handler
    * @param size the region needed to be copied
    */
-  template <sycl::access::mode acc_md_t = sycl::access::mode::read_write>
+  template <sycl::access_mode acc_md_t = sycl::access_mode::read_write>
   inline accessor_t<acc_md_t> get_range_accessor(sycl::handler& cgh,
                                                  size_t size);
 
@@ -76,7 +76,7 @@ class BufferIterator {
    * @param size the region needed to be copied
    */
 
-  template <sycl::access::mode acc_md_t = sycl::access::mode::read_write>
+  template <sycl::access_mode acc_md_t = sycl::access_mode::read_write>
   inline placeholder_accessor_t<acc_md_t> get_range_accessor(size_t size);
 
   /*!
@@ -88,7 +88,7 @@ class BufferIterator {
    * @param cgh sycl::handler
    * @param size the region needed to be copied
    */
-  template <sycl::access::mode acc_md_t = sycl::access::mode::read_write>
+  template <sycl::access_mode acc_md_t = sycl::access_mode::read_write>
   inline accessor_t<acc_md_t> get_range_accessor(sycl::handler& cgh);
 
   /*!
@@ -100,7 +100,7 @@ class BufferIterator {
    * @param cgh sycl::handler
    * @param size the region needed to be copied
    */
-  template <sycl::access::mode acc_md_t = sycl::access::mode::read_write>
+  template <sycl::access_mode acc_md_t = sycl::access_mode::read_write>
   inline placeholder_accessor_t<acc_md_t> get_range_accessor();
   /*!
    * @brief Default construct a BufferIterator.
@@ -182,7 +182,7 @@ class BufferIterator {
 };
 
 template <typename element_t>
-template <sycl::access::mode acc_md_t>
+template <sycl::access_mode acc_md_t>
 inline typename BufferIterator<element_t>::template accessor_t<acc_md_t>
 BufferIterator<element_t>::get_range_accessor(sycl::handler& cgh, size_t size) {
   return typename BufferIterator<element_t>::template accessor_t<acc_md_t>(
@@ -191,7 +191,7 @@ BufferIterator<element_t>::get_range_accessor(sycl::handler& cgh, size_t size) {
 }
 
 template <typename element_t>
-template <sycl::access::mode acc_md_t>
+template <sycl::access_mode acc_md_t>
 inline typename BufferIterator<element_t>::template accessor_t<acc_md_t>
 BufferIterator<element_t>::get_range_accessor(sycl::handler& cgh) {
   return BufferIterator<element_t>::get_range_accessor<acc_md_t>(
@@ -199,7 +199,7 @@ BufferIterator<element_t>::get_range_accessor(sycl::handler& cgh) {
 }
 
 template <typename element_t>
-template <sycl::access::mode acc_md_t>
+template <sycl::access_mode acc_md_t>
 inline typename BufferIterator<element_t>::template placeholder_accessor_t<
     acc_md_t>
 BufferIterator<element_t>::get_range_accessor(size_t size) {
@@ -209,7 +209,7 @@ BufferIterator<element_t>::get_range_accessor(size_t size) {
 }
 
 template <typename element_t>
-template <sycl::access::mode acc_md_t>
+template <sycl::access_mode acc_md_t>
 inline typename BufferIterator<element_t>::template placeholder_accessor_t<
     acc_md_t>
 BufferIterator<element_t>::get_range_accessor() {

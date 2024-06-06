@@ -40,7 +40,7 @@ namespace blas {
  * @tparam scalar_t Value type of accessor.
  */
 
-template <typename ViewScalarT, int dim, sycl::access::mode acc_mode_t,
+template <typename ViewScalarT, int dim, sycl::access_mode acc_mode_t,
           sycl::access::target access_t,
           sycl::access::placeholder place_holder_t, typename view_index_t,
           typename view_increment_t>
@@ -51,7 +51,7 @@ struct VectorView<
   using value_t = scalar_t;
   using index_t = view_index_t;
   using increment_t = view_increment_t;
-  static constexpr sycl::access::mode access_mode_t = acc_mode_t;
+  static constexpr sycl::access_mode access_mode_t = acc_mode_t;
   using container_t =
       sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>;
   using self_t = VectorView<container_t, index_t, increment_t>;
@@ -183,7 +183,7 @@ struct VectorView<
   }
 };
 
-template <class ViewScalarT, int dim, sycl::access::mode acc_mode_t,
+template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
           sycl::access::target access_t,
           sycl::access::placeholder place_holder_t, typename view_index_t,
           typename layout, bool has_inc>
@@ -193,7 +193,7 @@ struct MatrixView<
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
-template <class ViewScalarT, int dim, sycl::access::mode acc_mode_t,
+template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
           sycl::access::target access_t,
           sycl::access::placeholder place_holder_t, typename view_index_t,
           typename layout, bool has_inc>
@@ -203,7 +203,7 @@ struct MatrixView<
   using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
-  static constexpr sycl::access::mode access_mode_t = acc_mode_t;
+  static constexpr sycl::access_mode access_mode_t = acc_mode_t;
   using container_t =
       sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>;
   using self_t = MatrixView<container_t, index_t, layout>;

@@ -142,7 +142,7 @@ inline sycl::event copy_to_device(
     size_t size, const std::vector<sycl::event> &_dependencies = {}) {
   auto event = q.submit([&](sycl::handler &cgh) {
     auto acc =
-        dst.template get_range_accessor<sycl::access::mode::write>(cgh, size);
+        dst.template get_range_accessor<sycl::access_mode::write>(cgh, size);
     cgh.depends_on(_dependencies);
     cgh.copy(src, acc);
   });
@@ -170,7 +170,7 @@ inline sycl::event copy_to_host(sycl::queue q, BufferIterator<element_t> src,
                                 element_t *dst, size_t size) {
   auto event = q.submit([&](sycl::handler &cgh) {
     auto acc =
-        src.template get_range_accessor<sycl::access::mode::read>(cgh, size);
+        src.template get_range_accessor<sycl::access_mode::read>(cgh, size);
     cgh.copy(acc, dst);
   });
   return event;
@@ -199,7 +199,7 @@ inline sycl::event fill(sycl::queue q, BufferIterator<element_t> buff,
   auto event = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(_dependencies);
     auto acc =
-        buff.template get_range_accessor<sycl::access::mode::write>(cgh, size);
+        buff.template get_range_accessor<sycl::access_mode::write>(cgh, size);
     cgh.fill(acc, value);
   });
   return event;
