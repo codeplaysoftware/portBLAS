@@ -38,7 +38,7 @@ class BufferIterator {
   using buffer_t = sycl::buffer<scalar_t, dim>;
   using access_mode_t = sycl::access_mode;
   template <sycl::access_mode acc_md_t = sycl::access_mode::read_write,
-            sycl::target access_t = sycl::target::device ,
+            sycl::target access_t = sycl::target::device,
             sycl::access::placeholder place_holder_t =
                 sycl::access::placeholder::false_t>
   using accessor_t =

@@ -41,9 +41,8 @@ namespace blas {
  */
 
 template <typename ViewScalarT, int dim, sycl::access_mode acc_mode_t,
-          sycl::target access_t,
-          sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename view_increment_t>
+          sycl::target access_t, sycl::access::placeholder place_holder_t,
+          typename view_index_t, typename view_increment_t>
 struct VectorView<
     sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, view_increment_t> {
@@ -184,9 +183,8 @@ struct VectorView<
 };
 
 template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
-          sycl::target access_t,
-          sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout, bool has_inc>
+          sycl::target access_t, sycl::access::placeholder place_holder_t,
+          typename view_index_t, typename layout, bool has_inc>
 struct MatrixView<
     sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout, has_inc>;
@@ -194,9 +192,8 @@ struct MatrixView<
  * @brief Specialization of an MatrixView with an accessor.
  */
 template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
-          sycl::target access_t,
-          sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout, bool has_inc>
+          sycl::target access_t, sycl::access::placeholder place_holder_t,
+          typename view_index_t, typename layout, bool has_inc>
 struct MatrixView<
     sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout, has_inc> {

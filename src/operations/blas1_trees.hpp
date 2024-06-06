@@ -26,11 +26,11 @@
 #ifndef PORTBLAS_BLAS1_TREES_HPP
 #define PORTBLAS_BLAS1_TREES_HPP
 
+#include "blas1/IndexMaxMin.hpp"
+#include "blas1/WGAtomicReduction.hpp"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
 #include "views/view.hpp"
-#include "blas1/WGAtomicReduction.hpp"
-#include "blas1/IndexMaxMin.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
