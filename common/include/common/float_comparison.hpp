@@ -32,23 +32,6 @@
 #include <complex>
 #endif
 
-#if SYCL_LANGUAGE_VERSION < 202000
-#include <sycl/sycl.hpp>
-inline std::ostream& operator<<(std::ostream& os, const sycl::half& value) {
-  os << static_cast<float>(value);
-  return os;
-}
-
-namespace std {
-template <>
-class numeric_limits<sycl::half> {
- public:
-  static constexpr float min() { return -65504.0f; }
-  static constexpr float max() { return 65504.0f; }
-};
-}  // namespace std
-#endif  // SYCL_LANGUAGE_VERSION
-
 namespace utils {
 
 template <typename scalar_t>

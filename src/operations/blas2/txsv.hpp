@@ -100,7 +100,7 @@ PORTBLAS_INLINE
          is_upper, is_transposed, is_unitdiag>::eval(local_memory_t local_mem,
                                                      sycl::nd_item<1> ndItem) {
   value_t ret = 0;
-#if (SYCL_LANGUAGE_VERSION >= 202000) && !(defined __ADAPTIVECPP__)
+#ifndef  __ADAPTIVECPP__
 
   constexpr bool is_forward =
       (is_upper && is_transposed) || (!is_upper && !is_transposed);
