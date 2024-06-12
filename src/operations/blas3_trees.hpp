@@ -29,6 +29,7 @@
 #include "blas3/gemm_local.hpp"
 #include "blas3/gemm_local_joint_matrix.hpp"
 #include "blas3/gemm_no_local_full_vec.hpp"
+#include "blas3/gemm_no_local_joint_matrix.hpp"
 #include "blas3/gemm_no_local_partial_vec.hpp"
 #include "blas3/gemm_partial_local.hpp"
 #include "blas3/gemm_ref.hpp"

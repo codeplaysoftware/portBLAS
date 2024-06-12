@@ -417,6 +417,31 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     "float"
     "double"
   )
+
+  # Joint Matrix specific GEMM configurations
+  if(${DPCPP_SYCL_TARGET} STREQUAL "intel_gpu_pvc")
+    add_gemm_configuration(
+        "float" 64 "false" "false" "false"
+        64 2 2 8 8 16 1 1 1 1 1 8 16 16 cl::sycl::ext::oneapi::bfloat16 float "no_local" "standard" "none" 1 "strided" "true")
+    add_gemm_configuration(
+        "float" 64 "false" "false" "false"
+        64 4 2 8 8 16 1 1 1 1 1 8 16 16 cl::sycl::ext::oneapi::bfloat16 float "no_local" "standard" "none" 1 "strided" "true")
+    add_gemm_configuration(
+        "float" 64 "false" "false" "false"
+        64 8 2 4 16 16 1 1 1 1 1 8 16 16 cl::sycl::ext::oneapi::bfloat16 float "no_local" "standard" "none" 1 "strided" "true")
+  endif()
+
+  if(${DPCPP_SYCL_TARGET} STREQUAL "intel_gpu_dg2_g12")
+  add_gemm_configuration(
+      "float" 64 "false" "false" "false"
+      64 2 2 8 8 8 1 1 1 1 1 8 8 16 cl::sycl::ext::oneapi::bfloat16 float "no_local" "standard" "none" 1 "strided" "true")
+  add_gemm_configuration(
+        "float" 64 "false" "false" "false"
+        64 4 2 8 8 8 1 1 1 1 1 8 8 16 cl::sycl::ext::oneapi::bfloat16 float "no_local" "standard" "none" 1 "strided" "true")
+    add_gemm_configuration(
+        "float" 64 "false" "false" "false"
+        64 8 2 4 16 8 1 1 1 1 1 8 8 16 cl::sycl::ext::oneapi::bfloat16 float "no_local" "standard" "none" 1 "strided" "true")
+  endif()
   foreach(data ${supported_types})
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"

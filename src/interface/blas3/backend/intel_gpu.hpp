@@ -59,6 +59,92 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                 _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
                                 _stridec, batch_size, _dependencies);
     }
+#if defined SB_ENABLE_JOINT_MATRIX_PVC || defined SB_ENABLE_JOINT_MATRIX_ARC
+    const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+    // TODO: change this if condition to enable the code for bfloat16 input type
+    if (en_joint_matrix != NULL && *en_joint_matrix == '1' && !s_a && !s_b &&
+        std::is_same<typename ValueType<container_0_t>::type, float>::value &&
+        std::is_same<typename ValueType<container_1_t>::type, float>::value &&
+        std::is_same<typename ValueType<container_2_t>::type, float>::value) {
+#ifdef SB_ENABLE_JOINT_MATRIX_PVC
+      if (_M > 1024 && _N > 1024) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 64, false, false,
+            false, 64,
+            Tile<8, 2, 4, 16, 16, 1, 1, 1, 1, 1, 8, 16, 16,
+                 cl::sycl::ext::oneapi::bfloat16, float>,
+            _t_b, _t_a, s_b, s_a, static_cast<int>(gemm_memory_t::no_local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided),
+            true>::template _select_gemm(sb_handle, _N, _M, _K, _alpha, _b,
+                                         _ldb, _strideb, _a, _lda, _stridea,
+                                         _beta, _c, _ldc, _stridec, batch_size,
+                                         _dependencies);
+      } else if (_M > 64 && _N > 64) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 64, false, false,
+            false, 64,
+            Tile<4, 2, 8, 8, 16, 1, 1, 1, 1, 1, 8, 16, 16,
+                 cl::sycl::ext::oneapi::bfloat16, float>,
+            _t_b, _t_a, s_b, s_a, static_cast<int>(gemm_memory_t::no_local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided),
+            true>::template _select_gemm(sb_handle, _N, _M, _K, _alpha, _b,
+                                         _ldb, _strideb, _a, _lda, _stridea,
+                                         _beta, _c, _ldc, _stridec, batch_size,
+                                         _dependencies);
+
+      } else {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 64, false, false,
+            false, 64,
+            Tile<2, 2, 8, 8, 16, 1, 1, 1, 1, 1, 8, 16, 16,
+                 cl::sycl::ext::oneapi::bfloat16, float>,
+            _t_b, _t_a, s_b, s_a, static_cast<int>(gemm_memory_t::no_local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided),
+            true>::template _select_gemm(sb_handle, _N, _M, _K, _alpha, _b,
+                                         _ldb, _strideb, _a, _lda, _stridea,
+                                         _beta, _c, _ldc, _stridec, batch_size,
+                                         _dependencies);
+      }
+#else // SB_ENABLE_JOINT_MATRIX_ARC
+      if (_M > 64 && _N > 64) {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 64, false, false,
+            false, 64,
+            Tile<4, 2, 8, 8, 8, 1, 1, 1, 1, 1, 8, 8, 16,
+                 cl::sycl::ext::oneapi::bfloat16, float>,
+            _t_b, _t_a, s_b, s_a, static_cast<int>(gemm_memory_t::no_local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided),
+            true>::template _select_gemm(sb_handle, _N, _M, _K, _alpha, _b,
+                                         _ldb, _strideb, _a, _lda, _stridea,
+                                         _beta, _c, _ldc, _stridec, batch_size,
+                                         _dependencies);
+
+      } else {
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 64, false, false,
+            false, 64,
+            Tile<2, 2, 8, 8, 8, 1, 1, 1, 1, 1, 8, 8, 16,
+                 cl::sycl::ext::oneapi::bfloat16, float>,
+            _t_b, _t_a, s_b, s_a, static_cast<int>(gemm_memory_t::no_local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided),
+            true>::template _select_gemm(sb_handle, _N, _M, _K, _alpha, _b,
+                                         _ldb, _strideb, _a, _lda, _stridea,
+                                         _beta, _c, _ldc, _stridec, batch_size,
+                                         _dependencies);
+      }
+#endif
+    }
+#endif // SB_ENABLE_JOINT_MATRIX_PVC || defined SB_ENABLE_JOINT_MATRIX_ARC
 #ifdef GEMM_TALL_SKINNY_SUPPORT
     if (!s_a && !s_b) {
       /* Tall & Skinny matrices. */
