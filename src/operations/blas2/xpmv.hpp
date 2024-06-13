@@ -56,9 +56,9 @@ PORTBLAS_INLINE Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
-PORTBLAS_INLINE bool Xpmv<lhs_t, matrix_t, vector_t, local_range_x,
-                           local_range_y, is_symmetric, is_upper, is_transposed,
-                           is_unit>::valid_thread(cl::sycl::nd_item<1> ndItem)
+PORTBLAS_INLINE bool
+Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
+     is_upper, is_transposed, is_unit>::valid_thread(sycl::nd_item<1> ndItem)
     const {
   // Valid threads are established by ::eval.
   return true;
@@ -73,7 +73,7 @@ PORTBLAS_INLINE
                   is_symmetric, is_upper, is_transposed, is_unit>::value_t
     Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
          is_upper, is_transposed, is_unit>::eval(sharedT shrMem,
-                                                 cl::sycl::nd_item<1> ndItem) {
+                                                 sycl::nd_item<1> ndItem) {
   const index_t gid = ndItem.get_group(0);
 
   constexpr index_t loc_x_dim = local_range_x;
@@ -136,13 +136,13 @@ PORTBLAS_INLINE
         A += _mat_next_stride(stride);
       }
 
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
 #pragma unroll
       for (index_t _j = 0; _j < priv_y_dim; ++_j)
         priv_res += priv_A[_j] * loc_x[l_y_offset + _j];
 
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
     }
   }
 
@@ -195,7 +195,7 @@ PORTBLAS_INLINE
 
     for (index_t b = (is_upper ? 0 : gid + 1); b < (is_upper ? gid : nblock);
          ++b) {
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
 #pragma unroll
       for (index_t _j = 0; _j < priv_y_dim; ++_j) {
@@ -215,7 +215,7 @@ PORTBLAS_INLINE
         A += _mat_next_stride(stride);
       }
 
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       if (!l_idy) {
         const index_t x_idx = b * loc_x_dim + l_idx;
@@ -231,7 +231,7 @@ PORTBLAS_INLINE
     }
   }
 
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
 #pragma unroll
   for (index_t _j = 0; _j < priv_y_dim; ++_j) {
@@ -239,11 +239,11 @@ PORTBLAS_INLINE
     priv_res += loc_A[loc_lda * j + l_idx] * loc_x[j];
   }
 
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   loc_A[loc_lda * l_idy + l_idx] = priv_res;
 
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   if (!l_idy) {
     value_t res = value_t(0);
@@ -268,7 +268,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           bool is_upper, bool is_transposed, bool is_unit>
 PORTBLAS_INLINE void
 Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
-     is_upper, is_transposed, is_unit>::bind(cl::sycl::handler &h) {
+     is_upper, is_transposed, is_unit>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);

@@ -39,8 +39,8 @@ template <typename DataT, int NumElements = 1>
 class vec_complex {
   static_assert(NumElements == 1,
                 "Vector wrapper arround sycl::complex of size>1 unsupported.");
-  using address_t = cl::sycl::access::address_space;
-  using decorated_t = cl::sycl::access::decorated;
+  using address_t = sycl::access::address_space;
+  using decorated_t = sycl::access::decorated;
   using DataType = DataT;
   static constexpr int getNumElements() { return NumElements; }
   size_t size() const noexcept { return NumElements; }
@@ -114,14 +114,14 @@ class vec_complex {
   // Load
   template <address_t Space, decorated_t DecorateAddress>
   void load(size_t Offset,
-            cl::sycl::multi_ptr<const DataT, Space, DecorateAddress> Ptr) {
+            sycl::multi_ptr<const DataT, Space, DecorateAddress> Ptr) {
     m_Data = *(Ptr + Offset * NumElements);
   }
 
   // Store
   template <address_t Space, decorated_t DecorateAddress>
   void store(size_t Offset,
-             cl::sycl::multi_ptr<DataT, Space, DecorateAddress> Ptr) const {
+             sycl::multi_ptr<DataT, Space, DecorateAddress> Ptr) const {
     *(Ptr + Offset * NumElements) = m_Data;
   }
 };

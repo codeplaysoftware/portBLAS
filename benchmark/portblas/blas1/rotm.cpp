@@ -116,7 +116,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1),
                        gpu_y_v, static_cast<index_t>(1), gpu_param);
     sb_handle.wait(event);

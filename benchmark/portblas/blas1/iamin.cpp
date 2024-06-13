@@ -83,7 +83,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _iamin(sb_handle, size, inx, static_cast<index_t>(1), outI);
     sb_handle.wait(event);
     return event;

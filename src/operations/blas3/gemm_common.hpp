@@ -27,8 +27,8 @@
 
 #include "operations/blas3_trees.h"
 #include "views/view.h"
-#include <CL/sycl.hpp>
 #include <string>
+#include <sycl/sycl.hpp>
 #include <type_traits>
 
 namespace blas {
@@ -47,7 +47,7 @@ static PORTBLAS_INLINE Tout
 mul_add(Tin a, Tin b, Tout c,
         typename std::enable_if<std::is_same<Tin, Tout>::value &&
                                 is_sycl_scalar<Tin>::value>::type * = 0) {
-  return (cl::sycl::mad(a, b, c));
+  return (sycl::mad(a, b, c));
 }
 
 template <typename Tin, typename Tout>

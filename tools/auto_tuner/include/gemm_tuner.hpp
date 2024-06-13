@@ -30,7 +30,7 @@
 #include "reference_gemm.hpp"
 #include "portblas.hpp"
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace blas;
 // Convert batch_type=strided to interleaved on the host
 template <typename scalar_t>

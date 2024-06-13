@@ -70,7 +70,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
  public:
   using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using address_t = cl::sycl::access::address_space;
+  using address_t = sycl::access::address_space;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
   using vector_t = typename packetize_t::PacketType;
   static constexpr int local_memory_size = 0;
@@ -169,24 +169,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             1);
   }
 
-  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+  PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
-    const cl::sycl::range<1> nwg(get_workgroup_cluster() *
-                                 get_num_workgroup_cluster(compute_units));
-    const cl::sycl::range<1> wgs(wg_rows * wg_cols);
+    const sycl::range<1> nwg(get_workgroup_cluster() *
+                             get_num_workgroup_cluster(compute_units));
+    const sycl::range<1> wgs(wg_rows * wg_cols);
 
-    return cl::sycl::nd_range<1>(nwg * wgs, wgs);
+    return sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
   PORTBLAS_INLINE index_t get_size() const {
     return a_.get_size_row() * b_.get_size_col();
   }
 
-  PORTBLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &) const {
+  PORTBLAS_INLINE bool valid_thread(const sycl::nd_item<1> &) const {
     return true;
   }
 
-  PORTBLAS_INLINE void eval(cl::sycl::nd_item<1> id) noexcept {
+  PORTBLAS_INLINE void eval(sycl::nd_item<1> id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     const index_t k = a_.get_size_col();
@@ -418,7 +418,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @brief binding the placeholder accessors to the SYCL command group
    * handler
    * @param h: SYCL command group handler. */
-  void bind(cl::sycl::handler &h) {
+  void bind(sycl::handler &h) {
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
@@ -473,11 +473,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       l_vector_t in_vec{0};
       if (in_range) {
         in_vec.template load<address_t::global_space>(
-            0,
-            cl::sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
+            0, sycl::multi_ptr<const value_t, address_t::global_space>(ptr));
       }
       in_vec.template store<address_t::private_space>(
-          0, cl::sycl::multi_ptr<value_t, address_t::private_space>(reg));
+          0, sycl::multi_ptr<value_t, address_t::private_space>(reg));
 
       // Move pointers and update index for next load
       ptr += ld;
@@ -519,11 +518,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     l_vector_t out_vec{0};
 
     out_vec.template load<address_t::private_space>(
-        0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
+        0, sycl::multi_ptr<const element_t, address_t::private_space>(reg));
     out_vec *= alpha_;
 
     out_vec.template store<address_t::global_space>(
-        0, cl::sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
+        0, sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
   }
 
   /*!
@@ -564,12 +563,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           l_vector_t out_vec{0};
 
           out_vec.template load<address_t::private_space>(
-              0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(
+              0, sycl::multi_ptr<const element_t, address_t::private_space>(
                      reg_res + i * item_rows + j * a_packet_size));
           out_vec *= alpha_;
 
           out_vec.template store<address_t::global_space>(
-              0, cl::sycl::multi_ptr<element_t, address_t::global_space>(
+              0, sycl::multi_ptr<element_t, address_t::global_space>(
                      C + j * wg_rows * a_packet_size));
         }
       }

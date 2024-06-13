@@ -34,7 +34,7 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in_t, typename out_t, typename element_t>
 PORTBLAS_INLINE bool
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
-          element_t>::valid_thread(cl::sycl::nd_item<1> item) const {
+          element_t>::valid_thread(sycl::nd_item<1> item) const {
   index_t idx = item.get_global_linear_id();
   return (idx < get_size());
 }
@@ -43,7 +43,7 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in_t, typename out_t, typename element_t>
 PORTBLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
-          element_t>::bind(cl::sycl::handler &cgh) {
+          element_t>::bind(sycl::handler &cgh) {
   A_.bind(cgh);
   At_.bind(cgh);
 }
@@ -71,7 +71,7 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
  *@brief get_indices. This function is used in the non-local memory kernel to
  *compute global input & output indices.
  *
- * @param id [input] the cl::sycl::nd_item<1> of the current work_item
+ * @param id [input] the sycl::nd_item<1> of the current work_item
  * @param in_idx [output] the input global-memory index
  * @param out_idx [output] the output global-memory index
  * @param i [output] the global row-index
@@ -81,7 +81,7 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in_t, typename out_t, typename element_t>
 PORTBLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
-          element_t>::get_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
+          element_t>::get_indices(sycl::nd_item<1> id, index_t &in_idx,
                                   index_t &out_idx, index_t &i, index_t &j) {
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id(0);
@@ -114,7 +114,7 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in_t, typename out_t, typename element_t>
 PORTBLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
-          element_t>::eval(cl::sycl::nd_item<1> id) {
+          element_t>::eval(sycl::nd_item<1> id) {
   index_t idx = id.get_global_linear_id();
 
   index_t in_index, out_index, i_id, j_id;
@@ -137,7 +137,7 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
  *@brief get_indices. This function is used in the local-memory kernel to
  *compute local & global input & output indices.
  *
- * @param id [input] the cl::sycl::nd_item<1> of the current work_item
+ * @param id [input] the sycl::nd_item<1> of the current work_item
  * @param in_idx [output] the input global-memory index
  * @param out_idx [output] the output global-memory index
  * @param in_local_idx [output] the input local-memory linear index
@@ -152,7 +152,7 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in_t, typename out_t, typename element_t>
 PORTBLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
-          element_t>::get_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
+          element_t>::get_indices(sycl::nd_item<1> id, index_t &in_idx,
                                   index_t &in_local_idx, index_t &out_idx,
                                   index_t &out_local_idx,
                                   index_t &i_block_start,
@@ -193,7 +193,7 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
 template <typename local_memory_t>
 PORTBLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
-          element_t>::eval(local_memory_t local_mem, cl::sycl::nd_item<1> id) {
+          element_t>::eval(local_memory_t local_mem, sycl::nd_item<1> id) {
   value_t *local = local_mem.localAcc.get_pointer();
   auto A = A_.get_pointer();
   auto At = At_.get_pointer();
@@ -212,7 +212,7 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
       }
     }
   }
-  id.barrier(cl::sycl::access::fence_space::local_space);
+  id.barrier(sycl::access::fence_space::local_space);
 
   if (j_block_start + il < N_) {
     for (index_t l = 0; l < inner_tile_count_; l++) {
@@ -231,7 +231,7 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           typename element_t>
 PORTBLAS_INLINE bool TransposeAdd<
     both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t, in2_t, out_t,
-    element_t>::valid_thread(cl::sycl::nd_item<1> item) const {
+    element_t>::valid_thread(sycl::nd_item<1> item) const {
   auto idx = item.get_global_linear_id();
   return idx < get_size();
 }
@@ -241,7 +241,7 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           typename element_t>
 PORTBLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
-             in2_t, out_t, element_t>::bind(cl::sycl::handler &cgh) {
+             in2_t, out_t, element_t>::bind(sycl::handler &cgh) {
   A_.bind(cgh);
   B_.bind(cgh);
   C_.bind(cgh);
@@ -272,7 +272,7 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
  *@brief get_indices. This function is used in the non-local memory kernel to
  *compute global input & output indices.
  *
- * @param id [input] the cl::sycl::nd_item<1> of the current work_item
+ * @param id [input] the sycl::nd_item<1> of the current work_item
  * @param in_a_idx [output] the input A global-memory index
  * @param in_b_idx [output] the input B global-memory index
  * @param out_idx [output] the output C global-memory index
@@ -286,7 +286,7 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           typename element_t>
 PORTBLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
-             in2_t, out_t, element_t>::get_indices(cl::sycl::nd_item<1> id,
+             in2_t, out_t, element_t>::get_indices(sycl::nd_item<1> id,
                                                    index_t &in_a_idx,
                                                    index_t &in_b_idx,
                                                    index_t &out_idx, index_t &i,
@@ -335,7 +335,7 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           typename element_t>
 PORTBLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
-             in2_t, out_t, element_t>::eval(cl::sycl::nd_item<1> id) {
+             in2_t, out_t, element_t>::eval(sycl::nd_item<1> id) {
   auto A = A_.get_pointer();
   auto B = B_.get_pointer();
   auto C = C_.get_pointer();
@@ -387,7 +387,7 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           typename element_t>
 PORTBLAS_INLINE void TransposeAdd<
     both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t, in2_t, out_t,
-    element_t>::get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
+    element_t>::get_indices(sycl::nd_item<1> id, index_t &in_a_idx,
                             index_t &in_b_idx, index_t &in_local_idx,
                             index_t &out_idx, index_t &out_local_idx,
                             index_t &i_block_start, index_t &j_block_start,
@@ -442,7 +442,7 @@ template <typename local_memory_t>
 PORTBLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
              in2_t, out_t, element_t>::eval(local_memory_t local_mem,
-                                            cl::sycl::nd_item<1> id) {
+                                            sycl::nd_item<1> id) {
   value_t *local = local_mem.localAcc.get_pointer();
 
   auto A = A_.get_pointer();
@@ -472,7 +472,7 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
       }
     }
 
-    id.barrier(cl::sycl::access::fence_space::local_space);
+    id.barrier(sycl::access::fence_space::local_space);
 
     // Transposed copy of previous output from local memory
     if (j_block_start + il < M_) {
@@ -501,7 +501,7 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
       }
     }
 
-    id.barrier(cl::sycl::access::fence_space::local_space);
+    id.barrier(sycl::access::fence_space::local_space);
 
     // Transposed copy of previous output from local memory and scaled
     // addition with 2nd non transposed matrix B

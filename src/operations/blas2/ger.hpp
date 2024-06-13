@@ -54,13 +54,13 @@ Ger<lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
 }
 template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE bool Ger<lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 
 template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE typename Ger<lhs_t, rhs_1_t, rhs_2_t>::value_t
-Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(cl::sycl::nd_item<1> ndItem) {
+Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sycl::nd_item<1> ndItem) {
   using index_t = typename Ger<lhs_t, rhs_1_t, rhs_2_t>::index_t;
 
   const index_t subgroup_size = ndItem.get_sub_group().get_local_range().get(0);
@@ -106,7 +106,7 @@ Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(cl::sycl::nd_item<1> ndItem) {
   for (index_t sub_id_col = 0; sub_id_col < col_per_workitem; sub_id_col++) {
     const value_t rhs_2_sub_id_col =
 #ifndef __ADAPTIVECPP__
-        cl::sycl::group_broadcast(ndItem.get_sub_group(), rhs_2, sub_id_col);
+        sycl::group_broadcast(ndItem.get_sub_group(), rhs_2, sub_id_col);
 #else
         rhs_2_.eval(id_col0 + sub_id_col);
 #endif
@@ -125,8 +125,7 @@ Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(cl::sycl::nd_item<1> ndItem) {
 template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename Ger<lhs_t, rhs_1_t, rhs_2_t>::value_t
-Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem,
-                                   cl::sycl::nd_item<1> ndItem) {
+Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename Ger<lhs_t, rhs_1_t, rhs_2_t>::index_t;
 
   const index_t group_id = ndItem.get_group(0);
@@ -172,7 +171,7 @@ Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem,
   value_t prefetch_lhs_ =
       (id_row1 < dimR && id_col1 < dimC) ? lhs_.eval(id_row1, id_col1) : 0;
 
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   for (index_t id_col = 0; id_col < col_per_workitem; id_col++) {
     const value_t val = l_rhs_1[id_row0] * l_rhs_2[id_col0 + id_col];
@@ -188,7 +187,7 @@ Ger<lhs_t, rhs_1_t, rhs_2_t>::eval(sharedT shrMem,
 }
 
 template <typename lhs_t, typename rhs_1_t, typename rhs_2_t>
-PORTBLAS_INLINE void Ger<lhs_t, rhs_1_t, rhs_2_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void Ger<lhs_t, rhs_1_t, rhs_2_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
@@ -229,7 +228,7 @@ template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE bool
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 
@@ -253,9 +252,9 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   using index_t = typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                   rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -326,9 +325,9 @@ template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
-    sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+    sharedT shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                   rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -362,7 +361,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       if (rowid > frs_row)
         // This barrier is mandatory to be sure the data is on the shared
         // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        ndItem.barrier(sycl::access::fence_space::local_space);
       auto blqSz = std::min(shrSz, lst_row - rowid);
       for (index_t row = localid, id_row = rowid + localid; (row < blqSz);
            row += localSz, id_row += localSz) {
@@ -370,7 +369,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       for (index_t colid = frs_col; (colid < lst_col); colid += localSz) {
         auto val = rhs_2_.eval(colid);
@@ -392,7 +391,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       if (rowid > frs_row)
         // This barrier is mandatory to be sure the data is on the shared
         // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        ndItem.barrier(sycl::access::fence_space::local_space);
       auto blqSz = std::min(shrSz1, lst_row - rowid);
       for (index_t row = localid, id_row = rowid + localid; (row < blqSz);
            row += localSz, id_row += localSz) {
@@ -401,7 +400,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       for (index_t colid = frs_col; (colid < lst_col); colid += localSz) {
         auto val1 = rhs_1_.eval(colid);
@@ -427,7 +426,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                             rhs_2_t>::bind(cl::sycl::handler &h) {
+                            rhs_2_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
@@ -469,7 +468,7 @@ template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE bool
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
@@ -492,9 +491,9 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   using index_t = typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                   rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -554,9 +553,9 @@ template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                                 rhs_2_t>::value_t
+                                rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
-    sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+    sharedT shrMem, sycl::nd_item<1> ndItem) {
   using index_t = typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                   rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
@@ -590,7 +589,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       if (colid > frs_col) {
         // This barrier is mandatory to be sure the data is on the shared
         // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        ndItem.barrier(sycl::access::fence_space::local_space);
       }
       auto blqSz = std::min(local_memory_size_, lst_col - colid);
 
@@ -599,7 +598,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       for (index_t id_row = frs_row; id_row < lst_row; id_row += localSz) {
         auto val = rhs_1_.eval(id_row);
@@ -622,7 +621,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       if (colid > frs_col) {
         // This barrier is mandatory to be sure the data is on the shared
         // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        ndItem.barrier(sycl::access::fence_space::local_space);
       }
       auto blqSz = std::min(shrSz1, lst_col - colid);
 
@@ -632,7 +631,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      ndItem.barrier(sycl::access::fence_space::local_space);
 
       for (index_t id_row = frs_row; id_row < lst_row; id_row += localSz) {
         auto val1 = rhs_1_.eval(id_row);
@@ -658,7 +657,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 PORTBLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                             rhs_2_t>::bind(cl::sycl::handler &h) {
+                            rhs_2_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);

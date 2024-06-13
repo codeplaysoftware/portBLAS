@@ -77,7 +77,7 @@ SB_Handle::acquire_temp_mem(size_t size) {
   if (tempMemPool_ != nullptr)
     return tempMemPool_->acquire_usm_mem<value_t>(size);
   else
-    return cl::sycl::malloc_device<value_t>(size, q_);
+    return sycl::malloc_device<value_t>(size, q_);
 }
 
 template <typename container_t>
@@ -91,10 +91,10 @@ SB_Handle::release_temp_mem(const typename SB_Handle::event_t& dependencies,
   if (tempMemPool_ != nullptr)
     return tempMemPool_->release_usm_mem(dependencies, mem);
   else {
-    cl::sycl::context context = q_.get_context();
-    return {q_.submit([&](cl::sycl::handler& cgh) {
+    sycl::context context = q_.get_context();
+    return {q_.submit([&](sycl::handler& cgh) {
       cgh.depends_on(dependencies);
-      cgh.host_task([=]() { cl::sycl::free(mem, context); });
+      cgh.host_task([=]() { sycl::free(mem, context); });
     })};
   }
 }

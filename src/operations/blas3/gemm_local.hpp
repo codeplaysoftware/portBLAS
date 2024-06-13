@@ -89,7 +89,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   using packetize_out_t = Packetize<VectorSize, element_t, index_t>;
   using vector_t = typename packetize_t::PacketType;
   using vector_out_t = typename packetize_out_t::PacketType;
-  using address_t = cl::sycl::access::address_space;
+  using address_t = sycl::access::address_space;
 
   // enable easier access to tile dimensions
   static constexpr index_t item_rows = tile_type::item_rows;
@@ -234,11 +234,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+  PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
-    const cl::sycl::range<1> nwg(get_workgroup_cluster() *
-                                 get_num_workgroup_cluster(compute_units));
-    const cl::sycl::range<1> wgs(wg_size);
+    const sycl::range<1> nwg(get_workgroup_cluster() *
+                             get_num_workgroup_cluster(compute_units));
+    const sycl::range<1> wgs(wg_size);
 #ifdef VERBOSE
     std::cout << " M: " << a_.get_size_row() << " , N " << b_.get_size_col()
               << " , big_tile_rows: " << big_tile_rows
@@ -246,7 +246,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               << " , wg_size: " << wg_size
               << " , nwg : " << get_workgroup_cluster() << std::endl;
 #endif
-    return cl::sycl::nd_range<1>(nwg * wgs, wgs);
+    return sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
   PORTBLAS_INLINE index_t get_size() const {
@@ -261,7 +261,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <typename local_memory_t>
   PORTBLAS_INLINE void eval(local_memory_t scratch_acc,
-                            const cl::sycl::nd_item<1> &id) noexcept {
+                            const sycl::nd_item<1> &id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     const index_t k = a_.get_size_col();
@@ -354,7 +354,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
   }
 
-  void bind(cl::sycl::handler &h) {
+  void bind(sycl::handler &h) {
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
@@ -364,7 +364,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  PORTBLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
+  PORTBLAS_INLINE bool valid_thread(const sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
@@ -425,17 +425,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename InputPointerType, typename OutputPointerType,
             typename ScratchPointerType>
   PORTBLAS_INLINE void compute_panel_gemm(
-      const cl::sycl::nd_item<1> &id, const index_t &item_id,
-      const index_t &row_a, const index_t &col_a, const index_t &row_b,
-      const index_t &col_b, const index_t &m, const index_t &n,
-      const index_t &orig_k, const index_t &mc, const index_t &nc,
-      const index_t &a_size, const index_t &b_size, const index_t &c_size,
-      InputPointerType orig_A, const index_t &lda, InputPointerType orig_B,
-      const index_t &ldb, OutputPointerType orig_C, const index_t &ldc,
-      ScratchPointerType s1, ScratchPointerType s2, ScratchPointerType s3,
-      ScratchPointerType s4, value_t *reg_a, value_t &reg_b,
-      const bool out_of_range, index_t batch_stride, index_t wg_batch_id,
-      index_t batch_size) noexcept {
+      const sycl::nd_item<1> &id, const index_t &item_id, const index_t &row_a,
+      const index_t &col_a, const index_t &row_b, const index_t &col_b,
+      const index_t &m, const index_t &n, const index_t &orig_k,
+      const index_t &mc, const index_t &nc, const index_t &a_size,
+      const index_t &b_size, const index_t &c_size, InputPointerType orig_A,
+      const index_t &lda, InputPointerType orig_B, const index_t &ldb,
+      OutputPointerType orig_C, const index_t &ldc, ScratchPointerType s1,
+      ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
+      value_t *reg_a, value_t &reg_b, const bool out_of_range,
+      index_t batch_stride, index_t wg_batch_id, index_t batch_size) noexcept {
     index_t ofs = 1;
     do {
       auto A = orig_A;
@@ -453,7 +452,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         extract_input_blocks<check_m_limit, check_n_limit, false, symm_a,
                              symm_b>(item_id, m, n, k, ra, ca, rb, cb, A, lda,
                                      B, ldb, s1, s3, out_of_range);
-        id.barrier(cl::sycl::access::fence_space::local_space);
+        id.barrier(sycl::access::fence_space::local_space);
         compute_block_gemm<check_m_limit, check_n_limit>(item_id, s2, s4, reg_a,
                                                          reg_b, reg_res);
         A += cl_elems * (trans_a ? 1 : lda);
@@ -498,7 +497,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         extract_input_blocks<check_m_limit, check_n_limit, true, symm_a,
                              symm_b>(item_id, m, n, k, ra, ca, rb, cb, A, lda,
                                      B, ldb, s1, s3, out_of_range);
-        id.barrier(cl::sycl::access::fence_space::local_space);
+        id.barrier(sycl::access::fence_space::local_space);
         compute_block_gemm<check_m_limit, check_n_limit>(item_id, s2, s4, reg_a,
                                                          reg_b, reg_res);
 
@@ -531,11 +530,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     vector_out_t out_vec{};
 
     out_vec.template load<address_t::private_space>(
-        0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
+        0, sycl::multi_ptr<const element_t, address_t::private_space>(reg));
     out_vec *= alpha_;
 
     out_vec.template store<address_t::global_space>(
-        0, cl::sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
+        0, sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
   }
   /*!
    * @brief Store the computed gemm result to the C matrix
@@ -791,22 +790,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &...ss) noexcept {
+      const sycl::nd_item<1> &id, index_t &ofs_sign, P &s, Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }
 
   template <bool db>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
+      const sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
   template <bool db, index_t..., typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<!db>::type sync_smem(
-      const cl::sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
-    id.barrier(cl::sycl::access::fence_space::local_space);
+      const sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
+    id.barrier(sycl::access::fence_space::local_space);
   }
 
   /**

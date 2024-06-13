@@ -26,7 +26,7 @@
 #include "operations/blas3_trees.h"
 #include "views/view.h"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 namespace blas {
 
@@ -41,15 +41,14 @@ template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
           typename rhs_t>
 PORTBLAS_INLINE bool
 DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> id) const {
+    sycl::nd_item<1> id) const {
   return true;
 }
 
 template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
           typename rhs_t>
-PORTBLAS_INLINE void
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::bind(
-    cl::sycl::handler& cgh) {
+PORTBLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t,
+                                            rhs_t>::bind(sycl::handler& cgh) {
   A_.bind(cgh);
   invA_.bind(cgh);
 }
@@ -67,7 +66,7 @@ template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
 template <typename local_memory_t>
 PORTBLAS_INLINE void
 DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
-    local_memory_t localMem, cl::sycl::nd_item<1> item) noexcept {
+    local_memory_t localMem, sycl::nd_item<1> item) noexcept {
   auto A = A_.get_pointer();
   auto invA = invA_.get_pointer();
   value_t* local = localMem.localAcc.get_pointer();
@@ -103,13 +102,13 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
             ? (onUnitDiag ? value_t{1} : A[j * lda_ + i + srcBlockOffset])
             : value_t{0};
   }
-  item.barrier(cl::sycl::access::fence_space::local_space);
+  item.barrier(sycl::access::fence_space::local_space);
 
   // Inverts the diagonal elements
   if (!UnitDiag) {
     local[i + i * internalBlockSize] =
         value_t{1} / local[i + i * internalBlockSize];
-    item.barrier(cl::sycl::access::fence_space::local_space);
+    item.barrier(sycl::access::fence_space::local_space);
   }
 
   if (Upper) {
@@ -117,16 +116,16 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
       value_t sum = value_t{0};
       if (i < j) {
         for (index_t k = 0; k < j; ++k) {
-          sum = cl::sycl::mad(local[k + i * internalBlockSize],
-                              local[j + k * internalBlockSize], sum);
+          sum = sycl::mad(local[k + i * internalBlockSize],
+                          local[j + k * internalBlockSize], sum);
         }
       }
-      item.barrier(cl::sycl::access::fence_space::local_space);
+      item.barrier(sycl::access::fence_space::local_space);
       if (i < j) {
         local[j + i * internalBlockSize] =
             sum * (UnitDiag ? -1 : -local[j + j * internalBlockSize]);
       }
-      item.barrier(cl::sycl::access::fence_space::local_space);
+      item.barrier(sycl::access::fence_space::local_space);
     }
   } else {
     // Computes the elements j+1:internalBlock-1 of the j-th column
@@ -134,16 +133,16 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
       value_t sum = value_t{0};
       if (i > j) {
         for (index_t k = j + 1; k < internalBlockSize; ++k) {
-          sum = cl::sycl::mad(local[k + i * internalBlockSize],
-                              local[j + k * internalBlockSize], sum);
+          sum = sycl::mad(local[k + i * internalBlockSize],
+                          local[j + k * internalBlockSize], sum);
         }
       }
-      item.barrier(cl::sycl::access::fence_space::local_space);
+      item.barrier(sycl::access::fence_space::local_space);
       if (i > j) {
         local[j + i * internalBlockSize] =
             sum * (UnitDiag ? -1 : -local[j + j * internalBlockSize]);
       }
-      item.barrier(cl::sycl::access::fence_space::local_space);
+      item.barrier(sycl::access::fence_space::local_space);
     }
   }
 

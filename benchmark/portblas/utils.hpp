@@ -26,8 +26,8 @@
 #ifndef SYCL_UTILS_HPP
 #define SYCL_UTILS_HPP
 
-#include <CL/sycl.hpp>
 #include <chrono>
+#include <sycl/sycl.hpp>
 #include <tuple>
 
 #include "portblas.h"
@@ -46,17 +46,17 @@ namespace utils {
 
 /**
  * @fn time_event
- * @brief Get the overall run time (start -> end) of a cl::sycl::event enqueued
+ * @brief Get the overall run time (start -> end) of a sycl::event enqueued
  * on a queue with profiling.
  */
 template <>
-inline double time_event<cl::sycl::event>(cl::sycl::event& e) {
+inline double time_event<sycl::event>(sycl::event& e) {
   // get start and end times
   auto start_time = e.template get_profiling_info<
-      cl::sycl::info::event_profiling::command_start>();
+      sycl::info::event_profiling::command_start>();
 
-  auto end_time = e.template get_profiling_info<
-      cl::sycl::info::event_profiling::command_end>();
+  auto end_time =
+      e.template get_profiling_info<sycl::info::event_profiling::command_end>();
 
   // return the delta
   return static_cast<double>(end_time - start_time);

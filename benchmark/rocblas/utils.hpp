@@ -385,7 +385,7 @@ struct RocblasType {
 
 // When T is sycl::half, use rocBLAS's rocblas_half as type.
 template <typename T>
-struct RocblasType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+struct RocblasType<T, std::enable_if_t<std::is_same_v<T, sycl::half>>> {
   using type = rocblas_half;
 };
 }  // namespace utils

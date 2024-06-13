@@ -26,13 +26,11 @@
 #ifndef PORTBLAS_BLAS1_TREES_HPP
 #define PORTBLAS_BLAS1_TREES_HPP
 
+#include "blas1/IndexMaxMin.hpp"
+#include "blas1/WGAtomicReduction.hpp"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
 #include "views/view.hpp"
-#if SYCL_LANGUAGE_VERSION >= 202000
-#include "blas1/WGAtomicReduction.hpp"
-#endif
-#include "blas1/IndexMaxMin.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
@@ -84,8 +82,8 @@ struct DetectScalar<double> {
  * @brief See Detect Scalar.
  */
 template <>
-struct DetectScalar<cl::sycl::half> {
-  using element_t = cl::sycl::half;
+struct DetectScalar<sycl::half> {
+  using element_t = sycl::half;
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
@@ -124,7 +122,7 @@ Join<lhs_t, rhs_t>::get_size() const {
 
 template <typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE bool Join<lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < Join<lhs_t, rhs_t>::get_size()));
 }
 
@@ -137,11 +135,11 @@ PORTBLAS_INLINE typename Join<lhs_t, rhs_t>::value_t Join<lhs_t, rhs_t>::eval(
 
 template <typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename Join<lhs_t, rhs_t>::value_t Join<lhs_t, rhs_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   return Join<lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void Join<lhs_t, rhs_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void Join<lhs_t, rhs_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
@@ -165,7 +163,7 @@ Assign<lhs_t, rhs_t>::get_size() const {
 
 template <typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   using index_t = typename Assign<lhs_t, rhs_t>::index_t;
   return (static_cast<index_t>(ndItem.get_global_id(0)) <
           Assign<lhs_t, rhs_t>::get_size());
@@ -180,12 +178,12 @@ Assign<lhs_t, rhs_t>::eval(typename Assign<lhs_t, rhs_t>::index_t i) {
 
 template <typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename Assign<lhs_t, rhs_t>::value_t
-Assign<lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+Assign<lhs_t, rhs_t>::eval(sycl::nd_item<1> ndItem) {
   return Assign<lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 
 template <typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void Assign<lhs_t, rhs_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void Assign<lhs_t, rhs_t>::bind(sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
@@ -215,7 +213,7 @@ template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
           typename rhs_2_t>
 PORTBLAS_INLINE bool
 DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
 
@@ -237,14 +235,14 @@ template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
 PORTBLAS_INLINE
     typename DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::value_t
     DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::eval(
-        cl::sycl::nd_item<1> ndItem) {
+        sycl::nd_item<1> ndItem) {
   return DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::eval(
       ndItem.get_global_id(0));
 }
 template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
           typename rhs_2_t>
 PORTBLAS_INLINE void DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::bind(
-    cl::sycl::handler &h) {
+    sycl::handler &h) {
   lhs_1_.bind(h);
   rhs_1_.bind(h);
   lhs_2_.bind(h);
@@ -276,7 +274,7 @@ ScalarOp<operator_t, scalar_t, rhs_t>::get_size() const {
 }
 template <typename operator_t, typename scalar_t, typename rhs_t>
 PORTBLAS_INLINE bool ScalarOp<operator_t, scalar_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) <
            ScalarOp<operator_t, scalar_t, rhs_t>::get_size()));
 }
@@ -288,12 +286,12 @@ ScalarOp<operator_t, scalar_t, rhs_t>::eval(
 }
 template <typename operator_t, typename scalar_t, typename rhs_t>
 PORTBLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t
-ScalarOp<operator_t, scalar_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+ScalarOp<operator_t, scalar_t, rhs_t>::eval(sycl::nd_item<1> ndItem) {
   return ScalarOp<operator_t, scalar_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename operator_t, typename scalar_t, typename rhs_t>
 PORTBLAS_INLINE void ScalarOp<operator_t, scalar_t, rhs_t>::bind(
-    cl::sycl::handler &h) {
+    sycl::handler &h) {
   rhs_.bind(h);
 }
 
@@ -316,7 +314,7 @@ UnaryOp<operator_t, rhs_t>::get_size() const {
 
 template <typename operator_t, typename rhs_t>
 PORTBLAS_INLINE bool UnaryOp<operator_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < UnaryOp<operator_t, rhs_t>::get_size()));
 }
 
@@ -329,11 +327,11 @@ UnaryOp<operator_t, rhs_t>::eval(
 
 template <typename operator_t, typename rhs_t>
 PORTBLAS_INLINE typename UnaryOp<operator_t, rhs_t>::value_t
-UnaryOp<operator_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+UnaryOp<operator_t, rhs_t>::eval(sycl::nd_item<1> ndItem) {
   return UnaryOp<operator_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename operator_t, typename rhs_t>
-PORTBLAS_INLINE void UnaryOp<operator_t, rhs_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void UnaryOp<operator_t, rhs_t>::bind(sycl::handler &h) {
   rhs_.bind(h);
 }
 template <typename operator_t, typename rhs_t>
@@ -355,7 +353,7 @@ BinaryOp<operator_t, lhs_t, rhs_t>::get_size() const {
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE bool BinaryOp<operator_t, lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
 
@@ -367,12 +365,12 @@ BinaryOp<operator_t, lhs_t, rhs_t>::eval(
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::value_t
-BinaryOp<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+BinaryOp<operator_t, lhs_t, rhs_t>::eval(sycl::nd_item<1> ndItem) {
   return BinaryOp<operator_t, lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void BinaryOp<operator_t, lhs_t, rhs_t>::bind(
-    cl::sycl::handler &h) {
+    sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
@@ -398,7 +396,7 @@ BinaryOpConst<operator_t, lhs_t, rhs_t>::get_size() const {
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE bool BinaryOpConst<operator_t, lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
 
@@ -410,13 +408,12 @@ BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename BinaryOpConst<operator_t, lhs_t, rhs_t>::value_t
-BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(
-    cl::sycl::nd_item<1> ndItem) const {
+BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(sycl::nd_item<1> ndItem) const {
   return BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void BinaryOpConst<operator_t, lhs_t, rhs_t>::bind(
-    cl::sycl::handler &h) {
+    sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
@@ -442,7 +439,7 @@ PORTBLAS_INLINE typename TupleOp<rhs_t>::index_t TupleOp<rhs_t>::get_size()
 
 template <typename rhs_t>
 PORTBLAS_INLINE bool TupleOp<rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
 
@@ -454,11 +451,11 @@ PORTBLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
 
 template <typename rhs_t>
 PORTBLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   return TupleOp<rhs_t>::eval(ndItem.get_global_id(0));
 }
 template <typename rhs_t>
-PORTBLAS_INLINE void TupleOp<rhs_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void TupleOp<rhs_t>::bind(sycl::handler &h) {
   rhs_.bind(h);
 }
 template <typename rhs_t>
@@ -484,7 +481,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::get_size() const {
 
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE bool AssignReduction<operator_t, lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
@@ -519,7 +516,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(
 }
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE typename AssignReduction<operator_t, lhs_t, rhs_t>::value_t
-AssignReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+AssignReduction<operator_t, lhs_t, rhs_t>::eval(sycl::nd_item<1> ndItem) {
   return AssignReduction<operator_t, lhs_t, rhs_t>::eval(
       ndItem.get_global_id(0));
 }
@@ -527,7 +524,7 @@ template <typename operator_t, typename lhs_t, typename rhs_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename AssignReduction<operator_t, lhs_t, rhs_t>::value_t
 AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
-                                                cl::sycl::nd_item<1> ndItem) {
+                                                sycl::nd_item<1> ndItem) {
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
@@ -548,7 +545,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
 
   scratch[localid] = val;
   // This barrier is mandatory to be sure the data is on the shared memory
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   // Reduction inside the block
   for (index_t offset = localSz >> 1; offset > 0; offset >>= 1) {
@@ -557,7 +554,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
           operator_t::eval(scratch[localid], scratch[localid + offset]);
     }
     // This barrier is mandatory to be sure the data are on the shared memory
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    ndItem.barrier(sycl::access::fence_space::local_space);
   }
   if (localid == 0) {
     lhs_.eval(groupid) = scratch[localid];
@@ -567,7 +564,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
 
 template <typename operator_t, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void AssignReduction<operator_t, lhs_t, rhs_t>::bind(
-    cl::sycl::handler &h) {
+    sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
@@ -634,18 +631,18 @@ PORTBLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
 
 template <typename operand_t>
 PORTBLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   return Rotg<operand_t>::eval(ndItem.get_global_id(0));
 }
 
 template <typename operand_t>
 PORTBLAS_INLINE bool Rotg<operand_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < Rotg<operand_t>::get_size()));
 }
 
 template <typename operand_t>
-PORTBLAS_INLINE void Rotg<operand_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void Rotg<operand_t>::bind(sycl::handler &h) {
   a_.bind(h);
   b_.bind(h);
   c_.bind(h);
@@ -904,18 +901,18 @@ PORTBLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
 template <typename operand_t>
 PORTBLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   return Rotmg<operand_t>::eval(ndItem.get_global_id(0));
 }
 
 template <typename operand_t>
 PORTBLAS_INLINE bool Rotmg<operand_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < Rotmg<operand_t>::get_size()));
 }
 
 template <typename operand_t>
-PORTBLAS_INLINE void Rotmg<operand_t>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void Rotmg<operand_t>::bind(sycl::handler &h) {
   d1_.bind(h);
   d2_.bind(h);
   x1_.bind(h);

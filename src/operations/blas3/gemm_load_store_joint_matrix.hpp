@@ -39,7 +39,7 @@ supported).
 template <int vector_size, typename value_t, typename index_t>
 struct PacketizeJointMatrix {
 #ifdef GEMM_VECTORIZATION_SUPPORT
-  using PacketType = cl::sycl::vec<value_t, vector_size>;
+  using PacketType = sycl::vec<value_t, vector_size>;
   static constexpr int packet_size = vector_size;
   template <index_t dimension>
   PORTBLAS_INLINE static constexpr bool check_size() {
@@ -47,7 +47,7 @@ struct PacketizeJointMatrix {
   }
 #else
   // In the case where vectorization is not enabled, always set to 1
-  using PacketType = cl::sycl::vec<value_t, 1>;
+  using PacketType = sycl::vec<value_t, 1>;
   static constexpr int packet_size = 1;
   template <index_t dimension>
   PORTBLAS_INLINE static constexpr bool check_size() {
@@ -67,20 +67,20 @@ struct PacketizeJointMatrix {
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
     value_t val = in_range ? *src : value_t{0};
-    using address_t = cl::sycl::access::address_space;
-    if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
-                                                   address_t::local_space>,
-                               DestPointerType>::value) {
-      using dtype = cl::sycl::half;
+    using address_t = sycl::access::address_space;
+    if constexpr (std::is_same<
+                      sycl::multi_ptr<sycl::half, address_t::local_space>,
+                      DestPointerType>::value) {
+      using dtype = sycl::half;
       *dest = static_cast<dtype>(val);
-    } else if constexpr (std::is_same<cl::sycl::multi_ptr<
-                                          cl::sycl::ext::oneapi::bfloat16,
-                                          address_t::local_space>,
-                                      DestPointerType>::value) {
-      using namespace cl::sycl::ext::oneapi;
+    } else if constexpr (std::is_same<
+                             sycl::multi_ptr<sycl::ext::oneapi::bfloat16,
+                                             address_t::local_space>,
+                             DestPointerType>::value) {
+      using namespace sycl::ext::oneapi;
       *dest = bfloat16(val);
     } else {
-      using namespace cl::sycl::ext::oneapi::experimental::matrix;
+      using namespace sycl::ext::oneapi::experimental::matrix;
       *dest = round_to_tf32(val);
     }
   }
@@ -99,10 +99,10 @@ struct PacketizeJointMatrix {
       EdgePredicate edge_in_range) {
     PacketType packet{};
 
-    using address_t = cl::sycl::access::address_space;
+    using address_t = sycl::access::address_space;
     if (in_range) {
       packet.template load<address_t::global_space>(
-          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(src));
+          0, sycl::multi_ptr<const value_t, address_t::global_space>(src));
       store(packet, dest);
     } else {
       // avoid writing to variable, instead directly write to
@@ -110,19 +110,19 @@ struct PacketizeJointMatrix {
       // with release compiler.
 #pragma unroll
       for (index_t i = 0; i < packet_size; i++, dest++, src++) {
-        if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
-                                                       address_t::local_space>,
-                                   DestPointerType>::value) {
-          using dtype = cl::sycl::half;
+        if constexpr (std::is_same<
+                          sycl::multi_ptr<sycl::half, address_t::local_space>,
+                          DestPointerType>::value) {
+          using dtype = sycl::half;
           *dest = static_cast<dtype>(edge_in_range(i) ? *src : 0);
-        } else if constexpr (std::is_same<cl::sycl::multi_ptr<
-                                              cl::sycl::ext::oneapi::bfloat16,
-                                              address_t::local_space>,
-                                          DestPointerType>::value) {
-          using namespace cl::sycl::ext::oneapi;
+        } else if constexpr (std::is_same<
+                                 sycl::multi_ptr<sycl::ext::oneapi::bfloat16,
+                                                 address_t::local_space>,
+                                 DestPointerType>::value) {
+          using namespace sycl::ext::oneapi;
           *dest = bfloat16(edge_in_range(i) ? *src : 0.f);
         } else {
-          using namespace cl::sycl::ext::oneapi::experimental::matrix;
+          using namespace sycl::ext::oneapi::experimental::matrix;
           *dest = edge_in_range(i) ? round_to_tf32(*src) : 0.f;
         }
       }
@@ -134,39 +134,39 @@ struct PacketizeJointMatrix {
    */
   template <typename DestPointerType>
   static PORTBLAS_INLINE void store(PacketType &packet, DestPointerType dest) {
-    using address_t = cl::sycl::access::address_space;
-    if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
-                                                   address_t::local_space>,
-                               DestPointerType>::value) {
-      using dtype = cl::sycl::half;
-      cl::sycl::vec<dtype, vector_size> new_vec{};
+    using address_t = sycl::access::address_space;
+    if constexpr (std::is_same<
+                      sycl::multi_ptr<sycl::half, address_t::local_space>,
+                      DestPointerType>::value) {
+      using dtype = sycl::half;
+      sycl::vec<dtype, vector_size> new_vec{};
       for (index_t i = 0; i < packet_size; i++) {
         reinterpret_cast<dtype *>(&new_vec)[i] =
             static_cast<dtype>(reinterpret_cast<value_t *>(&packet)[i]);
       }
       new_vec.template store<address_t::local_space>(
-          0, cl::sycl::multi_ptr<dtype, address_t::local_space>(dest));
-    } else if constexpr (std::is_same<cl::sycl::multi_ptr<
-                                          cl::sycl::ext::oneapi::bfloat16,
-                                          address_t::local_space>,
-                                      DestPointerType>::value) {
+          0, sycl::multi_ptr<dtype, address_t::local_space>(dest));
+    } else if constexpr (std::is_same<
+                             sycl::multi_ptr<sycl::ext::oneapi::bfloat16,
+                                             address_t::local_space>,
+                             DestPointerType>::value) {
       // sycl::vec doesn't accept bfloat16 as a valid input type
       // so we need to write the packet elements individually to
       // the shared memory.
-      using namespace cl::sycl::ext::oneapi;
+      using namespace sycl::ext::oneapi;
       for (index_t i = 0; i < packet_size; i++, dest++) {
         *dest = bfloat16(reinterpret_cast<value_t *>(&packet)[i]);
       }
     } else {
-      using namespace cl::sycl::ext::oneapi::experimental::matrix;
+      using namespace sycl::ext::oneapi::experimental::matrix;
       using dtype = float;
-      cl::sycl::vec<dtype, vector_size> new_vec;
+      sycl::vec<dtype, vector_size> new_vec;
       for (index_t i = 0; i < packet_size; i++) {
         reinterpret_cast<dtype *>(&new_vec)[i] =
             round_to_tf32(reinterpret_cast<value_t *>(&packet)[i]);
       }
       new_vec.template store<address_t::local_space>(
-          0, cl::sycl::multi_ptr<dtype, address_t::local_space>(dest));
+          0, sycl::multi_ptr<dtype, address_t::local_space>(dest));
     }
   }
 };

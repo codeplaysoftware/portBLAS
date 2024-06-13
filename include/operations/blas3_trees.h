@@ -25,7 +25,7 @@
 #ifndef PORTBLAS_BLAS3_TREES_H
 #define PORTBLAS_BLAS3_TREES_H
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <string>
 #include <type_traits>
@@ -235,11 +235,11 @@ class Gemm {
   static std::string get_type_string() noexcept;
   index_t get_workgroup_cluster() const noexcept;
   index_t get_num_workgroup_cluster(index_t compute_units) const noexcept;
-  cl::sycl::nd_range<1> get_nd_range(index_t compute_units) const noexcept;
+  sycl::nd_range<1> get_nd_range(index_t compute_units) const noexcept;
   index_t get_size() const;
-  bool valid_thread(const cl::sycl::nd_item<1>& ndItem) const;
-  void eval(cl::sycl::nd_item<1> id) noexcept;
-  void bind(cl::sycl::handler& h);
+  bool valid_thread(const sycl::nd_item<1>& ndItem) const;
+  void eval(sycl::nd_item<1> id) noexcept;
+  void bind(sycl::handler& h);
   void adjust_access_displacement();
 };
 
@@ -319,12 +319,12 @@ struct DiagonalBlocksInverter {
   index_t N_;
 
   DiagonalBlocksInverter(rhs_t A, lhs_t invA);
-  bool valid_thread(cl::sycl::nd_item<1> id) const;
-  void bind(cl::sycl::handler& cgh);
+  bool valid_thread(sycl::nd_item<1> id) const;
+  void bind(sycl::handler& cgh);
   void adjust_access_displacement();
 
   template <typename local_memory_t>
-  void eval(local_memory_t localMem, cl::sycl::nd_item<1> id) noexcept;
+  void eval(local_memory_t localMem, sycl::nd_item<1> id) noexcept;
 };
 
 template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,

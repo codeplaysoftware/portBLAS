@@ -63,7 +63,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           bool is_unitdiag>
 PORTBLAS_INLINE bool
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
-     is_unitdiag>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+     is_unitdiag>::valid_thread(sycl::nd_item<1> ndItem) const {
   // Valid threads are established by ::eval.
   return true;
 }
@@ -72,9 +72,9 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
 PORTBLAS_INLINE typename Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
-                               is_transposed, is_unitdiag>::value_t
+                              is_transposed, is_unitdiag>::value_t
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
-     is_unitdiag>::eval(cl::sycl::nd_item<1> ndItem) {
+     is_unitdiag>::eval(sycl::nd_item<1> ndItem) {
   const index_t lhs_idx = ndItem.get_global_id(0);
 
   value_t val = 0;
@@ -86,9 +86,8 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
     const index_t k_lower = is_transposed ? ku_ : kl_;
     const index_t k_upper = is_transposed ? kl_ : ku_;
 
-    const index_t k_beg = cl::sycl::max(index_t(0), lhs_idx - k_lower);
-    const index_t k_end =
-        cl::sycl::min(vector_.get_size(), lhs_idx + k_upper + 1);
+    const index_t k_beg = sycl::max(index_t(0), lhs_idx - k_lower);
+    const index_t k_end = sycl::min(vector_.get_size(), lhs_idx + k_upper + 1);
     const index_t k_off = ku_ + (is_transposed ? -lhs_idx : lhs_idx);
 
     for (index_t s_idx = k_beg; s_idx < k_end; ++s_idx) {
@@ -110,9 +109,8 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-PORTBLAS_INLINE void
-Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
-     is_unitdiag>::bind(cl::sycl::handler &h) {
+PORTBLAS_INLINE void Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
+                          is_transposed, is_unitdiag>::bind(sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);

@@ -99,7 +99,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _symm(sb_handle, side, uplo, m, n, alpha, a_gpu, lda, b_gpu,
                        ldb, beta, c_gpu, ldc);
     sb_handle.wait(event);

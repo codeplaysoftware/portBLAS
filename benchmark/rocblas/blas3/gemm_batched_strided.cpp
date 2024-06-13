@@ -36,7 +36,7 @@ static inline void rocblas_gemm_strided_batched(args_t&&... args) {
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CHECK_ROCBLAS_STATUS(
         rocblas_dgemm_strided_batched(std::forward<args_t>(args)...));
-  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  } else if constexpr (std::is_same_v<scalar_t, sycl::half>) {
     CHECK_ROCBLAS_STATUS(
         rocblas_hgemm_strided_batched(std::forward<args_t>(args)...));
   }

@@ -42,8 +42,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
-  if (std::is_same_v<scalar_t, cl::sycl::half> &&
-      !q.get_device().has(cl::sycl::aspect::fp16)) {
+  if (std::is_same_v<scalar_t, sycl::half> &&
+      !q.get_device().has(sycl::aspect::fp16)) {
     state.SkipWithError("Unsupported fp16 (half) on this device.");
   }
 
@@ -90,7 +90,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _axpy(sb_handle, size, alpha, inx, static_cast<index_t>(1),
                        iny, static_cast<index_t>(1));
     sb_handle.wait(event);

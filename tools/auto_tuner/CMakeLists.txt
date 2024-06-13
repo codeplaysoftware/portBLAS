@@ -8,7 +8,7 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/Modules
 )
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align") 
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy -Wno-unused-variable")
 
 # Setup datatypes, workgroup sizes and other options.

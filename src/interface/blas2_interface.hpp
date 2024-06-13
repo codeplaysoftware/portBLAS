@@ -356,7 +356,7 @@ typename sb_handle_t::event_t _trsv_impl(
     sb_handle_t& sb_handle, index_t _N, container_t0 _mA, index_t _lda,
     container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
-#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __ADAPTIVECPP__)
+#ifdef __ADAPTIVECPP__
   throw std::runtime_error("trsv requires SYCL 2020");
 #else
   static_assert(subgroup_size % subgroups == 0,
@@ -747,7 +747,7 @@ typename sb_handle_t::event_t _tbsv_impl(
     sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
-#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __ADAPTIVECPP__)
+#ifdef __ADAPTIVECPP__
   throw std::runtime_error("tbsv requires SYCL 2020");
 #else
   static_assert(subgroup_size % subgroups == 0,
@@ -810,7 +810,7 @@ template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
 typename sb_handle_t::event_t _tpsv_impl(
     sb_handle_t& sb_handle, index_t _N, container_t0 _mA, container_t1 _vx,
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
-#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __ADAPTIVECPP__)
+#ifdef __ADAPTIVECPP__
   throw std::runtime_error("tpsv requires SYCL 2020");
 #else
   static_assert(subgroup_size % subgroups == 0,
@@ -901,7 +901,7 @@ typename sb_handle_t::event_t _ger_impl(
     std::vector<size_t> subgroup_sizes =
         sb_handle.get_queue()
             .get_device()
-            .template get_info<cl::sycl::info::device::sub_group_sizes>();
+            .template get_info<sycl::info::device::sub_group_sizes>();
     size_t min_subgroup_size = *subgroup_sizes.begin();
     size_t max_subgroup_size = *subgroup_sizes.rbegin();
     assert(((_nRowsWG * _nColsWG) / _localSize) <= min_subgroup_size);

@@ -173,7 +173,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
         group_count_k(wg_count_k),
         num_tiles((k_ - 1) / (tile_size_dim_k * group_count_k) + 1) {}
 
-  void bind(cl::sycl::handler& h) {
+  void bind(sycl::handler& h) {
     a_.bind(h);
     b_.bind(h);
     cube_.bind(h);
@@ -212,16 +212,16 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * @brief Get the nd_range value which has to be used for kernels that
    * intend to call GemmPartial::run().
    */
-  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+  PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(
       index_t compute_units) noexcept {
-    const cl::sycl::range<1> nwg(get_workgroup_cluster(compute_units));
-    const cl::sycl::range<1> wgs(local_thread_size);
-    return cl::sycl::nd_range<1>(nwg * wgs, wgs);
+    const sycl::range<1> nwg(get_workgroup_cluster(compute_units));
+    const sycl::range<1> wgs(local_thread_size);
+    return sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
   template <typename local_memory_t>
   PORTBLAS_INLINE void eval(local_memory_t scratch,
-                            cl::sycl::nd_item<1> id) noexcept {
+                            sycl::nd_item<1> id) noexcept {
     /* Pointers to the scratch memory (lhs and rhs) */
     value_t* scratch_ptr = scratch.localAcc.get_pointer();
     value_t* rhs_scratch_ptr = scratch_ptr + rhs_scratch_offset;
@@ -272,7 +272,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
     /* Loop over all the tiles in this work group */
     for (index_t tile_id = 0; tile_id < num_tiles; tile_id++) {
-      id.barrier(cl::sycl::access::fence_space::local_space);
+      id.barrier(sycl::access::fence_space::local_space);
 
       // Start loading the next tile
       index_t next_tile = DoubleBuffer ? (tile_id + 1) : tile_id;
@@ -285,7 +285,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       }
 
       if (!DoubleBuffer) {
-        id.barrier(cl::sycl::access::fence_space::local_space);
+        id.barrier(sycl::access::fence_space::local_space);
       }
 
       // Calculate offsets in the temporary memory.

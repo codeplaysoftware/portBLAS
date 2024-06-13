@@ -178,11 +178,11 @@ reference specification.
 
 All operations take as their first argument a reference to the SB_Handle, a
 `blas::SB_Handle` created with a `sycl::queue`. The last argument for all operators
-is a vector of dependencies of type `cl::sycl::event` (empty by default). The return value 
+is a vector of dependencies of type `sycl::event` (empty by default). The return value
 is usually an array of SYCL events (except for some operations that can return a scalar or
 a tuple). The containers for the vectors and matrices (and scalars written by
 the BLAS operations) can either be `raw usm pointers` or `iterator buffers` that can be 
-created with a call to `cl::sycl::malloc_device` or `make_sycl_iterator_buffer` respectively.
+created with a call to `sycl::malloc_device` or `make_sycl_iterator_buffer` respectively.
 
 The USM support in portBLAS is limited to `device allocated` memory only and we don't support
 `shared` or `host` allocations with USM. 

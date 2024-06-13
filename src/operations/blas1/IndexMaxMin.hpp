@@ -64,7 +64,7 @@ IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::get_size() const {
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE bool IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 
@@ -73,7 +73,7 @@ PORTBLAS_INLINE bool IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::valid_thread(
  */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   using op = typename SelectOperator<is_max>::op;
   const auto size = rhs_.get_size();
   auto sg = ndItem.get_sub_group();
@@ -96,8 +96,8 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
 
   // reduction within the sub_group
   for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
-    element_t shfl_val = cl::sycl::shift_group_left(sg, val.get_value(), i);
-    index_t shfl_idx = cl::sycl::shift_group_left(sg, val.get_index(), i);
+    element_t shfl_val = sycl::shift_group_left(sg, val.get_value(), i);
+    index_t shfl_idx = sycl::shift_group_left(sg, val.get_index(), i);
     value_t shfl{shfl_idx, shfl_val};
     val = op::eval(val, shfl);
   }
@@ -126,7 +126,7 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 template <typename sharedT>
 PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
-    sharedT scratch, cl::sycl::nd_item<1> ndItem) {
+    sharedT scratch, sycl::nd_item<1> ndItem) {
   using op = typename SelectOperator<is_max>::op;
   const auto size = rhs_.get_size();
   const auto local_range = ndItem.get_local_range(0);
@@ -142,7 +142,7 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   }
 
   scratch[local_id] = val;
-  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+  ndItem.barrier(sycl::access::fence_space::local_space);
 
   value_t local_val = op::template init<rhs_t>();
   // reduction within the work group
@@ -152,7 +152,7 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
       local_val = scratch[local_id + i];
       scratch[local_id] = op::eval(val, local_val);
     }
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    ndItem.barrier(sycl::access::fence_space::local_space);
   }
 
   // write IndexValueTuple to Global Memory iff reduction step0
@@ -172,7 +172,7 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::bind(
-    cl::sycl::handler& h) {
+    sycl::handler& h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }

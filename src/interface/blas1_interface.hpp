@@ -189,26 +189,10 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
-  // keep compatibility with older sycl versions
-#if SYCL_LANGUAGE_VERSION < 202000 || defined(__ADAPTIVECPP__)
-  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
-      make_vector_view(_vx, _incx, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-
-  const auto localSize = sb_handle.get_work_group_size();
-  const auto nWG = 2 * localSize;
-  auto assignOp = make_assign_reduction<AbsoluteAddOperator>(rs, vx, localSize,
-                                                             localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
-  return ret;
-#else
   return blas::asum::backend::_asum(sb_handle, _N, _vx, _incx, _rs,
                                     _dependencies);
-#endif
 }
 
-#if SYCL_LANGUAGE_VERSION >= 202000 && !defined(__ADAPTIVECPP__)
 /*! _asum_impl.
  * @brief Internal implementation of the Absolute sum operator.
  *
@@ -260,7 +244,6 @@ typename sb_handle_t::event_t _asum_impl(
   }
   return ret;
 }
-#endif
 
 /**
  * _iamax_iamin_impl.
@@ -312,7 +295,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
       // get the minimum supported sub_group size
       const index_t min_sg_size = static_cast<index_t>(
           q.get_device()
-              .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
+              .template get_info<sycl::info::device::sub_group_sizes>()[0]);
       ret = sb_handle.execute(op, min_sg_size, min_sg_size, _dependencies);
     } else {
       ret = sb_handle.execute(
@@ -327,7 +310,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     // get the minimum supported sub_group size
     const index_t min_sg_size = static_cast<index_t>(
         q.get_device()
-            .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
+            .template get_info<sycl::info::device::sub_group_sizes>()[0]);
     // if using no local memory, every sub_group writes one intermediate output,
     // in case if sub_group size is not known at allocation time, than allocate
     // extra memory using min supported sub_group size.

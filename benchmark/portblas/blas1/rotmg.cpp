@@ -135,7 +135,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 #endif
 
   // Create a utility lambda describing the blas method that we want to run.
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _rotmg(sb_handle, buf_d1, buf_d2, buf_x1, buf_y1, buf_param);
     sb_handle.wait(event);
     return event;

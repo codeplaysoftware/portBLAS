@@ -53,7 +53,7 @@ template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>
 PORTBLAS_INLINE typename lhs_t::value_t
 Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
-    cl::sycl::nd_item<1> ndItem) {
+    sycl::nd_item<1> ndItem) {
   const index_t n{n_};
   const value_t alpha{alpha_};
   const auto vx = rhs_.get_data();
@@ -68,7 +68,7 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
 
   const index_t size_compute_rateo =
       (n > nbl * localSize) ? n / (nbl * localSize) : batch_size_;
-  const index_t jump_value{cl::sycl::min(batch_size_, size_compute_rateo)};
+  const index_t jump_value{sycl::min(batch_size_, size_compute_rateo)};
 
   if (group_id >= jump_value || l_id > n) return {};
 
@@ -109,7 +109,7 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
 template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>
 PORTBLAS_INLINE void Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t,
-                                rhs_t>::bind(cl::sycl::handler& h) {
+                                rhs_t>::bind(sycl::handler& h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
@@ -133,7 +133,7 @@ template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>
 PORTBLAS_INLINE bool
 Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
+    sycl::nd_item<1> ndItem) const {
   return true;
 }
 }  // namespace blas

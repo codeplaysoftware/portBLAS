@@ -28,8 +28,8 @@
 #include "blas_meta.h"
 #include "operations/extension/reduction.h"
 #include "views/view.h"
-#include <CL/sycl.hpp>
 #include <string>
+#include <sycl/sycl.hpp>
 namespace blas {
 
 template <typename operator_t, typename params_t, typename input_t,
@@ -66,14 +66,14 @@ template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
 PORTBLAS_INLINE bool
 Reduction<operator_t, params_t, input_t, output_t>::valid_thread(
-    cl::sycl::nd_item<1> id) const {
+    sycl::nd_item<1> id) const {
   return true;
 }
 
 template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
 PORTBLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::bind(
-    cl::sycl::handler& h) {
+    sycl::handler& h) {
   in_.bind(h);
   out_.bind(h);
 }
@@ -92,7 +92,7 @@ PORTBLAS_INLINE void Reduction<operator_t, params_t, input_t,
  */
 template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
-PORTBLAS_INLINE cl::sycl::nd_range<1>
+PORTBLAS_INLINE sycl::nd_range<1>
 Reduction<operator_t, params_t, input_t, output_t>::get_nd_range(
     index_t compute_units) noexcept {
   constexpr index_t local_range = params_t::get_local_thread_size_preserve() *
@@ -106,8 +106,8 @@ Reduction<operator_t, params_t, input_t, output_t>::get_nd_range(
   const index_t global_range =
       preserve_num_groups * reduced_group_count_ * local_range;
 
-  return cl::sycl::nd_range<1>(cl::sycl::range<1>(global_range),
-                               cl::sycl::range<1>(local_range));
+  return sycl::nd_range<1>(sycl::range<1>(global_range),
+                           sycl::range<1>(local_range));
 }
 
 /*!
@@ -153,7 +153,7 @@ template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
 template <typename local_memory_t>
 PORTBLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::eval(
-    local_memory_t scratch, cl::sycl::nd_item<1> id) noexcept {
+    local_memory_t scratch, sycl::nd_item<1> id) noexcept {
   const index_t local_id = id.get_local_id(0);
   const index_t group_id = id.get_group(0);
   index_t preserve_local_id =
@@ -201,7 +201,7 @@ PORTBLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::eval(
   }
 
   element_t* out_scratch_ptr = scratch_ptr + scratch_idx;
-  id.barrier(cl::sycl::access::fence_space::local_space);
+  id.barrier(sycl::access::fence_space::local_space);
   if (!params_t::is_outer_dim()) {
     accumulator = *out_scratch_ptr;
   }
@@ -220,7 +220,7 @@ PORTBLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::eval(
       *out_scratch_ptr = accumulator;
     }
 
-    id.barrier(cl::sycl::access::fence_space::local_space);
+    id.barrier(sycl::access::fence_space::local_space);
   }
 
   // Write result to the output vector

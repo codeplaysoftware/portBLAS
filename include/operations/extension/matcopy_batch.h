@@ -46,12 +46,12 @@ struct Matcopy_batch {
                 index_t rhs_ld, index_t rhs_2_ld, index_t lhs_stride,
                 index_t rhs_stride, index_t rhs_2_stride, index_t batch_size);
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_t eval(sharedT shMem, cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
+  value_t eval(sharedT shMem, sycl::nd_item<1> ndItem);
+  void bind(sycl::handler &h);
   void adjust_access_displacement();
   void compute_matcopy_batch(const index_t wg_batch_id, const index_t wg_row,
                              const index_t wg_col, const index_t item_id);

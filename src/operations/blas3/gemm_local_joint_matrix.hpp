@@ -83,7 +83,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   using value_t = typename std::remove_const<typename input_t::value_t>::type;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using packetize_t = PacketizeJointMatrix<VectorSize, value_t, index_t>;
-  using address_t = cl::sycl::access::address_space;
+  using address_t = sycl::access::address_space;
 
   // enable easier access to tile dimensions
   static constexpr index_t item_rows = tile_type::item_rows;
@@ -244,7 +244,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(index_t) const noexcept {
+  PORTBLAS_INLINE sycl::nd_range<1> get_nd_range(index_t) const noexcept {
     size_t x_groups =
         static_cast<size_t>((get_wg_x_cluster() - 1) / jm_row_frags + 1);
     size_t y_groups =
@@ -256,8 +256,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               << " , wg_size: " << wg_size << " , nwg : " << x_groups * y_groups
               << std::endl;
 #endif
-    return cl::sycl::nd_range<1>{x_groups * batch_size_ * y_groups * wg_size,
-                                 wg_size};
+    return sycl::nd_range<1>{x_groups * batch_size_ * y_groups * wg_size,
+                             wg_size};
   }
 
   PORTBLAS_INLINE index_t get_size() const {
@@ -272,7 +272,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <typename local_memory_t>
   PORTBLAS_INLINE void eval(local_memory_t scratch_acc,
-                            const cl::sycl::nd_item<1> &id) noexcept {
+                            const sycl::nd_item<1> &id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     index_t k = a_.get_size_col();
@@ -354,7 +354,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                                             : tile_type::joint_matrix_M);
 
     if constexpr (std::is_same<typename tile_type::jmInpType,
-                               cl::sycl::ext::oneapi::experimental::matrix::
+                               sycl::ext::oneapi::experimental::matrix::
                                    precision::tf32>::value) {
       auto s1 = scratch + s1_offset;
       auto s2 = scratch + s2_offset;
@@ -373,7 +373,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             batch_size_);
       }
     } else {
-      auto input_scratch = *reinterpret_cast<cl::sycl::multi_ptr<
+      auto input_scratch = *reinterpret_cast<sycl::multi_ptr<
           typename tile_type::jmInpType, address_t::local_space> *>(&scratch);
 
       auto s1 = input_scratch + s1_offset;
@@ -394,7 +394,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
   }
 
-  void bind(cl::sycl::handler &h) {
+  void bind(sycl::handler &h) {
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
@@ -404,7 +404,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  PORTBLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
+  PORTBLAS_INLINE bool valid_thread(const sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
@@ -426,7 +426,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename InputPointerType, typename OutputPointerType,
             typename OutputScratchPointerType, typename InputScratchPointerType>
   PORTBLAS_INLINE void compute_panel_gemm(
-      const cl::sycl::nd_item<1> &id, const index_t &item_id, const index_t &m,
+      const sycl::nd_item<1> &id, const index_t &item_id, const index_t &m,
       const index_t &n, const index_t &orig_k, const index_t &mc,
       const index_t &nc, InputPointerType orig_A, const index_t &lda,
       InputPointerType orig_B, const index_t &ldb, OutputPointerType orig_C,
@@ -436,11 +436,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       const bool out_of_range, index_t batch_stride, index_t wg_batch_id,
       index_t batch_size) noexcept {
     index_t ofs = 1;
-    using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    using CType =
-        joint_matrix<cl::sycl::sub_group, typename tile_type::jmOutType,
-                     use::accumulator, tile_type::joint_matrix_M,
-                     tile_type::joint_matrix_N>;
+    using namespace sycl::ext::oneapi::experimental::matrix;
+    using CType = joint_matrix<sycl::sub_group, typename tile_type::jmOutType,
+                               use::accumulator, tile_type::joint_matrix_M,
+                               tile_type::joint_matrix_N>;
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -450,7 +449,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
-        id.barrier(cl::sycl::access::fence_space::local_space);
+        id.barrier(sycl::access::fence_space::local_space);
         compute_block_gemm(id, s2, s4, reg_res);
         A += cl_elems * (trans_a ? 1 : lda);
         B += cl_elems * (trans_b ? ldb : 1);
@@ -466,7 +465,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       if (k > 0) {
         extract_input_blocks<check_m_limit, check_n_limit, true>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
-        id.barrier(cl::sycl::access::fence_space::local_space);
+        id.barrier(sycl::access::fence_space::local_space);
         compute_block_gemm(id, s2, s4, reg_res);
 
         sync_smem<double_buffer, ldsb *(trans_b ? cl_elems : block_cols),
@@ -509,7 +508,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType,
             typename ScratchPointerType, typename CType>
-  PORTBLAS_INLINE void store_output_block(cl::sycl::nd_item<1> id, index_t mc,
+  PORTBLAS_INLINE void store_output_block(sycl::nd_item<1> id, index_t mc,
                                           index_t nc, OutputPointerType C,
                                           ScratchPointerType scratch,
                                           index_t ldc,
@@ -518,9 +517,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     if (out_of_range) {
       return;
     }
-    using namespace cl::sycl::ext::oneapi::experimental::matrix;
+    using namespace sycl::ext::oneapi::experimental::matrix;
     using Cfloat_Type =
-        joint_matrix<cl::sycl::sub_group, element_t, use::accumulator,
+        joint_matrix<sycl::sub_group, element_t, use::accumulator,
                      tile_type::joint_matrix_M, tile_type::joint_matrix_N>;
 
     Cfloat_Type float_out;
@@ -568,12 +567,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 #endif
       joint_matrix_apply(sg, float_out, [=](element_t &x) { x *= alpha_; });
 
-      id.barrier(cl::sycl::access::fence_space::local_space);
+      id.barrier(sycl::access::fence_space::local_space);
 
       joint_matrix_store(sg, float_out, scratch + output_local_store_offset,
                          ldsc, layout::col_major);
 
-      id.barrier(cl::sycl::access::fence_space::local_space);
+      id.barrier(sycl::access::fence_space::local_space);
 
       if constexpr (check_m_limit && check_n_limit) {
         if (mc >= block_rows && nc >= nc_conditional) {
@@ -785,21 +784,19 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <typename InputPointerType, typename CType>
   PORTBLAS_INLINE void compute_block_gemm(
-      const cl::sycl::nd_item<1> &id, InputPointerType s2, InputPointerType s4,
+      const sycl::nd_item<1> &id, InputPointerType s2, InputPointerType s4,
       CType (&reg_res)[frags_per_sg]) noexcept {
-    using namespace cl::sycl::ext::oneapi::experimental::matrix;
+    using namespace sycl::ext::oneapi::experimental::matrix;
     constexpr layout pattern_a =
         trans_a ? layout::row_major : layout::col_major;
     constexpr layout pattern_b =
         trans_b ? layout::row_major : layout::col_major;
-    using AType =
-        joint_matrix<cl::sycl::sub_group, typename tile_type::jmInpType, use::a,
-                     tile_type::joint_matrix_M, tile_type::joint_matrix_K,
-                     pattern_a>;
-    using BType =
-        joint_matrix<cl::sycl::sub_group, typename tile_type::jmInpType, use::b,
-                     tile_type::joint_matrix_K, tile_type::joint_matrix_N,
-                     pattern_b>;
+    using AType = joint_matrix<sycl::sub_group, typename tile_type::jmInpType,
+                               use::a, tile_type::joint_matrix_M,
+                               tile_type::joint_matrix_K, pattern_a>;
+    using BType = joint_matrix<sycl::sub_group, typename tile_type::jmInpType,
+                               use::b, tile_type::joint_matrix_K,
+                               tile_type::joint_matrix_N, pattern_b>;
 
     const index_t strideA = ldsa;
     const index_t strideB = ldsb;
@@ -850,22 +847,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &...ss) noexcept {
+      const sycl::nd_item<1> &id, index_t &ofs_sign, P &s, Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }
 
   template <bool db>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
+      const sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
   template <bool db, index_t..., typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<!db>::type sync_smem(
-      const cl::sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
-    id.barrier(cl::sycl::access::fence_space::local_space);
+      const sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
+    id.barrier(sycl::access::fence_space::local_space);
   }
 
 };  // Gemm

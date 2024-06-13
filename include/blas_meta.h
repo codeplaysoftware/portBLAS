@@ -26,7 +26,7 @@
 #ifndef PORTBLAS_META_H
 #define PORTBLAS_META_H
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <type_traits>
 #include <utility>
 #ifdef BLAS_ENABLE_COMPLEX
@@ -191,7 +191,7 @@ struct is_sycl_scalar
                        std::false_type>::type {};
 
 template <>
-struct is_sycl_scalar<cl::sycl::half> : std::true_type {};
+struct is_sycl_scalar<sycl::half> : std::true_type {};
 
 template <>
 struct is_sycl_scalar<float *> : std::false_type {};
@@ -201,12 +201,12 @@ struct is_sycl_scalar<double *> : std::false_type {};
 
 template <class type>
 struct is_half
-    : std::integral_constant<bool, std::is_same_v<type, cl::sycl::half>> {};
+    : std::integral_constant<bool, std::is_same_v<type, sycl::half>> {};
 
 #ifdef BLAS_ENABLE_COMPLEX
 // SYCL Complex type alias
 template <typename T>
-using complex_sycl = typename cl::sycl::ext::oneapi::experimental::complex<T>;
+using complex_sycl = typename sycl::ext::oneapi::experimental::complex<T>;
 
 template <class type>
 struct is_complex_sycl

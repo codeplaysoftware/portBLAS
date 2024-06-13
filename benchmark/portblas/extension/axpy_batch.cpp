@@ -97,7 +97,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+  auto blas_method_def = [&]() -> std::vector<sycl::event> {
     auto event = _axpy_batch(sb_handle, size, alpha, inx, inc_x, stride_x, iny,
                              inc_y, stride_y, batch_size);
     sb_handle.wait(event);

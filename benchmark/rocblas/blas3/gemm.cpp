@@ -34,7 +34,7 @@ static inline void rocblas_gemm_f(args_t&&... args) {
     CHECK_ROCBLAS_STATUS(rocblas_sgemm(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CHECK_ROCBLAS_STATUS(rocblas_dgemm(std::forward<args_t>(args)...));
-  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  } else if constexpr (std::is_same_v<scalar_t, sycl::half>) {
     CHECK_ROCBLAS_STATUS(rocblas_hgemm(std::forward<args_t>(args)...));
   }
   return;

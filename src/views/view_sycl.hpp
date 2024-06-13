@@ -26,7 +26,7 @@
 #ifndef PORTBLAS_VIEW_SYCL_HPP
 #define PORTBLAS_VIEW_SYCL_HPP
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <type_traits>
 
 #include "blas_meta.h"
@@ -40,20 +40,19 @@ namespace blas {
  * @tparam scalar_t Value type of accessor.
  */
 
-template <typename ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
-          cl::sycl::access::target access_t,
-          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename view_increment_t>
+template <typename ViewScalarT, int dim, sycl::access_mode acc_mode_t,
+          sycl::target access_t, sycl::access::placeholder place_holder_t,
+          typename view_index_t, typename view_increment_t>
 struct VectorView<
-    cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
+    sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, view_increment_t> {
   using scalar_t = ViewScalarT;
   using value_t = scalar_t;
   using index_t = view_index_t;
   using increment_t = view_increment_t;
-  static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
-  using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
-                                         place_holder_t>;
+  static constexpr sycl::access_mode access_mode_t = acc_mode_t;
+  using container_t =
+      sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>;
   using self_t = VectorView<container_t, index_t, increment_t>;
 
   // Accessor to the data containing the vector values.
@@ -73,7 +72,7 @@ struct VectorView<
   const increment_t stride_;
 
   // global pointer access inside the kernel
-  cl::sycl::global_ptr<scalar_t> ptr_;
+  sycl::global_ptr<scalar_t> ptr_;
 
   // Round up the ration num / den, i.e. compute ceil(num / den)
   static PORTBLAS_INLINE index_t round_up_ratio(index_t num, index_t den) {
@@ -86,7 +85,7 @@ struct VectorView<
   static PORTBLAS_INLINE index_t calculate_input_data_size(
       container_t &data, index_t, increment_t stride, index_t size) noexcept {
     increment_t const positive_stride = stride < 0 ? -stride : stride;
-    index_t const calc_size = round_up_ratio(data.get_count(), positive_stride);
+    index_t const calc_size = round_up_ratio(data.size(), positive_stride);
     return std::min(size, calc_size);
   }
 
@@ -157,11 +156,11 @@ struct VectorView<
     return (stride_ == 1) ? *(ptr_ + i) : *(ptr_ + i * stride_);
   }
 
-  PORTBLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
+  PORTBLAS_INLINE scalar_t &eval(sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
-  PORTBLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+  PORTBLAS_INLINE scalar_t eval(sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -177,35 +176,33 @@ struct VectorView<
     return *(ptr_ + indx);
   }
 
-  PORTBLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
+  PORTBLAS_INLINE void bind(sycl::handler &h) { h.require(data_); }
   PORTBLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
   }
 };
 
-template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
-          cl::sycl::access::target access_t,
-          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout, bool has_inc>
+template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
+          sycl::target access_t, sycl::access::placeholder place_holder_t,
+          typename view_index_t, typename layout, bool has_inc>
 struct MatrixView<
-    cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
+    sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout, has_inc>;
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
-template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
-          cl::sycl::access::target access_t,
-          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout, bool has_inc>
+template <class ViewScalarT, int dim, sycl::access_mode acc_mode_t,
+          sycl::target access_t, sycl::access::placeholder place_holder_t,
+          typename view_index_t, typename layout, bool has_inc>
 struct MatrixView<
-    cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
+    sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout, has_inc> {
   using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
-  static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
-  using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
-                                         place_holder_t>;
+  static constexpr sycl::access_mode access_mode_t = acc_mode_t;
+  using container_t =
+      sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>;
   using self_t = MatrixView<container_t, index_t, layout>;
 
   using value_t = scalar_t;
@@ -217,8 +214,7 @@ struct MatrixView<
   const index_t sizeL_;  // size of the leading dimension
   const index_t inc_;    // internal increment between same row/column elements
   const index_t disp_;   // displacementt od the first element
-  cl::sycl::global_ptr<scalar_t>
-      ptr_;  // global pointer access inside the kernel
+  sycl::global_ptr<scalar_t> ptr_;  // global pointer access inside the kernel
 
   /**** CONSTRUCTORS ****/
   PORTBLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
@@ -320,11 +316,11 @@ struct MatrixView<
     return eval(i, j);
   }
 
-  PORTBLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
+  PORTBLAS_INLINE scalar_t &eval(sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
-  PORTBLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const noexcept {
+  PORTBLAS_INLINE scalar_t eval(sycl::nd_item<1> ndItem) const noexcept {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -340,7 +336,7 @@ struct MatrixView<
     return *(ptr_ + indx);
   }
 
-  PORTBLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
+  PORTBLAS_INLINE void bind(sycl::handler &h) { h.require(data_); }
 
   PORTBLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
