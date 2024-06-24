@@ -1246,12 +1246,31 @@ typename sb_handle_t::event_t inline _trmv(
     }                                                             \
   }
 
+#define CHECK_INTEL_GPU_SUPPORT(sb_handle, func_name)                    \
+  const auto device = sb_handle.get_queue().get_device();                \
+  if (device.is_gpu()) {                                                 \
+    const std::string vendor =                                           \
+        device.template get_info<sycl::info::device::vendor>();          \
+    if (vendor.find("Intel") != vendor.npos) {                           \
+      const std::string name =                                           \
+          device.template get_info<sycl::info::device::name>();          \
+      if (name.find("Arc") != name.npos ||                               \
+          name.find("GPU Max") != name.npos) {                           \
+        std::string err_message{func_name};                              \
+        err_message.append(                                              \
+            " operator currently not supported on Arc or GPU Max GPUs"); \
+        throw std::runtime_error(err_message);                           \
+      }                                                                  \
+    }                                                                    \
+  }
+
 template <typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
 typename sb_handle_t::event_t inline _trsv(
     sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
+  CHECK_INTEL_GPU_SUPPORT(sb_handle, "trsv");
   INST_UPLO_TRANS_DIAG(blas::trsv::backend::_trsv, sb_handle, _N, _mA, _lda,
                        _vx, _incx, _dependencies)
 }
@@ -1417,6 +1436,7 @@ typename sb_handle_t::event_t _tbsv(
     sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     index_t _K, container_t0 _mA, index_t _lda, container_t1 _vx,
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
+  CHECK_INTEL_GPU_SUPPORT(sb_handle, "tbsv");
   INST_UPLO_TRANS_DIAG(blas::tbsv::backend::_tbsv, sb_handle, _N, _K, _mA, _lda,
                        _vx, _incx, _dependencies)
 }
@@ -1437,6 +1457,7 @@ typename sb_handle_t::event_t _tpsv(
     sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
+  CHECK_INTEL_GPU_SUPPORT(sb_handle, "tpsv");
   INST_UPLO_TRANS_DIAG(blas::tpsv::backend::_tpsv, sb_handle, _N, _mA, _vx,
                        _incx, _dependencies)
 }
