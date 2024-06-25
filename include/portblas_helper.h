@@ -228,6 +228,25 @@ inline bool is_malloc_shared(sb_handle_t &sb_handle, const containerT _rs) {
   }
 }
 
+template <typename sb_handle_t>
+inline void check_intel_gpu_support(const sb_handle_t &sb_handle,
+                                    std::string &&operator_name) {
+  const auto device = sb_handle.get_queue().get_device();
+  if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<sycl::info::device::vendor>();
+    if (vendor.find("Intel") != vendor.npos) {
+      const std::string name =
+          device.template get_info<sycl::info::device::name>();
+      if (name.find("Arc") != name.npos || name.find("GPU Max") != name.npos) {
+        operator_name.append(
+            " operator currently not supported on Arc or GPU Max GPUs");
+        throw std::runtime_error(operator_name);
+      }
+    }
+  }
+}
+
 }  // end namespace helper
 }  // end namespace blas
 #endif  // PORTBLAS_HELPER_H
