@@ -145,8 +145,9 @@ typename sb_handle_t::event_t _trsv(
       return blas::internal::_trsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
     } else {
-      throw std::runtime_error(
-          "Trsv operator currently not supported on Intel GPUs");
+      // This configuration works only for Intel iGPU
+      return blas::internal::_trsv_impl<8, 4, uplo, trn, diag>(
+          sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
     }
   } else {
     return blas::internal::_trsv_impl<4, 2, uplo, trn, diag>(
@@ -173,8 +174,9 @@ typename sb_handle_t::event_t _tbsv(
       return blas::internal::_tbsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
     } else {
-      throw std::runtime_error(
-          "Tbsv operator currently not supported on Intel GPUs");
+      // This configuration works only for Intel iGPU
+      return blas::internal::_tbsv_impl<8, 4, uplo, trn, diag>(
+          sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
     }
   } else {
     return blas::internal::_tbsv_impl<4, 2, uplo, trn, diag>(
@@ -200,8 +202,9 @@ typename sb_handle_t::event_t _tpsv(
       return blas::internal::_tpsv_impl<32, 4, uplo, trn, diag>(
           sb_handle, _N, _mA, _vx, _incx, _dependencies);
     } else {
-      throw std::runtime_error(
-          "Tpsv operator currently not supported on Intel GPUs");
+      // This configuration works only for Intel iGPU
+      return blas::internal::_tpsv_impl<8, 4, uplo, trn, diag>(
+          sb_handle, _N, _mA, _vx, _incx, _dependencies);
     }
   } else {
     return blas::internal::_tpsv_impl<4, 2, uplo, trn, diag>(
