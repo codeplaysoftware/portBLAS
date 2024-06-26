@@ -222,10 +222,12 @@ struct is_complex_std
 
 #endif
 
-class unimplemented_exception : public std::runtime_error {
+class unsupported_exception : public std::runtime_error {
  public:
-  unimplemented_exception(const std::string &err)
-      : std::runtime_error(err), _msg(err) {};
+  unsupported_exception(const std::string &operator_name)
+      : std::runtime_error(operator_name), _msg(operator_name) {
+    _msg += " operator currently not supported on Arc or GPU Max GPUs";
+  };
   const char *what() const throw() { return _msg.c_str(); }
 
  private:

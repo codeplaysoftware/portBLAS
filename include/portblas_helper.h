@@ -239,9 +239,7 @@ inline void check_intel_gpu_support(const sb_handle_t &sb_handle,
       const std::string name =
           device.template get_info<sycl::info::device::name>();
       if (name.find("Arc") != name.npos || name.find("GPU Max") != name.npos) {
-        operator_name.append(
-            " operator currently not supported on Arc or GPU Max GPUs");
-        throw unimplemented_exception(operator_name);
+        throw unsupported_exception(operator_name);
       }
     }
   }
