@@ -99,7 +99,7 @@ void run_test(const combination_t<scalar_t> combi) {
                             v_x_gpu, incX, {copy_m, copy_v});
 
     sb_handle.wait(tpsv_event);
-  } catch (const blas::unimplemented_exception& ue) {
+  } catch (const blas::unsupported_exception& ue) {
     GTEST_SKIP();
   }
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), v_x_gpu,

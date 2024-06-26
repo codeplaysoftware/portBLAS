@@ -89,7 +89,7 @@ void run_test(const combination_t<scalar_t> combi) {
         _tbsv(sb_handle, *uplo_str, *t_str, *diag_str, n, k, m_a_gpu,
               (k + 1) * lda_mul, v_x_gpu, incX, {copy_m, copy_v});
     sb_handle.wait(tbsv_event);
-  } catch (const blas::unimplemented_exception& ue) {
+  } catch (const blas::unsupported_exception& ue) {
     GTEST_SKIP();
   }
 
