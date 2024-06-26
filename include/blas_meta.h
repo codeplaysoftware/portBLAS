@@ -222,6 +222,16 @@ struct is_complex_std
 
 #endif
 
+class unimplemented_exception : public std::runtime_error {
+ public:
+  unimplemented_exception(const std::string &err)
+      : std::runtime_error(err), _msg(err) {};
+  const char *what() const throw() { return _msg.c_str(); }
+
+ private:
+  std::string _msg{};
+};
+
 }  // namespace blas
 
 #endif  // BLAS_META_H
