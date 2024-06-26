@@ -93,12 +93,15 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_v =
       helper::copy_to_device<scalar_t>(q, x_v.data(), v_x_gpu, x_size);
 
-  // SYCL TPSV
-  auto tpsv_event = _tpsv(sb_handle, *uplo_str, *t_str,
-                          *diag_str, n, m_a_gpu, v_x_gpu,
-                          incX, {copy_m, copy_v});
+  try {
+    // SYCL TPSV
+    auto tpsv_event = _tpsv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu,
+                            v_x_gpu, incX, {copy_m, copy_v});
 
-  sb_handle.wait(tpsv_event);
+    sb_handle.wait(tpsv_event);
+  } catch (const blas::unimplemented_exception& ue) {
+    GTEST_SKIP();
+  }
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), v_x_gpu,
                                           x_v.data(), x_size);
   sb_handle.wait(event);

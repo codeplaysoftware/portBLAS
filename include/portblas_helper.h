@@ -241,7 +241,7 @@ inline void check_intel_gpu_support(const sb_handle_t &sb_handle,
       if (name.find("Arc") != name.npos || name.find("GPU Max") != name.npos) {
         operator_name.append(
             " operator currently not supported on Arc or GPU Max GPUs");
-        throw std::runtime_error(operator_name);
+        throw unimplemented_exception(operator_name);
       }
     }
   }
