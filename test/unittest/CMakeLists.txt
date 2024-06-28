@@ -103,8 +103,8 @@ if(is_dpcpp)
   )
 endif()
 
-if( (DEFINED TUNING_TARGET AND (${TUNING_TARGET} STREQUAL "INTEL_GPU")) OR
-    (DEFINED DPCPP_SYCL_ARCH AND (${DPCPP_SYCL_ARCH} MATCHES "_pvc|_agm")) )
+if( ("${TUNING_TARGET}" STREQUAL "INTEL_GPU") OR
+    ("${DPCPP_SYCL_ARCH}" MATCHES "_pvc|_agm") )
     message(WARNING "disabling trsv, tbsv and tpsv tests for Intel ARC and Intel GPU Max GPUs")
     set(TESTS_TO_SKIP
       ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
