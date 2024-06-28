@@ -226,7 +226,7 @@ class unsupported_exception : public std::runtime_error {
  public:
   unsupported_exception(const std::string &operator_name)
       : std::runtime_error(operator_name), _msg(operator_name) {
-    _msg += " operator currently not supported on Arc or GPU Max GPUs";
+    _msg += " operator currently not supported on selected device";
   };
   const char *what() const throw() { return _msg.c_str(); }
 
