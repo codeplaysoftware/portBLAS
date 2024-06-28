@@ -228,9 +228,14 @@ inline bool is_malloc_shared(sb_handle_t &sb_handle, const containerT _rs) {
   }
 }
 
+/*
+ @brief Check device and throw unsupported exception if Intel discrete GPU
+ @param sb_handle portBLAS handler
+ @param operator_name unsupported operator name
+ */
 template <typename sb_handle_t>
-inline void check_intel_gpu_support(const sb_handle_t &sb_handle,
-                                    std::string &&operator_name) {
+inline void throw_unsupported_intel_dGPU(const sb_handle_t &sb_handle,
+                                         std::string &&operator_name) {
   const auto device = sb_handle.get_queue().get_device();
   if (device.is_gpu()) {
     const std::string vendor =
