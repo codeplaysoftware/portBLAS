@@ -222,6 +222,18 @@ struct is_complex_std
 
 #endif
 
+class unsupported_exception : public std::runtime_error {
+ public:
+  unsupported_exception(const std::string &operator_name)
+      : std::runtime_error(operator_name), _msg(operator_name) {
+    _msg += " operator currently not supported on selected device";
+  };
+  const char *what() const noexcept override { return _msg.c_str(); }
+
+ private:
+  std::string _msg{};
+};
+
 }  // namespace blas
 
 #endif  // BLAS_META_H
