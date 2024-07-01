@@ -228,7 +228,7 @@ class unsupported_exception : public std::runtime_error {
       : std::runtime_error(operator_name), _msg(operator_name) {
     _msg += " operator currently not supported on selected device";
   };
-  const char *what() const noexcept { return _msg.c_str(); }
+  const char *what() const noexcept override { return _msg.c_str(); }
 
  private:
   std::string _msg{};

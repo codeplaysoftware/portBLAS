@@ -103,16 +103,6 @@ if(is_dpcpp)
   )
 endif()
 
-if( ("${TUNING_TARGET}" STREQUAL "INTEL_GPU") OR
-    ("${DPCPP_SYCL_ARCH}" MATCHES "_pvc|_agm") )
-    message(WARNING "disabling trsv, tbsv and tpsv tests for Intel ARC and Intel GPU Max GPUs")
-    set(TESTS_TO_SKIP
-      ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
-      ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
-      ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
-    )
-endif()
-
 if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
