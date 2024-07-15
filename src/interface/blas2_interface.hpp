@@ -33,6 +33,7 @@
 #include "operations/blas2_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
+#include "portblas_helper.h"
 #include "sb_handle/portblas_handle.h"
 #include "views/view.h"
 #include <cmath>
@@ -1252,6 +1253,7 @@ typename sb_handle_t::event_t inline _trsv(
     sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
+  helper::throw_unsupported_intel_dGPU(sb_handle, "trsv");
   INST_UPLO_TRANS_DIAG(blas::trsv::backend::_trsv, sb_handle, _N, _mA, _lda,
                        _vx, _incx, _dependencies)
 }
@@ -1417,6 +1419,7 @@ typename sb_handle_t::event_t _tbsv(
     sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     index_t _K, container_t0 _mA, index_t _lda, container_t1 _vx,
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
+  helper::throw_unsupported_intel_dGPU(sb_handle, "tbsv");
   INST_UPLO_TRANS_DIAG(blas::tbsv::backend::_tbsv, sb_handle, _N, _K, _mA, _lda,
                        _vx, _incx, _dependencies)
 }
@@ -1437,6 +1440,7 @@ typename sb_handle_t::event_t _tpsv(
     sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, container_t1 _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies) {
+  helper::throw_unsupported_intel_dGPU(sb_handle, "tpsv");
   INST_UPLO_TRANS_DIAG(blas::tpsv::backend::_tpsv, sb_handle, _N, _mA, _vx,
                        _incx, _dependencies)
 }

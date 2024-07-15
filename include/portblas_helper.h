@@ -228,6 +228,28 @@ inline bool is_malloc_shared(sb_handle_t &sb_handle, const containerT _rs) {
   }
 }
 
+/*
+ @brief Check device and throw unsupported exception if Intel discrete GPU
+ @param sb_handle portBLAS handler
+ @param operator_name unsupported operator name
+ */
+template <typename sb_handle_t>
+inline void throw_unsupported_intel_dGPU(const sb_handle_t &sb_handle,
+                                         std::string &&operator_name) {
+  const auto device = sb_handle.get_queue().get_device();
+  if (device.is_gpu()) {
+    const std::string vendor =
+        device.template get_info<sycl::info::device::vendor>();
+    if (vendor.find("Intel") != vendor.npos) {
+      const std::string name =
+          device.template get_info<sycl::info::device::name>();
+      if (name.find("Arc") != name.npos || name.find("GPU Max") != name.npos) {
+        throw unsupported_exception(operator_name);
+      }
+    }
+  }
+}
+
 }  // end namespace helper
 }  // end namespace blas
 #endif  // PORTBLAS_HELPER_H
