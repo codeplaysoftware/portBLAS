@@ -388,9 +388,9 @@ typename sb_handle_t::event_t _trsm(
                                               decltype(B), index_t>(
                       sb_handle, BSize, X, 1, B, 1, trsmEvents));
 
-  sb_handle.template release_temp_mem(lastEvent, invA);
+  sb_handle.release_temp_mem(lastEvent, invA);
 
-  sb_handle.template release_temp_mem(lastEvent, X);
+  sb_handle.release_temp_mem(lastEvent, X);
 
   return trsmEvents;
 }

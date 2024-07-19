@@ -140,7 +140,7 @@ typename sb_handle_t::event_t _gemv_impl(
           lastEvent = sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-    sb_handle.template release_temp_mem(lastEvent, dot_products_buffer);
+    sb_handle.release_temp_mem(lastEvent, dot_products_buffer);
 
   } else  // Local memory kernel
   {
@@ -211,7 +211,7 @@ typename sb_handle_t::event_t _gemv_impl(
           lastEvent = sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-    sb_handle.template release_temp_mem(lastEvent, dot_products_buffer);
+    sb_handle.release_temp_mem(lastEvent, dot_products_buffer);
   }
   return ret;
 }
@@ -341,7 +341,7 @@ typename sb_handle_t::event_t _trmv_impl(
   ret = concatenate_vectors(
       ret, lastEvent = sb_handle.execute(assignOp, localSize, ret));
 
-  sb_handle.template release_temp_mem(lastEvent, valT1);
+  sb_handle.release_temp_mem(lastEvent, valT1);
 
   return ret;
 }
@@ -403,7 +403,7 @@ typename sb_handle_t::event_t _trsv_impl(
       static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)),
       _dependencies);
 
-  sb_handle.template release_temp_mem(ret, sync_buffer);
+  sb_handle.release_temp_mem(ret, sync_buffer);
 
   return ret;
 #endif
@@ -525,8 +525,8 @@ typename sb_handle_t::event_t _symv_impl(
   ret = concatenate_vectors(
       ret, lastEvent = sb_handle.execute(assignOp, localSize, ret));
 
-  sb_handle.template release_temp_mem(lastEvent, valTR);
-  sb_handle.template release_temp_mem(lastEvent, valTC);
+  sb_handle.release_temp_mem(lastEvent, valTR);
+  sb_handle.release_temp_mem(lastEvent, valTC);
 
   return ret;
 }
@@ -680,7 +680,7 @@ typename sb_handle_t::event_t _tbmv_impl(
   auto assignEvent = sb_handle.execute(assignOp, local_range, tbmvEvent);
   auto ret = concatenate_vectors(tbmvEvent, assignEvent);
 
-  sb_handle.template release_temp_mem(assignEvent, res_buffer);
+  sb_handle.release_temp_mem(assignEvent, res_buffer);
 
   return ret;
 }
@@ -735,7 +735,7 @@ typename sb_handle_t::event_t _tpmv_impl(
   auto ret = concatenate_vectors(
       tpmvEvent, lastEvent = sb_handle.execute(assignOp, tpmvEvent));
 
-  sb_handle.template release_temp_mem(lastEvent, res_buffer);
+  sb_handle.release_temp_mem(lastEvent, res_buffer);
 
   return ret;
 }
@@ -798,7 +798,7 @@ typename sb_handle_t::event_t _tbsv_impl(
       static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)),
       _dependencies);
 
-  sb_handle.template release_temp_mem(ret, sync_buffer);
+  sb_handle.release_temp_mem(ret, sync_buffer);
 
   return ret;
 #endif
@@ -863,7 +863,7 @@ typename sb_handle_t::event_t _tpsv_impl(
       static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)),
       _dependencies);
 
-  sb_handle.template release_temp_mem(ret, sync_buffer);
+  sb_handle.release_temp_mem(ret, sync_buffer);
 
   return ret;
 #endif

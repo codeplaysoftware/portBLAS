@@ -355,7 +355,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
                                  static_cast<index_t>(localSize),
                                  static_cast<index_t>(localMemSize), ret));
     }
-    sb_handle.template release_temp_mem({*ret.rbegin()}, gpu_res);
+    sb_handle.release_temp_mem({*ret.rbegin()}, gpu_res);
   }
   return ret;
 }
