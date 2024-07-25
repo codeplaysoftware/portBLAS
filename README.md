@@ -1,7 +1,6 @@
 # portBLAS Implementation
-===
 
-[![Build and Test](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml/badge.svg?event=push)](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/codeplaysoftware/portBLAS/badge)](https://scorecard.dev/viewer/?uri=github.com/codeplaysoftware/portBLAS)
 
 portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL](https://www.khronos.org/sycl/).
 
