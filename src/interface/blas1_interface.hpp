@@ -832,14 +832,14 @@ typename sb_handle_t::event_t _rotmg(
     // portBLAS implementation. Otherwise event dependencies works fine. The
     // issue has been reported to intel/llvm project here:
     // https://github.com/intel/llvm/issues/14623
-    copy_y1.wait();
-    auto deps = _dependencies;
+    if constexpr (mem_type != helper::AllocType::buffer) copy_y1.wait();
+    return sb_handle.execute(operation, _dependencies);
 #else
     auto deps = concatenate_vectors(_dependencies,
                                     typename sb_handle_t::event_t{copy_y1});
+    return sb_handle.execute(operation, deps);
 #endif
 
-    return sb_handle.execute(operation, deps);
   } else {
     auto y1_view = make_vector_view(_y1, inc, vector_size);
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
