@@ -812,6 +812,7 @@ typename sb_handle_t::event_t _rotmg(
   auto d2_view = make_vector_view(_d2, inc, vector_size);
   auto x1_view = make_vector_view(_x1, inc, vector_size);
   auto param_view = make_vector_view(_param, inc, param_size);
+
   if constexpr (std::is_arithmetic_v<container_3_t>) {
     constexpr helper::AllocType mem_type = std::is_pointer_v<container_0_t>
                                                ? helper::AllocType::usm
@@ -826,26 +827,24 @@ typename sb_handle_t::event_t _rotmg(
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
                                               y1_view, param_view);
 #if !defined(AMD_GPU) && !defined(INTEL_GPU) && !defined(NVIDIA_GPU)
-    // This memcpy requires a wait to enforce synchronization. This is due to
-    // workaround a bug present in OpenCL backend that shows up with portBLAS
-    // implementation. Otherwise event dependencies works fine. The issue has
-    // been reported to intel/llvm project here:
+    // This memcpy requires a wait to enforce synchronization for usm. This is
+    // due to workaround a bug present in OpenCL backend that shows up with
+    // portBLAS implementation. Otherwise event dependencies works fine. The
+    // issue has been reported to intel/llvm project here:
     // https://github.com/intel/llvm/issues/14623
     copy_y1.wait();
-    auto ret = _dependencies;
+    auto deps = _dependencies;
 #else
-    auto ret = concatenate_vectors(_dependencies,
-                                   typename sb_handle_t::event_t{copy_y1});
+    auto deps = concatenate_vectors(_dependencies,
+                                    typename sb_handle_t::event_t{copy_y1});
 #endif
 
-    return sb_handle.execute(operation, ret);
+    return sb_handle.execute(operation, deps);
   } else {
     auto y1_view = make_vector_view(_y1, inc, vector_size);
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
                                               y1_view, param_view);
-    auto ret = sb_handle.execute(operation, _dependencies);
-
-    return ret;
+    return sb_handle.execute(operation, _dependencies);
   }
 }
 
