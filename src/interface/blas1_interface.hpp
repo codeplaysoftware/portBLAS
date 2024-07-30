@@ -811,14 +811,42 @@ typename sb_handle_t::event_t _rotmg(
   auto d1_view = make_vector_view(_d1, inc, vector_size);
   auto d2_view = make_vector_view(_d2, inc, vector_size);
   auto x1_view = make_vector_view(_x1, inc, vector_size);
-  auto y1_view = make_vector_view(_y1, inc, vector_size);
   auto param_view = make_vector_view(_param, inc, param_size);
+  if constexpr (std::is_arithmetic_v<container_3_t>) {
+    constexpr helper::AllocType mem_type = std::is_pointer_v<container_0_t>
+                                               ? helper::AllocType::usm
+                                               : helper::AllocType::buffer;
+    auto _y1_tmp = blas::helper::allocate<mem_type, container_3_t>(
+        1, sb_handle.get_queue());
 
-  auto operation =
-      Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view, y1_view, param_view);
-  auto ret = sb_handle.execute(operation, _dependencies);
+    auto copy_y1 =
+        blas::helper::copy_to_device(sb_handle.get_queue(), &_y1, _y1_tmp, 1);
 
-  return ret;
+    auto y1_view = make_vector_view(_y1_tmp, inc, vector_size);
+    auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
+                                              y1_view, param_view);
+#if !defined(AMD_GPU) && !defined(INTEL_GPU) && !defined(NVIDIA_GPU)
+    // This memcpy requires a wait to enforce synchronization. This is due to
+    // workaround a bug present in OpenCL backend that shows up with portBLAS
+    // implementation. Otherwise event dependencies works fine. The issue has
+    // been reported to intel/llvm project here:
+    // https://github.com/intel/llvm/issues/14623
+    copy_y1.wait();
+    auto ret = _dependencies;
+#else
+    auto ret = concatenate_vectors(_dependencies,
+                                   typename sb_handle_t::event_t{copy_y1});
+#endif
+
+    return sb_handle.execute(operation, ret);
+  } else {
+    auto y1_view = make_vector_view(_y1, inc, vector_size);
+    auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
+                                              y1_view, param_view);
+    auto ret = sb_handle.execute(operation, _dependencies);
+
+    return ret;
+  }
 }
 
 /**
