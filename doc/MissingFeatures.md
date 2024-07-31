@@ -1,9 +1,9 @@
 ## Missing Features
 
-The following is a list of all the feature we plan to implement to offer the best and widest blas support possible.
-The order does not imply priority, so feel free to work on the one you prefer.
+The following is a list of all the features we plan to implement to offer the best and widest BLAS support possible.
+The order does not imply any priority, so feel free to work on the one you prefer.
 
-For all the operator input type support please refer to this [documentation](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas)
+For doubt on input types or operators support please refer to this [documentation](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas)
 
 - Add row-major support to level-1 operators
 - Add row-major support to level-2 operators
@@ -32,5 +32,5 @@ For all the operator input type support please refer to this [documentation](htt
 - Implement [imatcopy_batch](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/imatcopy_batch#onemkl-blas-imatcopy-batch) extension operator
 - Implement [gemm_bias](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/gemm_bias.html#onemkl-blas-gemm-bias) extension operator
 - Add different input types support to [gemm](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/gemm#onemkl-blas-gemm)/[gemm_batch](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/gemm_batch#onemkl-blas-gemm-batch). 
-- Add half support to level-1 operators that required it. (dot, nrm2,ro, rotg, scal, swap, iamax, iamin)
-- Add bfloat16 support to level-1 operators that required it. (dot, nrm2, rot)
+- Add half support to level-1 operators that required it. (dot, nrm2, rot)
+- Add bfloat16 support to level-1 operators that required it. (axpy, copy, dot, nrm2, rot, scal)
