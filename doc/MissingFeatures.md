@@ -1,9 +1,9 @@
 ## Missing Features
 
-The following is a list of all the features we plan to implement to offer the best and widest BLAS support possible.
+The following is a list of all the features we plan to implement to provide the best and broadest BLAS support possible.
 The order does not imply any priority, so feel free to work on the one you prefer.
 
-For doubt on input types or operators support please refer to this [documentation](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas)
+For questions regarding input types or operators support, please refer to this [documentation](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas)
 
 - Add row-major support to level-1 operators
 - Add row-major support to level-2 operators
