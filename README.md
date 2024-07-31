@@ -36,6 +36,7 @@ the project.
     - [CMake options](#cmake-options)
   - [Tests and benchmarks](#tests-and-benchmarks)
   - [Contributing to the project](#contributing-to-the-project)
+    - [Missing features](#missing-features)
     - [Guides and Other Documents](#guides-and-other-documents)
 
 ## Motivation
@@ -518,6 +519,12 @@ portBLAS is an Open Source project maintained by the HPCA group and
 Codeplay Software Ltd.
 Feel free to create an issue on the Github tracker to request features or
 report bugs.
+
+### Missing features
+
+Currently portBLAS is not complete, at [this link](doc/MissingFeatures.md) there is a list of the feature still missing.
+From input types support to new operators feel free to work on any of those.
+
 
 ### Guides and Other Documents
 
