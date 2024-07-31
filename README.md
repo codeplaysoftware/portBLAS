@@ -525,7 +525,6 @@ report bugs.
 Currently portBLAS is not complete, at [this link](doc/MissingFeatures.md) there is a list of the feature still missing.
 From input types support to new operators feel free to work on any of those.
 
-
 ### Guides and Other Documents
 
 - [How to add a new operation](doc/AddingBlas3Op.md)
