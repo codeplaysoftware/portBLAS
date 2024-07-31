@@ -820,8 +820,8 @@ typename sb_handle_t::event_t _rotmg(
     auto _y1_tmp = blas::helper::allocate<mem_type, container_3_t>(
         1, sb_handle.get_queue());
 
-    auto copy_y1 =
-        blas::helper::copy_to_device(sb_handle.get_queue(), &_y1, _y1_tmp, 1);
+    auto copy_y1 = blas::helper::copy_to_device(sb_handle.get_queue(), &_y1,
+                                                _y1_tmp, 1, _dependencies);
 
     auto y1_view = make_vector_view(_y1_tmp, inc, vector_size);
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
@@ -833,13 +833,8 @@ typename sb_handle_t::event_t _rotmg(
     // issue has been reported to intel/llvm project here:
     // https://github.com/intel/llvm/issues/14623
     if constexpr (mem_type != helper::AllocType::buffer) copy_y1.wait();
-    return sb_handle.execute(operation, _dependencies);
-#else
-    auto deps = concatenate_vectors(_dependencies,
-                                    typename sb_handle_t::event_t{copy_y1});
-    return sb_handle.execute(operation, deps);
 #endif
-
+    return sb_handle.execute(operation, typename sb_handle_t::event_t{copy_y1});
   } else {
     auto y1_view = make_vector_view(_y1, inc, vector_size);
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
