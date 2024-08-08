@@ -101,12 +101,12 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
   index_t row = 0, col = 0;
 
-#if defined(INTEL_GPU) || defined(NVIDIA_GPU)
+#if (defined(INTEL_GPU) || defined(NVIDIA_GPU)) && not defined(__ADAPTIVECPP__)
   if (!id) {
 #endif
     Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col(
         global_idx, N_, row, col);
-#if defined(INTEL_GPU) || defined(NVIDIA_GPU)
+#if (defined(INTEL_GPU) || defined(NVIDIA_GPU)) && not defined(__ADAPTIVECPP__)
   }
   sycl::vec<index_t, 2> bcast_idxs{row, col};
   bcast_idxs = sycl::group_broadcast(ndItem.get_group(), bcast_idxs);
@@ -115,7 +115,7 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 #endif
 
   if (global_idx < lhs_size) {
-#if defined(INTEL_GPU) || defined(NVIDIA_GPU)
+#if (defined(INTEL_GPU) || defined(NVIDIA_GPU)) && not defined(__ADAPTIVECPP__)
     if constexpr (isUpper) {
       if (id) {
         row += id;
