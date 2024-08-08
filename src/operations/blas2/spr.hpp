@@ -101,20 +101,21 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
   index_t row = 0, col = 0;
 
-#ifndef __ADAPTIVECPP__
+#if (defined(INTEL_GPU) || defined(NVIDIA_GPU)) && not defined(__ADAPTIVECPP__)
   if (!id) {
 #endif
     Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col(
         global_idx, N_, row, col);
-#ifndef __ADAPTIVECPP__
+#if (defined(INTEL_GPU) || defined(NVIDIA_GPU)) && not defined(__ADAPTIVECPP__)
   }
-
-  row = sycl::group_broadcast(ndItem.get_group(), row);
-  col = sycl::group_broadcast(ndItem.get_group(), col);
+  sycl::vec<index_t, 2> bcast_idxs{row, col};
+  bcast_idxs = sycl::group_broadcast(ndItem.get_group(), bcast_idxs);
+  row = bcast_idxs[0];
+  col = bcast_idxs[1];
 #endif
 
   if (global_idx < lhs_size) {
-#ifndef __ADAPTIVECPP__
+#if (defined(INTEL_GPU) || defined(NVIDIA_GPU)) && not defined(__ADAPTIVECPP__)
     if constexpr (isUpper) {
       if (id) {
         row += id;
