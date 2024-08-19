@@ -1,7 +1,7 @@
 ## Missing Features
 
-The following is a list of all the features we plan to implement to provide the best and broadest BLAS support possible.
-The order does not imply any priority, so feel free to work on the one you prefer.
+The following is a list of features missing to match the support from [oneAPI oneMKL BLAS](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas).
+The order does not imply any priority.
 
 For questions regarding input types or operators support, please refer to this [documentation](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas)
 
