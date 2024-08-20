@@ -834,7 +834,11 @@ typename sb_handle_t::event_t _rotmg(
     // https://github.com/intel/llvm/issues/14623
     if constexpr (mem_type != helper::AllocType::buffer) copy_y1.wait();
 #endif
-    return sb_handle.execute(operation, typename sb_handle_t::event_t{copy_y1});
+    auto operator_event =
+        sb_handle.execute(operation, typename sb_handle_t::event_t{copy_y1});
+    blas::helper::enqueue_deallocate(operator_event, _y1_tmp,
+                                     sb_handle.get_queue());
+    return operator_event;
   } else {
     auto y1_view = make_vector_view(_y1, inc, vector_size);
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
