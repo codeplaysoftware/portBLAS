@@ -22,6 +22,9 @@ For questions regarding input types or operators support, please refer to this [
 - Implement [hpr](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/hpr.html#onemkl-blas-hpr) level-2 operator
 - Implement [hpr2](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/hpr2.html#onemkl-blas-hpr2) level-2 operator
 - Add complex support to level-3 operators that required it.(trsm)
+- Implement [hemm](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/hemm#onemkl-blas-hemm) level-3 operator
+- Implement [herk](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/herk#onemkl-blas-herk) level-3 operator
+- Implement [her2k](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/her2k#onemkl-blas-her2k) level-3 operator
 - Implement [syrk](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/syrk.html#onemkl-blas-syrk) level-3 operator
 - Implement [syr2k](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/syr2k.html#onemkl-blas-syr2k) level-3  operator
 - Implement [trmm](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/trmm.html#onemkl-blas-trmm) level-3 operator
@@ -34,3 +37,7 @@ For questions regarding input types or operators support, please refer to this [
 - Add different input types support to [gemm](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/gemm#onemkl-blas-gemm)/[gemm_batch](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/gemm_batch#onemkl-blas-gemm-batch). 
 - Add half support to level-1 operators that required it. (dot, nrm2, rot)
 - Add bfloat16 support to level-1 operators that required it. (axpy, copy, dot, nrm2, rot, scal)
+- Add interface support for scalar value on device for level-1 operators (axpy, rot, scal)
+- Add interface support for scalar value on device for level-2 operators (gbmv, gemv, ger, sbmv, spmv, spr, spr2, symv, syr, syr2)
+- Add interface support for scalar value on device for level-3 operators (gemm, symm, trmm)
+- Add interface support for scalar value on device for extension operators (axpy_batch, omatcopy, omatcopy2, omatadd, omatcopy_batch, omatadd_batch)
