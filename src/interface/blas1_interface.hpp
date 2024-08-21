@@ -826,12 +826,15 @@ typename sb_handle_t::event_t _rotmg(
     auto y1_view = make_vector_view(_y1_tmp, inc, vector_size);
     auto operation = Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view,
                                               y1_view, param_view);
-#if !defined(AMD_GPU) && !defined(INTEL_GPU) && !defined(NVIDIA_GPU)
+#if !defined(AMD_GPU) && !defined(NVIDIA_GPU)
     // This memcpy requires a wait to enforce synchronization for usm. This is
     // due to workaround a bug present in OpenCL backend that shows up with
     // portBLAS implementation. Otherwise event dependencies works fine. The
     // issue has been reported to intel/llvm project here:
     // https://github.com/intel/llvm/issues/14623
+    // Same issue arises on Intel ARC and Intel iGPU, not sure if Intel PVC
+    // hides the problem or it is not present. For extra safety introducing this
+    // sync.
     if constexpr (mem_type != helper::AllocType::buffer) copy_y1.wait();
 #endif
     auto operator_event =

@@ -72,10 +72,21 @@ template typename SB_Handle::event_t _rotmg(
     BufferIterator<${DATA_TYPE}> _y1, BufferIterator<${DATA_TYPE}> _param,
     const typename SB_Handle::event_t& dependencies);
 
+template typename SB_Handle::event_t _rotmg(
+    SB_Handle& sb_handle, BufferIterator<${DATA_TYPE}> _d1,
+    BufferIterator<${DATA_TYPE}> _d2, BufferIterator<${DATA_TYPE}> _x1,
+    ${DATA_TYPE} _y1, BufferIterator<${DATA_TYPE}> _param,
+    const typename SB_Handle::event_t& dependencies);
+
 #ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _rotmg(
     SB_Handle& sb_handle, ${DATA_TYPE} * _d1, ${DATA_TYPE} * _d2,
     ${DATA_TYPE} * _x1, ${DATA_TYPE} * _y1, ${DATA_TYPE} * _param,
+    const typename SB_Handle::event_t& dependencies);
+
+template typename SB_Handle::event_t _rotmg(
+    SB_Handle& sb_handle, ${DATA_TYPE} * _d1, ${DATA_TYPE} * _d2,
+    ${DATA_TYPE} * _x1, ${DATA_TYPE} _y1, ${DATA_TYPE} * _param,
     const typename SB_Handle::event_t& dependencies);
 #endif
 
