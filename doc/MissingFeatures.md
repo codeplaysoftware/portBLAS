@@ -3,7 +3,7 @@
 The following is a list of features missing in portBLAS for supporting entirely the [oneAPI oneMKL BLAS interface](https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemkl/source/domains/blas/blas).
 The order does not reflect any kind of priority.
 
-For questions regarding input types or operators support, please refer to this the link above.
+For questions regarding input types or operators support, please refer to the link above.
 
 - Add row-major support to level-1 operators.
 - Add row-major support to level-2 operators.
