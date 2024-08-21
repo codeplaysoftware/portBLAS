@@ -523,3 +523,4 @@ report bugs.
 
 - [How to add a new operation](doc/AddingBlas3Op.md)
 - [Autotuner Developer Guide](doc/Autotuner.md)
+- [Missing Features](doc/MissingFeatures.md)
