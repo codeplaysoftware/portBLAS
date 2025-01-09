@@ -4,6 +4,12 @@
 
 portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL](https://www.khronos.org/sycl/).
 
+**Important Note:** The portBLAS project has been transfered to UXL foundation under
+[generic-sycl-components](https://github.com/uxlfoundation/generic-sycl-components).
+For an equivalent of portBLAS please use
+[oneMath](https://github.com/uxlfoundation/oneMath) and only enable the generic
+SYCL BLAS backend.
+
 portBLAS is an ongoing collaboration with the *High Performance Computing 
 & Architectures (HPCA) group* from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
